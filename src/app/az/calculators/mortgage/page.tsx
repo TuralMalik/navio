@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/utils";
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
 const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition appearance-none";
 
-type ErkenRejim = "muddət" | "odəniş" | "hər ikisi";
+type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
@@ -281,7 +281,6 @@ export default function MortgagePage() {
                       {([
                         { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
                         { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
-                        { key: "hər ikisi", icon: "⚡", label: "Hər ikisi", note: "Eyni nəticə" },
                       ] as { key: ErkenRejim; icon: string; label: string; note: string }[]).map(({ key, icon, label, note }) => (
                         <button key={key} onClick={() => setErkenRejim(key)}
                           className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
@@ -356,15 +355,15 @@ export default function MortgagePage() {
                       <div className="bg-emerald-50 rounded-xl p-3">
                         <p className="text-xs text-gray-400 mb-1">Yeni müddət</p>
                         <p className="text-xl font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
-                        {extraResult.finalMonths < months && (erkenRejim === "muddət" || erkenRejim === "hər ikisi") && (
+                        {extraResult.finalMonths < months && (erkenRejim === "muddət") && (
                           <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{months - extraResult.finalMonths} ay</p>
                         )}
                       </div>
                       <div className="bg-emerald-50 rounded-xl p-3">
                         {erkenRejim === "odəniş" ? (
                           <>
-                            <p className="text-xs text-gray-400 mb-1">Son aylıq ödəniş</p>
-                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.lastPayment)}</p>
+                            <p className="text-xs text-gray-400 mb-1">Qənaət edilmiş məbləğ</p>
+                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
                           </>
                         ) : (
                           <>
