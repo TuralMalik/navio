@@ -283,7 +283,7 @@ export const articles: Article[] = [
   {
     slug: "movcud-kredit-odenisleri-yeni-kreditə-tesiri",
     title: "Mövcud kredit ödənişləri yeni kreditə necə təsir edir?",
-    summary: "Mövcud ödənişlər BGN hesablamasına daxil edilir — yeni kredit üçün qalan "yer" azalır.",
+    summary: "Mövcud ödənişlər BGN hesablamasına daxil edilir — yeni kredit üçün qalan yer azalır.",
     category: "Borc yükü",
     readingTime: 1,
     content: `Bank yeni kredit üçün "yer" hesablayarkən mövcud ödənişlərə baxır. Gəlir 1000 AZN, 70% hədd 700 AZN, mövcud ödəniş 400 AZN isə — yeni kredit üçün cəmi 300 AZN/ay yer qalır. Mövcud borcları azaltmaq yeni kredit götürmək üçün ən effektiv yoldur.`,

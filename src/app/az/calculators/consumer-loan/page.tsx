@@ -24,6 +24,7 @@ export default function ConsumerLoanPage() {
   const [other, setOther] = useState(0);
 
   const [showExtra, setShowExtra] = useState(false);
+  const [erkenRejim, setErkenRejim] = useState<"muddət" | "odəniş">("muddət");
 
   const [recurringEnabled, setRecurringEnabled] = useState(false);
   const [recurringAmount, setRecurringAmount] = useState(100);
@@ -64,6 +65,7 @@ export default function ConsumerLoanPage() {
       const interestCost = basePayment * months - principal;
       return {
         firstPayment: basePayment,
+        lastPayment: basePayment,
         totalPayment,
         interestCost,
         additionalCosts: commission + insurance + other,
@@ -71,6 +73,7 @@ export default function ConsumerLoanPage() {
         finalMonths: months,
         savings: 0,
         withExtra: false,
+        erkenRejim,
       };
     }
 
@@ -81,18 +84,22 @@ export default function ConsumerLoanPage() {
     let totalPenalty = 0;
     let actualMonths = 0;
     const toMonth = recurringTo === "" ? months : Number(recurringTo);
+    // current monthly payment — may change in "odəniş" mode after each extra payment
+    let currentPayment = basePayment;
+    let remainingMonths = months;
 
-    for (let i = 1; i <= months; i++) {
+    for (let i = 1; i <= months * 2; i++) {
       if (balance <= 0) break;
       actualMonths = i;
 
       const interest = balance * r;
-      const schedPayment = Math.min(basePayment, balance + interest);
+      const schedPayment = Math.min(currentPayment, balance + interest);
       const principalPart = schedPayment - interest;
 
       totalInterest += interest;
       totalPaid += schedPayment;
       balance -= principalPart;
+      remainingMonths = Math.max(1, remainingMonths - 1);
 
       if (balance <= 0) break;
 
@@ -110,6 +117,17 @@ export default function ConsumerLoanPage() {
         totalPenalty += pen;
         totalPaid += actualExtra + pen;
         balance -= actualExtra;
+
+        if (balance <= 0) break;
+
+        // Recalculate payment for "aylıq ödənişi azalt" mode
+        if (erkenRejim === "odəniş" && remainingMonths > 0 && balance > 0) {
+          const newR = r;
+          const newN = remainingMonths;
+          if (newN > 0) {
+            currentPayment = (balance * newR * Math.pow(1 + newR, newN)) / (Math.pow(1 + newR, newN) - 1);
+          }
+        }
       }
 
       if (balance <= 0) break;
@@ -121,6 +139,7 @@ export default function ConsumerLoanPage() {
 
     return {
       firstPayment: basePayment,
+      lastPayment: currentPayment,
       totalPayment: newTotalPayment,
       interestCost: totalInterest,
       additionalCosts: commission + insurance + other,
@@ -128,11 +147,12 @@ export default function ConsumerLoanPage() {
       finalMonths: actualMonths,
       savings: Math.max(0, savings),
       withExtra: true,
+      erkenRejim,
     };
   }, [
     principal, months, rate, commission, insurance, other,
     showExtra, recurringEnabled, recurringAmount, recurringFrom, recurringTo,
-    oneTimePayments, penalty,
+    oneTimePayments, penalty, erkenRejim,
   ]);
 
   return (
@@ -211,6 +231,38 @@ export default function ConsumerLoanPage() {
 
               {showExtra && (
                 <div className="mt-5 space-y-5">
+
+                  {/* Erken ödəniş rejimi */}
+                  <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
+                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödəniş nəyi azaltsın?</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setErkenRejim("muddət")}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                          erkenRejim === "muddət"
+                            ? "border-blue-600 bg-white text-blue-700 shadow-sm"
+                            : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
+                        }`}
+                      >
+                        <span className="text-lg">⏱️</span>
+                        <span>Müddəti azalt</span>
+                        <span className="text-xs font-normal text-gray-400">Aylıq ödəniş eyni qalır</span>
+                      </button>
+                      <button
+                        onClick={() => setErkenRejim("odəniş")}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                          erkenRejim === "odəniş"
+                            ? "border-blue-600 bg-white text-blue-700 shadow-sm"
+                            : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
+                        }`}
+                      >
+                        <span className="text-lg">💸</span>
+                        <span>Aylıq ödənişi azalt</span>
+                        <span className="text-xs font-normal text-gray-400">Müddət eyni qalır</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="border border-gray-100 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <input
@@ -313,10 +365,23 @@ export default function ConsumerLoanPage() {
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-400 mb-1">Yekun müddət</p>
                         <p className="text-xl font-bold text-gray-900">{result.finalMonths} ay</p>
+                        {result.withExtra && result.finalMonths < months && result.erkenRejim === "muddət" && (
+                          <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{months - result.finalMonths} ay qısaldı</p>
+                        )}
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-1">Artıq ödəniş</p>
-                        <p className="text-xl font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
+                        {result.withExtra && result.erkenRejim === "odəniş" && result.lastPayment ? (
+                          <>
+                            <p className="text-xs text-gray-400 mb-1">Son aylıq ödəniş</p>
+                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(result.lastPayment)}</p>
+                            <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{formatCurrency(result.firstPayment - result.lastPayment)} azaldı</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-gray-400 mb-1">Artıq ödəniş</p>
+                            <p className="text-xl font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
+                          </>
+                        )}
                       </div>
                     </div>
 
