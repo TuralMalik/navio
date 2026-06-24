@@ -3,34 +3,26 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  CheckCircle2,
+  ArrowRight,
+  ChevronDown,
   FileSearch,
   Calculator,
   BookOpen,
-  ArrowRight,
-  Shield,
-  Clock,
-  ChevronRight,
-  ChevronDown,
+  TrendingUp,
+  Calendar,
+  Lightbulb,
+  Home,
+  Car,
+  CreditCard,
+  Info,
 } from "lucide-react";
 
 const faqs = [
-  {
-    q: "Navio kredit verir?",
-    a: "Xeyr. Biz sadəcə məlumat platformasıyıq. Kredit qərarını yalnız bank qəbul edir. Bizim nəticə ilkin yoxlama xarakter daşıyır.",
-  },
-  {
-    q: "Hansı sənədlər lazımdır?",
-    a: "Heç bir sənəd tələb olunmur. Yalnız əsas maliyyə məlumatlarınızı daxil etmək kifayətdir.",
-  },
-  {
-    q: "Borc yükü nədir?",
-    a: "Borc yükü gəlirinizin neçə faizinin kredit ödənişlərinə getdiyini göstərir. Banklar adətən 70%-dən yuxarı borc yükü qəbul etmir.",
-  },
-  {
-    q: "Kredit tarixçəm pisdirsə nə olur?",
-    a: "Gecikmələr skoru aşağı salır. Cari gecikməni bağlamaq profilinizi yaxşılaşdırır. Navio bu fərqi sizə göstərir.",
-  },
+  { q: "Navio kredit verir?", a: "Xeyr. Biz sadəcə məlumat platformasıyıq. Kredit qərarını yalnız bank qəbul edir." },
+  { q: "Kredit tarixçəm pisdirsə, nə edə bilərəm?", a: "Cari gecikməni bağlamaq profilinizi yaxşılaşdırır. Navio bu fərqi sizə göstərir." },
+  { q: "Nəticə bank qərarını əvəz edirmi?", a: "Xeyr. Nəticə ilkin qiymətləndirmə xarakterindədir. Yekun qərarı bank verir." },
+  { q: "İlkin yoxlama üçün sənəd lazımdır?", a: "Heç bir sənəd tələb olunmur. Yalnız əsas maliyyə məlumatlarınızı daxil etmək kifayətdir." },
+  { q: "Borc yükü necə hesablanır?", a: "Borc yükü = aylıq kredit ödənişləri / aylıq gəlir × 100. Banklar adətən 70%-dən yuxarı qəbul etmir." },
 ];
 
 export default function HomePage() {
@@ -40,162 +32,151 @@ export default function HomePage() {
     <main className="bg-white">
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#0f1f3d] via-[#1a3460] to-[#1e4db7]">
-        {/* subtle grid */}
-        <div className="absolute inset-0 opacity-5" style={{backgroundImage:"url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M0 0h1v40H0zm40 0h1v40h-1zM0 0v1h40V0zm0 40v1h40v-1z'/%3E%3C/g%3E%3C/svg%3E\")"}} />
+      <section className="py-16 md:py-24 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left */}
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
+                Banka müraciət etməzdən əvvəl kredit profilinizi yoxlayın
+              </h1>
+              <p className="text-lg text-gray-500 mb-6 leading-relaxed">
+                Kredit profilinizi, aylıq ödənişi və əsas risk faktorlarını əvvəlcədən qiymətləndirin. Daha məlumatlı qərar qəbul edin.
+              </p>
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm text-blue-100 mb-6">
-            <Shield size={14} />
-            Sənəd tələb olunmur · Pulsuzdur · 2 dəqiqə
-          </div>
-
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5">
-            Banka getməzdən əvvəl<br />
-            <span className="text-blue-300">cavabı bil</span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-blue-100 mb-8 max-w-xl mx-auto leading-relaxed">
-            Kredit alıb-almayacağını, aylıq ödənişin nə qədər olacağını və hansı risklərin olduğunu əvvəlcədən öyrən.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/az/credit-check"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-blue-900 bg-white hover:bg-blue-50 transition-all shadow-xl text-base"
-            >
-              İlkin yoxlamanı başla
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/az/calculators/consumer-loan"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-white border border-white/30 hover:bg-white/10 transition-all text-base"
-            >
-              Ödənişi hesabla
-            </Link>
-          </div>
-
-          {/* Mini score preview */}
-          <div className="mt-14 flex justify-center">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 w-full max-w-sm text-left">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-blue-200 uppercase tracking-wide">Nümunə nəticə</span>
-                <span className="text-xs bg-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded-full font-semibold border border-emerald-400/30">Yaxşı profil</span>
-              </div>
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative w-14 h-14 shrink-0">
-                  <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
-                    <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="6" />
-                    <circle cx="28" cy="28" r="22" fill="none" stroke="#60a5fa" strokeWidth="6"
-                      strokeDasharray={`${(72 / 100) * 138} 138`} strokeLinecap="round" />
-                  </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white">72</span>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">72 <span className="text-sm text-blue-300 font-normal">/ 95</span></p>
-                  <p className="text-xs text-blue-300">Kredit skoru</p>
-                </div>
-              </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-wrap gap-6 mb-8 text-sm text-gray-500">
                 {[
-                  { label: "Borc yükü", val: "Orta", ok: false },
-                  { label: "İş stajı", val: "Yaxşı", ok: true },
-                  { label: "Kredit tarixçəsi", val: "Yaxşı", ok: true },
-                ].map((f) => (
-                  <div key={f.label} className="flex justify-between text-xs">
-                    <span className="text-blue-200">{f.label}</span>
-                    <span className={f.ok ? "text-emerald-300 font-semibold" : "text-amber-300 font-semibold"}>{f.val}</span>
+                  { icon: "💳", text: "Pulsuz ilkin yoxlama" },
+                  { icon: "🪪", text: "Şəxsi sənəd tələb olunmur" },
+                  { icon: "⚡", text: "Bir neçə dəqiqədə nəticə" },
+                ].map((t) => (
+                  <div key={t.text} className="flex items-center gap-2">
+                    <span>{t.icon}</span>
+                    <span>{t.text}</span>
                   </div>
                 ))}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/az/credit-check"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md"
+                >
+                  Kredit yoxlaması başla
+                  <ArrowRight size={16} />
+                </Link>
+                <Link
+                  href="/az/calculators"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Kalkulyatorlardan istifadə et
+                </Link>
+              </div>
+            </div>
+
+            {/* Right — score card */}
+            <div className="flex justify-center lg:justify-end">
+              <div className="bg-white rounded-3xl border border-gray-200 shadow-xl p-8 w-full max-w-sm">
+                {/* Gauge */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative w-40 h-24 mb-2">
+                    <svg viewBox="0 0 160 90" className="w-40 h-24">
+                      <path d="M 10 80 A 70 70 0 0 1 150 80" fill="none" stroke="#e5e7eb" strokeWidth="12" strokeLinecap="round" />
+                      <path d="M 10 80 A 70 70 0 0 1 150 80" fill="none" stroke="#3b82f6" strokeWidth="12" strokeLinecap="round"
+                        strokeDasharray="175 220" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+                      <span className="text-3xl font-bold text-gray-900">72<span className="text-lg text-gray-400 font-normal"> / 95</span></span>
+                      <span className="text-xs text-gray-400">Kredit profili</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs font-medium text-gray-400">0</span>
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full" />
+                    <span className="text-xs font-medium text-gray-400">95</span>
+                  </div>
+                  <span className="mt-3 px-4 py-1 bg-emerald-50 text-emerald-700 text-sm font-bold rounded-full border border-emerald-100">Yaxşı</span>
+                </div>
+                <p className="text-sm text-gray-500 text-center leading-relaxed">
+                  Bank müraciətinə daha hazırlıqlı olmaq üçün profilinizi və risk faktorlarınızı görün.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS — 3 steps */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Necə işləyir?</h2>
-            <p className="text-gray-500">3 addımda kredit profilini öyrən</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* HOW IT WORKS */}
+      <section className="py-16 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">Necə işləyir?</h2>
+          <div className="w-10 h-1 bg-blue-600 rounded mx-auto mb-12" />
+
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* connecting line */}
+            <div className="hidden md:block absolute top-8 left-1/6 right-1/6 h-0.5 bg-gray-100" style={{left:"16.7%", right:"16.7%"}} />
+
             {[
-              { num: "1", title: "Məlumatlarını daxil et", desc: "Gəlirini, mövcud ödənişlərini və bir neçə əsas məlumatı qeyd et. Sənəd lazım deyil." },
-              { num: "2", title: "Nəticəni gör", desc: "Kredit skoru, borc yükü və əsas risk faktorları dərhal hesablanır." },
-              { num: "3", title: "Nə etməli olduğunu bil", desc: "Profili gücləndirib bankda şansını artırmaq üçün konkret tövsiyələr alırsan." },
+              { num: "1", icon: <FileSearch size={22} className="text-blue-600" />, title: "Məlumatları daxil edin", desc: "Sadə formu doldurun və maliyyə məlumatlarınızı paylaşın." },
+              { num: "2", icon: <TrendingUp size={22} className="text-green-600" />, title: "Analiz edirik", desc: "Sistem məlumatlarınızı analiz edərək kredit profilinizi hesablayır." },
+              { num: "3", icon: <Lightbulb size={22} className="text-purple-600" />, title: "Nəticəni alın və təkmilləşdirin", desc: "Nəticəni görün və kredit profilinizi yaxşılaşdırmaq üçün tövsiyələr alın." },
             ].map((s) => (
-              <div key={s.num} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg mb-4">{s.num}</div>
+              <div key={s.num} className="flex flex-col items-center text-center">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shadow-sm">
+                    {s.icon}
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">{s.num}</span>
+                </div>
                 <h3 className="font-bold text-gray-900 mb-2">{s.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
-          <div className="text-center mt-8">
-            <Link
-              href="/az/credit-check"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md"
-            >
-              İndi yoxla — pulsuzdur
-              <ArrowRight size={16} />
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* 3 TOOLS */}
-      <section className="py-16 bg-white">
+      {/* HOW NAVIO HELPS */}
+      <section className="py-16 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Navio-da nə var?</h2>
-            <p className="text-gray-500">Kredit qərarından əvvəl lazım olan hər şey</p>
-          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">Navio sizə necə kömək edir?</h2>
+          <div className="w-10 h-1 bg-blue-600 rounded mx-auto mb-12" />
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                icon: <FileSearch size={26} className="text-blue-600" />,
+                icon: <FileSearch size={22} className="text-white" />,
+                bg: "bg-blue-600",
                 title: "Kredit yoxlaması",
-                desc: "Kredit alıb-almayacağını, borc yükünü və risk faktorlarını əvvəlcədən gör.",
-                cta: "Yoxlamağa başla",
+                desc: "Kredit profilinizi və əsas risk faktorlarınızı yoxlayın.",
+                cta: "Yoxlamaya başla",
                 href: "/az/credit-check",
-                badge: "Ən populyar",
               },
               {
-                icon: <Calculator size={26} className="text-blue-600" />,
-                title: "Kredit kalkulyatoru",
-                desc: "Aylıq ödənişi, ümumi xərci və erkən ödənişin nə qədər qənaət etdirəcəyini hesabla.",
-                cta: "Hesabla",
+                icon: <Calculator size={22} className="text-white" />,
+                bg: "bg-emerald-500",
+                title: "Kredit kalkulyatorları",
+                desc: "İstehlak, ipoteka və avtokredit üçün ödənişləri hesablayın.",
+                cta: "Kalkulyatorları aç",
                 href: "/az/calculators",
-                badge: null,
               },
               {
-                icon: <BookOpen size={26} className="text-blue-600" />,
+                icon: <BookOpen size={22} className="text-white" />,
+                bg: "bg-purple-500",
                 title: "Maliyyə köməkçisi",
-                desc: "Borc yükü, kredit tarixçəsi, bank tələbləri haqqında sadə dildə izahatlar.",
-                cta: "Oxu",
+                desc: "Maliyyə vəziyyətinizi yaxşılaşdırmaq üçün tövsiyələr alın.",
+                cta: "Köməkçidən istifadə et",
                 href: "/az/financial-assistant",
-                badge: null,
               },
-            ].map((card) => (
-              <div key={card.title} className="relative bg-white rounded-2xl p-6 border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all flex flex-col gap-4">
-                {card.badge && (
-                  <span className="absolute top-4 right-4 text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-semibold border border-blue-100">{card.badge}</span>
-                )}
-                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                  {card.icon}
+            ].map((c) => (
+              <div key={c.title} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center mb-4`}>
+                  {c.icon}
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{card.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{card.desc}</p>
-                </div>
-                <Link
-                  href={card.href}
-                  className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  {card.cta}
-                  <ChevronRight size={15} />
+                <h3 className="font-bold text-gray-900 mb-2">{c.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{c.desc}</p>
+                <Link href={c.href} className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                  {c.cta} <ArrowRight size={14} />
                 </Link>
               </div>
             ))}
@@ -203,19 +184,53 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* TRUST BANNER */}
-      <section className="bg-blue-600 py-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center gap-8 text-sm text-white">
+      {/* WHAT YOU'LL SEE */}
+      <section className="py-16 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">Nəticədə nə görəcəksiniz?</h2>
+          <div className="w-10 h-1 bg-blue-600 rounded mx-auto mb-12" />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: <Shield size={18} />, text: "Sənəd tələb olunmur" },
-              { icon: <Clock size={18} />, text: "2 dəqiqədə nəticə" },
-              { icon: <CheckCircle2 size={18} />, text: "FIN tələb edilmir" },
-              { icon: <CheckCircle2 size={18} />, text: "Tamamilə pulsuzdur" },
+              { icon: <TrendingUp size={22} className="text-blue-500" />, bg: "bg-blue-50", title: "Kredit profili", desc: "Ümumi vəziyyəti 0–95 arası ilkin qiymətləndirmə ilə görün." },
+              { icon: <Calendar size={22} className="text-emerald-500" />, bg: "bg-emerald-50", title: "Borc yükü", desc: "Yeni kreditdən sonra aylıq ödənişin gəlirə təsirini anlayın." },
+              { icon: <Lightbulb size={22} className="text-amber-500" />, bg: "bg-amber-50", title: "Tövsiyələr", desc: "Profilinizi yaxşılaşdırmaq üçün praktik addımları görün." },
             ].map((t) => (
-              <div key={t.text} className="flex items-center gap-2 font-medium">
-                <span className="text-blue-200">{t.icon}</span>
-                {t.text}
+              <div key={t.title} className="flex gap-4 items-start p-5 rounded-2xl border border-gray-100">
+                <div className={`w-12 h-12 rounded-xl ${t.bg} flex items-center justify-center shrink-0`}>
+                  {t.icon}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-1">{t.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{t.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LOAN TYPES */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">Hansı kreditlər üçün istifadə edə bilərsiniz?</h2>
+          <div className="w-10 h-1 bg-blue-600 rounded mx-auto mb-12" />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { icon: <CreditCard size={22} className="text-blue-500" />, bg: "bg-blue-50", title: "İstehlak krediti", desc: "Nağd pul ehtiyaclarınız üçün kredit imkanlarını hesablayın.", href: "/az/calculators/consumer-loan" },
+              { icon: <Home size={22} className="text-emerald-500" />, bg: "bg-emerald-50", title: "İpoteka krediti", desc: "Ev almaq üçün ipoteka kreditlərinin şərtlərini hesablayın.", href: "/az/calculators/mortgage" },
+              { icon: <Car size={22} className="text-purple-500" />, bg: "bg-purple-50", title: "Avtokredit", desc: "Avtomobil almaq üçün kredit şərtlərini hesablayın.", href: "/az/calculators/auto-loan" },
+            ].map((c) => (
+              <div key={c.title} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center mb-4`}>
+                  {c.icon}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{c.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{c.desc}</p>
+                <Link href={c.href} className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                  Hesabla <ArrowRight size={14} />
+                </Link>
               </div>
             ))}
           </div>
@@ -223,23 +238,23 @@ export default function HomePage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Tez-tez soruşulanlar</h2>
-          </div>
-          <div className="space-y-3">
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-2">Populyar suallar</h2>
+          <div className="w-10 h-1 bg-blue-600 rounded mx-auto mb-10" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {faqs.map((f, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
                 <button
                   className="w-full text-left px-5 py-4 flex items-center justify-between gap-3"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 >
-                  <span className="font-semibold text-gray-800 text-sm">{f.q}</span>
+                  <span className="font-medium text-gray-800 text-sm">{f.q}</span>
                   <ChevronDown size={16} className={`text-gray-400 shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
                 </button>
                 {openFaq === i && (
-                  <div className="px-5 pb-4 text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
+                  <div className="px-5 pb-4 text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-3">
                     {f.a}
                   </div>
                 )}
@@ -249,20 +264,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* BOTTOM CTA */}
-      <section className="bg-white py-14 border-t border-gray-100">
-        <div className="max-w-xl mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Hazırsan?
-          </h2>
-          <p className="text-gray-500 mb-6">Banka getməzdən əvvəl 2 dəqiqə vaxt ayır.</p>
-          <Link
-            href="/az/credit-check"
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg text-base"
-          >
-            İlkin yoxlamanı başla
-            <ArrowRight size={18} />
-          </Link>
+      {/* DISCLAIMER */}
+      <section className="pb-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-start gap-3 border border-blue-200 rounded-2xl p-5 bg-blue-50">
+            <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-blue-700 leading-relaxed">
+              <strong>Navio bank deyil.</strong> Heç bir kredit vermir və banka müraciətin nəticəsinə zəmanət vermir. Nəticələr ilkin qiymətləndirmə xarakterindədir.
+            </p>
+          </div>
         </div>
       </section>
 
