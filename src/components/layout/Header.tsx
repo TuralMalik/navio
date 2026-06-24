@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { label: "Kredit yoxlaması", href: "/az/credit-check" },
+  { label: "Kredit yoxlaması", href: "/az/kredit-yoxlama" },
   { label: "Kredit kalkulyatoru", href: "/az/calculators" },
   { label: "Maliyyə köməkçisi", href: "/az/financial-assistant" },
   { label: "Haqqımızda", href: "/az/about" },
@@ -60,7 +60,7 @@ export function Header() {
               Qeydiyyat
             </Link>
             <Link
-              href="/az/credit-check"
+              href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-2 rounded-lg text-white transition-all"
               style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}
             >
@@ -100,7 +100,7 @@ export function Header() {
               Qeydiyyat
             </Link>
             <Link
-              href="/az/credit-check"
+              href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-3 rounded-lg text-white text-center"
               style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}
             >

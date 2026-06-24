@@ -66,7 +66,7 @@ export default function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="/az/credit-check"
+                  href="/az/kredit-yoxlama"
                   className="group inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl font-bold text-blue-700 bg-white hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 duration-200"
                 >
                   Kredit yoxlaması başla
@@ -187,7 +187,7 @@ export default function HomePage() {
                 title: "Kredit yoxlaması",
                 desc: "Kredit profilinizi və əsas risk faktorlarınızı yoxlayın.",
                 cta: "Yoxlamaya başla",
-                href: "/az/credit-check",
+                href: "/az/kredit-yoxlama",
               },
               {
                 icon: <Calculator size={24} className="text-white" />,
@@ -321,7 +321,7 @@ export default function HomePage() {
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Hazırsınız?</h2>
           <p className="text-blue-100 mb-8">Kredit müraciətindən əvvəl bir neçə dəqiqə vaxtınızı ayırın.</p>
           <Link
-            href="/az/credit-check"
+            href="/az/kredit-yoxlama"
             className="group inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-blue-700 bg-white hover:bg-blue-50 shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200"
           >
             Pulsuz yoxlamanı başla
