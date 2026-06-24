@@ -60,7 +60,7 @@ function calcBankScore(f: BankForm) {
 
   const yeniOdenis = annuityPayment(meblег, muddət, faiz);
   // Card limit contributes 5% of limit as monthly obligation
-  const kartAyliOdenis = movcudKartLimit * 0.05;
+  const kartAyliOdenis = annuityPayment(movcudKartLimit, 24, 26);
   const bgn = gelir > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / gelir) * 100 : 999;
   const ageAtEnd = yas + Math.ceil(muddət / 12);
 
@@ -372,20 +372,8 @@ export default function KreditYoxlama() {
                     </Field>
 
                     <Field label="Təxmini illik faiz dərəcəsi (%)" note="Bankın sizə təklif edəcəyi və ya istədiyiniz faiz">
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="number" placeholder="24" min={1} max={60} step={0.5} value={bank.faiz}
-                          onChange={e => setBank(b => ({ ...b, faiz: e.target.value }))} className={inputCls} />
-                        <select value={bank.faiz} onChange={e => setBank(b => ({ ...b, faiz: e.target.value }))} className={selectCls}>
-                          <option value="">Seçin...</option>
-                          <option value="15">15% — Güzəştli</option>
-                          <option value="18">18% — Aşağı</option>
-                          <option value="22">22% — Orta</option>
-                          <option value="24">24% — Standart</option>
-                          <option value="28">28% — Yüksək</option>
-                          <option value="32">32% — Çox yüksək</option>
-                          <option value="36">36% — Maksimum</option>
-                        </select>
-                      </div>
+                      <input type="number" placeholder="24" min={1} max={60} step={0.5} value={bank.faiz}
+                        onChange={e => setBank(b => ({ ...b, faiz: e.target.value }))} className={inputCls} />
                     </Field>
                   </div>
                 </div>
