@@ -185,6 +185,37 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── HOW IT WORKS ── */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Necə işləyir?</h2>
+            <div className="w-10 h-1 bg-blue-600 rounded mx-auto" />
+          </div>
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-blue-200 via-purple-200 to-green-200" />
+            {[
+              { num: "1", icon: <CreditCard size={24} className="text-blue-600" />, bg: "bg-blue-50 border-blue-100", title: "Məlumatları daxil edin", desc: "Sadə formu doldurun, şəxsi sənəd tələb olunmur." },
+              { num: "2", icon: <BarChart2 size={24} className="text-purple-600" />, bg: "bg-purple-50 border-purple-100", title: "Analiz edirik", desc: "Sistem kredit profilinizi avtomatik hesablayır." },
+              { num: "3", icon: <BookOpen size={24} className="text-emerald-600" />, bg: "bg-emerald-50 border-emerald-100", title: "Nəticəni alın", desc: "Nəticəni görün, tövsiyələrlə profilinizi yaxşılaşdırın." },
+            ].map((s) => (
+              <div key={s.num} className="group flex flex-col items-center text-center">
+                <div className="relative mb-5">
+                  <div className={`w-20 h-20 rounded-2xl ${s.bg} border-2 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:shadow-lg transition-all duration-300`}>
+                    {s.icon}
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shadow">
+                    {s.num}
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── FEATURE CARDS ── */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -226,6 +257,62 @@ export default function HomePage() {
                 </div>
                 <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
               </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SERVICES ── */}
+      <section className="py-20 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Navio sizə necə kömək edir?</h2>
+            <div className="w-10 h-1 bg-blue-600 rounded mx-auto" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "Kredit yoxlaması", desc: "Kredit profilinizi və əsas risk faktorlarınızı yoxlayın.", cta: "Yoxlamaya başla", href: "/az/kredit-yoxlama" },
+              { icon: <Calculator size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "Kredit kalkulyatorları", desc: "İstehlak, ipoteka və avtokredit üçün ödənişləri hesablayın.", cta: "Kalkulyatorları aç", href: "/az/calculators" },
+              { icon: <BookOpen size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Maliyyə köməkçisi", desc: "Maliyyə vəziyyətinizi yaxşılaşdırmaq üçün tövsiyələr alın.", cta: "Köməkçidən istifadə et", href: "/az/financial-assistant" },
+            ].map((c) => (
+              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                  {c.icon}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{c.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-5">{c.desc}</p>
+                <Link href={c.href} className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all duration-200">
+                  {c.cta} <ArrowRight size={14} />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── LOAN TYPES ── */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-indigo-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Hansı kreditlər üçün?</h2>
+            <div className="w-10 h-1 bg-blue-600 rounded mx-auto" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "İstehlak krediti", desc: "Nağd pul ehtiyaclarınız üçün kredit imkanlarını hesablayın.", href: "/az/calculators/consumer-loan" },
+              { icon: <Shield size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "İpoteka krediti", desc: "Ev almaq üçün ipoteka şərtlərini hesablayın.", href: "/az/calculators/mortgage" },
+              { icon: <Zap size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Avtokredit", desc: "Avtomobil almaq üçün kredit şərtlərini hesablayın.", href: "/az/calculators/auto-loan" },
+            ].map((c) => (
+              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300`}>
+                  {c.icon}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{c.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-5">{c.desc}</p>
+                <Link href={c.href} className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all duration-200">
+                  Hesabla <ArrowRight size={14} />
+                </Link>
+              </div>
             ))}
           </div>
         </div>
