@@ -113,48 +113,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS — N26 style */}
-      <section className="py-24 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-4">Necə işləyir?</p>
-          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-16 max-w-xl leading-tight">
-            3 addımda kredit profilini öyrən
-          </h2>
-
-          <div className="space-y-0">
+      {/* HOW IT WORKS — 3 steps */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Necə işləyir?</h2>
+            <p className="text-gray-500">3 addımda kredit profilini öyrən</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              {
-                num: "01",
-                title: "Məlumatlarını daxil et",
-                desc: "Gəlirini, mövcud ödənişlərini və bir neçə əsas məlumatı qeyd et. Sənəd lazım deyil, FIN tələb edilmir.",
-              },
-              {
-                num: "02",
-                title: "Nəticəni dərhal gör",
-                desc: "Kredit skoru, borc yükü və əsas risk faktorları saniyələr içində hesablanır.",
-              },
-              {
-                num: "03",
-                title: "Nə etməli olduğunu bil",
-                desc: "Profili gücləndirib bankda şansını artırmaq üçün konkret tövsiyələr alırsan.",
-              },
-            ].map((s, i) => (
-              <div key={s.num} className={`flex flex-col md:flex-row gap-8 md:gap-16 items-start py-12 ${i < 2 ? "border-b border-gray-100" : ""}`}>
-                <span className="text-7xl md:text-8xl font-black text-gray-100 leading-none shrink-0 select-none md:w-36 text-center">
-                  {s.num}
-                </span>
-                <div className="flex-1 pt-2">
-                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{s.title}</h3>
-                  <p className="text-lg text-gray-500 leading-relaxed max-w-lg">{s.desc}</p>
-                </div>
+              { num: "1", title: "Məlumatlarını daxil et", desc: "Gəlirini, mövcud ödənişlərini və bir neçə əsas məlumatı qeyd et. Sənəd lazım deyil." },
+              { num: "2", title: "Nəticəni gör", desc: "Kredit skoru, borc yükü və əsas risk faktorları dərhal hesablanır." },
+              { num: "3", title: "Nə etməli olduğunu bil", desc: "Profili gücləndirib bankda şansını artırmaq üçün konkret tövsiyələr alırsan." },
+            ].map((s) => (
+              <div key={s.num} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg mb-4">{s.num}</div>
+                <h3 className="font-bold text-gray-900 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
-
-          <div className="mt-12">
+          <div className="text-center mt-8">
             <Link
               href="/az/credit-check"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white bg-gray-900 hover:bg-gray-800 transition-colors text-base"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-md"
             >
               İndi yoxla — pulsuzdur
               <ArrowRight size={16} />
