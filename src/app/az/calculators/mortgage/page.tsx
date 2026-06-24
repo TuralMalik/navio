@@ -2,19 +2,16 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
 import { formatCurrency } from "@/lib/utils";
-import { MetricCard } from "@/components/shared/MetricCard";
 
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
 const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition appearance-none";
 
-interface OneTimePayment {
-  id: number;
-  month: number;
-  amount: number;
-}
+type ErkenRejim = "muddət" | "odəniş" | "hər ikisi";
+interface OneTimePayment { id: number; month: number; amount: number; }
+interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
 export default function MortgagePage() {
   const [propertyValue, setPropertyValue] = useState(100000);
@@ -26,26 +23,25 @@ export default function MortgagePage() {
   const [existingPayments, setExistingPayments] = useState(0);
 
   const [showExtra, setShowExtra] = useState(false);
-  const [erkenRejim, setErkenRejim] = useState<"muddət" | "odəniş">("muddət");
+  const [erkenRejim, setErkenRejim] = useState<ErkenRejim>("muddət");
   const [recurringEnabled, setRecurringEnabled] = useState(false);
   const [recurringAmount, setRecurringAmount] = useState(100);
   const [recurringFrom, setRecurringFrom] = useState(1);
-  const [recurringTo, setRecurringTo] = useState<number | "">(months);
-  const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([
-    { id: 1, month: 1, amount: 0 },
-  ]);
+  const [recurringTo, setRecurringTo] = useState<number | "">("");
+  const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([{ id: 1, month: 1, amount: 0 }]);
   const [penalty, setPenalty] = useState(0);
+
+  const [showBgn, setShowBgn] = useState(false);
+  const [showAllRows, setShowAllRows] = useState(false);
 
   const handlePropertyChange = (val: number) => {
     setPropertyValue(val);
     setDownPayment(Math.round((downPaymentPctInput / 100) * val));
   };
-
   const handleDownPctChange = (pct: number) => {
     setDownPaymentPctInput(pct);
     setDownPayment(Math.round((pct / 100) * propertyValue));
   };
-
   const handleDownAmtChange = (amt: number) => {
     setDownPayment(amt);
     setDownPaymentPctInput(propertyValue > 0 ? Math.round((amt / propertyValue) * 1000) / 10 : 0);
@@ -57,23 +53,34 @@ export default function MortgagePage() {
     setOneTimePayments((p) => p.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
 
   const loanAmount = Math.max(0, propertyValue - downPayment);
-  const downPaymentPct = propertyValue > 0 ? (downPayment / propertyValue) * 100 : 0;
-  const ltv = propertyValue > 0 ? (loanAmount / propertyValue) * 100 : 0;
   const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
-  const debtRatio = income > 0 ? ((existingPayments + baseMonthly) / income) * 100 : 0;
-  const remaining = income - existingPayments - baseMonthly;
 
-  const extraResult = useMemo(() => {
-    if (!showExtra || !loanAmount || !months || !rate) return null;
+  const { schedule, extraResult } = useMemo(() => {
     const r = rate / 100 / 12;
+
+    if (!showExtra) {
+      const rows: ScheduleRow[] = [];
+      let balance = loanAmount;
+      const pmt = baseMonthly;
+      for (let i = 1; i <= months; i++) {
+        const interest = balance * r;
+        const principal = Math.min(pmt - interest, balance);
+        balance = Math.max(0, balance - principal);
+        rows.push({ month: i, payment: pmt, extra: 0, interest, principal, balance });
+        if (balance <= 0) break;
+      }
+      return { schedule: rows, extraResult: null };
+    }
+
+    const toMonth = recurringTo === "" ? months : Number(recurringTo);
     let balance = loanAmount;
     let totalPaid = 0;
     let totalInterest = 0;
     let totalPenalty = 0;
     let actualMonths = 0;
-    const toMonth = recurringTo === "" ? months : Number(recurringTo);
     let currentPayment = baseMonthly;
     let remainingMonths = months;
+    const rows: ScheduleRow[] = [];
 
     for (let i = 1; i <= months * 2; i++) {
       if (balance <= 0) break;
@@ -85,36 +92,47 @@ export default function MortgagePage() {
       totalPaid += schedPayment;
       balance -= principalPart;
       remainingMonths = Math.max(1, remainingMonths - 1);
-      if (balance <= 0) break;
 
       let extra = 0;
       if (recurringEnabled && i >= recurringFrom && i <= toMonth) extra += recurringAmount;
       oneTimePayments.forEach((op) => { if (op.month === i) extra += op.amount; });
 
-      if (extra > 0) {
-        const actualExtra = Math.min(extra, balance);
+      let actualExtra = 0;
+      if (extra > 0 && balance > 0) {
+        actualExtra = Math.min(extra, balance);
         const pen = (actualExtra * penalty) / 100;
         totalPenalty += pen;
         totalPaid += actualExtra + pen;
         balance -= actualExtra;
-        if (balance <= 0) break;
-        if (erkenRejim === "odəniş" && remainingMonths > 0 && balance > 0) {
+        if (balance > 0 && erkenRejim === "odəniş" && remainingMonths > 0) {
           const newN = remainingMonths;
           currentPayment = (balance * r * Math.pow(1 + r, newN)) / (Math.pow(1 + r, newN) - 1);
         }
       }
+
+      rows.push({ month: i, payment: schedPayment, extra: actualExtra, interest, principal: principalPart, balance: Math.max(0, balance) });
       if (balance <= 0) break;
     }
 
     return {
-      finalMonths: actualMonths,
-      lastPayment: currentPayment,
-      totalInterest,
-      penaltyCost: totalPenalty,
-      savings: Math.max(0, baseMonthly * months - totalPaid),
+      schedule: rows,
+      extraResult: {
+        finalMonths: actualMonths,
+        lastPayment: currentPayment,
+        totalInterest,
+        penaltyCost: totalPenalty,
+        savings: Math.max(0, baseMonthly * months - totalPaid),
+      },
     };
-  }, [showExtra, loanAmount, months, rate, baseMonthly, recurringEnabled, recurringAmount,
+  }, [loanAmount, rate, months, baseMonthly, showExtra, recurringEnabled, recurringAmount,
       recurringFrom, recurringTo, oneTimePayments, penalty, erkenRejim]);
+
+  const bgn = showBgn && income > 0
+    ? ((existingPayments + baseMonthly) / income) * 100
+    : null;
+
+  const displayedRows = showAllRows ? schedule : schedule.slice(0, 10);
+  const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
 
   return (
     <main className="bg-gray-50 min-h-screen py-10">
@@ -132,6 +150,8 @@ export default function MortgagePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 space-y-5">
+
+            {/* Əmlak məlumatları */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
               <h3 className="font-bold text-gray-900">Əmlak məlumatları</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -163,23 +183,7 @@ export default function MortgagePage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-              <h3 className="font-bold text-gray-900">Gəlir məlumatları</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Aylıq xalis gəlir (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={income}
-                    onChange={(e) => setIncome(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Mövcud aylıq öhdəliklər (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={existingPayments}
-                    onChange={(e) => setExistingPayments(Number(e.target.value))} />
-                </div>
-              </div>
-            </div>
-
-            {/* Early repayment */}
+            {/* Əlavə ödənişlər */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-1">
                 <div>
@@ -200,26 +204,6 @@ export default function MortgagePage() {
 
               {showExtra && (
                 <div className="mt-5 space-y-5">
-                  <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödəniş nəyi azaltsın?</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {(["muddət", "odəniş"] as const).map((mode) => (
-                        <button key={mode} onClick={() => setErkenRejim(mode)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            erkenRejim === mode
-                              ? "border-blue-600 bg-white text-blue-700 shadow-sm"
-                              : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
-                          }`}>
-                          <span className="text-lg">{mode === "muddət" ? "⏱️" : "💸"}</span>
-                          <span>{mode === "muddət" ? "Müddəti azalt" : "Aylıq ödənişi azalt"}</span>
-                          <span className="text-xs font-normal text-gray-400">
-                            {mode === "muddət" ? "Aylıq ödəniş eyni qalır" : "Müddət eyni qalır"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   <div className="border border-gray-100 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <input type="checkbox" id="rec-m" checked={recurringEnabled}
@@ -241,9 +225,9 @@ export default function MortgagePage() {
                             onChange={(e) => setRecurringFrom(Number(e.target.value))} />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aya qədər</label>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
                           <input type="number" min={recurringFrom} max={months} className={inputClass}
-                            placeholder="Sona qədər" value={recurringTo}
+                            placeholder="Kredit bitənə qədər" value={recurringTo}
                             onChange={(e) => setRecurringTo(e.target.value === "" ? "" : Number(e.target.value))} />
                         </div>
                       </div>
@@ -281,7 +265,6 @@ export default function MortgagePage() {
                   <div className="border border-gray-100 rounded-xl p-4">
                     <h4 className="font-semibold text-gray-800 text-sm mb-3">Erkən ödəniş kompensasiyası</h4>
                     <div className="max-w-xs">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Kompensasiya faizi, %</label>
                       <select className={selectClass} value={penalty} onChange={(e) => setPenalty(Number(e.target.value))}>
                         <option value={0}>0%</option>
                         <option value={1}>1%</option>
@@ -291,55 +274,139 @@ export default function MortgagePage() {
                       </select>
                     </div>
                   </div>
+
+                  <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
+                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödənişdən sonra nə azalsın?</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
+                        { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
+                        { key: "hər ikisi", icon: "⚡", label: "Hər ikisi", note: "Eyni nəticə" },
+                      ] as { key: ErkenRejim; icon: string; label: string; note: string }[]).map(({ key, icon, label, note }) => (
+                        <button key={key} onClick={() => setErkenRejim(key)}
+                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                            erkenRejim === key
+                              ? "border-blue-600 bg-white text-blue-700 shadow-sm"
+                              : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
+                          }`}>
+                          <span className="text-lg">{icon}</span>
+                          <span className="text-center leading-tight">{label}</span>
+                          <span className="text-xs font-normal text-gray-400">{note}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* BGN yoxlaması */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-1">
+                <div>
+                  <h3 className="font-bold text-gray-900">BGN yoxlamasını da göstər</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Aylıq gəlirinizə əsasən borc-gəlir nisbətini hesablayır.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowBgn(false)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showBgn ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
+                    Xeyr
+                  </button>
+                  <button onClick={() => setShowBgn(true)}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showBgn ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
+                    Bəli
+                  </button>
+                </div>
+              </div>
+              {showBgn && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Aylıq xalis gəlir (₼)</label>
+                    <input type="number" min={0} className={inputClass} value={income}
+                      onChange={(e) => setIncome(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Mövcud aylıq öhdəliklər (₼)</label>
+                    <input type="number" min={0} className={inputClass} value={existingPayments}
+                      onChange={(e) => setExistingPayments(Number(e.target.value))} />
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
+          {/* Results */}
           <div className="lg:col-span-2">
             <div className="sticky top-20 space-y-4">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="font-bold text-gray-900 mb-4">Hesablama nəticəsi</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <MetricCard label="Kredit məbləği" value={formatCurrency(loanAmount)} />
-                  <MetricCard label="İlkin ödəniş faizi" value={`${downPaymentPct.toFixed(1)}%`} />
-                  <MetricCard label="LTV" value={`${ltv.toFixed(1)}%`} variant={ltv > 80 ? "warning" : "default"} />
-                  <MetricCard label="Aylıq ödəniş" value={formatCurrency(baseMonthly)} variant="success" />
-                  <MetricCard label="Ümumi ödəniş" value={formatCurrency(baseMonthly * months)} />
-                  <MetricCard label="Faiz xərci" value={formatCurrency(baseMonthly * months - loanAmount)} />
-                  <MetricCard label="Borc yükü" value={`${debtRatio.toFixed(1)}%`} variant={debtRatio > 50 ? "warning" : "default"} />
-                  <MetricCard label="Gəlirdən sonra qalan" value={formatCurrency(remaining)} variant={remaining < 0 ? "warning" : "default"} />
+                <p className="text-xs text-gray-500 font-medium mb-1">Aylıq ödəniş</p>
+                <p className="text-4xl font-bold text-gray-900 mb-5">{formatCurrency(baseMonthly)}</p>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Kredit məbləği</p>
+                    <p className="text-xl font-bold text-gray-900">{formatCurrency(loanAmount)}</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">İlkin ödəniş</p>
+                    <p className="text-xl font-bold text-gray-900">{(propertyValue > 0 ? (downPayment / propertyValue) * 100 : 0).toFixed(1)}%</p>
+                  </div>
+                  {extraResult && (
+                    <>
+                      <div className="bg-emerald-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-400 mb-1">Yeni müddət</p>
+                        <p className="text-xl font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
+                        {extraResult.finalMonths < months && (erkenRejim === "muddət" || erkenRejim === "hər ikisi") && (
+                          <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{months - extraResult.finalMonths} ay</p>
+                        )}
+                      </div>
+                      <div className="bg-emerald-50 rounded-xl p-3">
+                        {erkenRejim === "odəniş" ? (
+                          <>
+                            <p className="text-xs text-gray-400 mb-1">Son aylıq ödəniş</p>
+                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.lastPayment)}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-gray-400 mb-1">Qənaət</p>
+                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="bg-gray-900 rounded-xl p-4">
+                  <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                  <p className="text-2xl font-bold text-white mb-4">{formatCurrency(baseMonthly * months)}</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Faizlər</span>
+                      <span className="text-white font-medium">{formatCurrency(baseMonthly * months - loanAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Əsas borc</span>
+                      <span className="text-white font-medium">{formatCurrency(loanAmount)}</span>
+                    </div>
+                    {extraResult && extraResult.savings > 0 && (
+                      <div className="flex justify-between text-sm border-t border-gray-700 pt-2 mt-2">
+                        <span className="text-emerald-400">Əlavə ödənişlə qənaət</span>
+                        <span className="text-emerald-400 font-medium">{formatCurrency(extraResult.savings)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {extraResult && (
-                <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5 space-y-2">
-                  <p className="text-sm font-bold text-emerald-800">Əlavə ödəniş nəticəsi</p>
-                  {erkenRejim === "muddət" ? (
-                    <>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Yeni müddət</span>
-                        <span className="font-bold text-emerald-700">{extraResult.finalMonths} ay</span>
-                      </div>
-                      {extraResult.finalMonths < months && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Qısaldı</span>
-                          <span className="font-bold text-emerald-700">−{months - extraResult.finalMonths} ay</span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Son aylıq ödəniş</span>
-                      <span className="font-bold text-emerald-700">{formatCurrency(extraResult.lastPayment)}</span>
-                    </div>
-                  )}
-                  {extraResult.savings > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Qənaət</span>
-                      <span className="font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</span>
-                    </div>
-                  )}
+              {bgn !== null && (
+                <div className={`rounded-2xl border p-5 ${bgn > 70 ? "bg-red-50 border-red-100" : bgn > 50 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                  <p className="text-sm font-bold mb-1" style={{ color: bgn > 70 ? "#b91c1c" : bgn > 50 ? "#92400e" : "#065f46" }}>
+                    BGN: {bgn.toFixed(1)}%
+                  </p>
+                  <p className="text-xs" style={{ color: bgn > 70 ? "#dc2626" : bgn > 50 ? "#d97706" : "#059669" }}>
+                    {bgn > 70 ? "Borc yükü çox yüksəkdir." : bgn > 50 ? "Borc yükü yüksəkdir." : "Borc yükü normaldadır."}
+                  </p>
                 </div>
               )}
 
@@ -351,6 +418,46 @@ export default function MortgagePage() {
             </div>
           </div>
         </div>
+
+        {/* Ödəniş cədvəli */}
+        {schedule.length > 0 && (
+          <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Ödəniş cədvəli</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                    <th className="pb-3 pr-4 font-medium">Ay</th>
+                    <th className="pb-3 pr-4 font-medium">Aylıq ödəniş</th>
+                    {hasExtra && <th className="pb-3 pr-4 font-medium">Əlavə ödəniş</th>}
+                    <th className="pb-3 pr-4 font-medium">Faiz hissəsi</th>
+                    <th className="pb-3 pr-4 font-medium">Əsas borc</th>
+                    <th className="pb-3 font-medium">Qalıq borc</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedRows.map((row) => (
+                    <tr key={row.month} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <td className="py-2.5 pr-4 font-medium text-gray-700">{row.month}</td>
+                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.payment)}</td>
+                      {hasExtra && <td className="py-2.5 pr-4 text-blue-600 font-medium">{row.extra > 0 ? formatCurrency(row.extra) : "—"}</td>}
+                      <td className="py-2.5 pr-4 text-orange-600">{formatCurrency(row.interest)}</td>
+                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.principal)}</td>
+                      <td className="py-2.5 text-gray-900 font-medium">{formatCurrency(row.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {schedule.length > 10 && (
+              <button onClick={() => setShowAllRows(!showAllRows)}
+                className="mt-4 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
+                <ChevronDown size={16} className={`transition-transform ${showAllRows ? "rotate-180" : ""}`} />
+                {showAllRows ? "Yığ" : `Bütün cədvəli göstər (${schedule.length} ay)`}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
