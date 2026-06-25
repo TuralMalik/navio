@@ -229,7 +229,7 @@ export default function ConsumerLoanPage() {
 
             {/* Əlavə ödənişlər */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-1">
+              <div className={`flex items-center justify-between ${showExtra ? "mb-1" : ""}`}>
                 <div>
                   <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün əlavə ödənişləri daxil edin.</p>
@@ -261,13 +261,13 @@ export default function ConsumerLoanPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Aylıq əlavə ödəniş məbləği</label>
-                          <input type="number" min={0} className={inputClass} value={recurringAmount}
-                            onChange={(e) => setRecurringAmount(Number(e.target.value))} />
+                          <input type="number" min={0} className={inputClass} value={recurringAmount || ""}
+                            onChange={(e) => setRecurringAmount(parseInt(e.target.value, 10) || 0)} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
-                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom}
-                            onChange={(e) => setRecurringFrom(Number(e.target.value))} />
+                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
+                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 1)} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
@@ -287,13 +287,13 @@ export default function ConsumerLoanPage() {
                         <div key={op.id} className="grid grid-cols-5 gap-3 items-end">
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
-                            <input type="number" min={1} max={months} className={inputClass} value={op.month}
-                              onChange={(e) => updateOneTime(op.id, "month", Number(e.target.value))} />
+                            <input type="number" min={1} max={months} className={inputClass} value={op.month || ""}
+                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 1)} />
                           </div>
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ</label>
-                            <input type="number" min={0} className={inputClass} value={op.amount}
-                              onChange={(e) => updateOneTime(op.id, "amount", Number(e.target.value))} />
+                            <input type="number" min={0} className={inputClass} value={op.amount || ""}
+                              onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)} />
                           </div>
                           <button onClick={() => removeOneTime(op.id)}
                             className="h-10 flex items-center justify-center px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
@@ -328,7 +328,7 @@ export default function ConsumerLoanPage() {
                   {/* Rejim */}
                   <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
                     <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödənişdən sonra nə azalsın?</h4>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {([
                         { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
                         { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
@@ -350,39 +350,6 @@ export default function ConsumerLoanPage() {
               )}
             </div>
 
-            {/* BGN yoxlaması */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-1">
-                <div>
-                  <h3 className="font-bold text-gray-900">BGN yoxlamasını da göstər</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Aylıq gəlirinizə əsasən borc-gəlir nisbətini hesablayır.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setShowBgn(false)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showBgn ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
-                    Xeyr
-                  </button>
-                  <button onClick={() => setShowBgn(true)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showBgn ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
-                    Bəli
-                  </button>
-                </div>
-              </div>
-              {showBgn && (
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Aylıq xalis gəlir, AZN</label>
-                    <input type="number" min={0} className={inputClass} value={bgnGelir}
-                      onChange={(e) => setBgnGelir(Number(e.target.value))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Aylıq digər kredit ödənişləri, AZN</label>
-                    <input type="number" min={0} className={inputClass} value={bgnMovcud}
-                      onChange={(e) => setBgnMovcud(Number(e.target.value))} />
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* ── Right panel ── */}
@@ -391,72 +358,94 @@ export default function ConsumerLoanPage() {
               {result && (
                 <>
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                    <p className="text-xs text-gray-500 font-medium mb-1">İlk aylıq ödəniş</p>
-                    <p className="text-4xl font-bold text-gray-900 mb-5">
-                      {formatCurrency(result.firstPayment)}
-                    </p>
+                    <p className="text-xs text-gray-500 font-medium mb-1">Aylıq ödəniş</p>
+                    <p className="text-4xl font-bold text-gray-900 mb-5">{formatCurrency(result.firstPayment)}</p>
 
-                    <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-1">Yekun müddət</p>
-                        <p className="text-xl font-bold text-gray-900">{result.finalMonths} ay</p>
-                        {result.withExtra && result.finalMonths < months && (erkenRejim === "muddət") && (
-                          <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{months - result.finalMonths} ay qısaldı</p>
-                        )}
+                        <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
-                        {result.withExtra && erkenRejim === "odəniş" ? (
-                          <>
-                            <p className="text-xs text-gray-400 mb-1">Qənaət edilmiş məbləğ</p>
-                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(result.savings)}</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xs text-gray-400 mb-1">Artıq ödəniş</p>
-                            <p className="text-xl font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
-                          </>
-                        )}
+                        <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(result.totalPayment)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                        <p className="text-sm font-bold text-gray-900">{result.finalMonths} ay</p>
                       </div>
                     </div>
 
-                    <div className="bg-gray-900 rounded-xl p-4">
-                      <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
-                      <p className="text-2xl font-bold text-white mb-4">{formatCurrency(result.totalPayment)}</p>
-                      <div className="space-y-2">
-                        {[
-                          { label: "Faizlər", value: result.interestCost },
-                          { label: "Komissiya məbləği", value: commission },
-                          { label: "Sığorta məbləği", value: insurance },
-                          { label: "Digər xərclər", value: other },
-                          { label: "Erkən ödəniş kompensasiyası", value: result.penaltyCost },
-                        ].map((row) => (
-                          <div key={row.label} className="flex justify-between text-sm">
-                            <span className="text-gray-400">{row.label}</span>
-                            <span className="text-white font-medium">{formatCurrency(row.value)}</span>
+                    {result.withExtra && (
+                      <>
+                        <div className="mt-4 border-t border-gray-100 pt-4">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                              <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                              <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.interestCost)}</p>
+                            </div>
+                            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                              <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                              <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.totalPayment)}</p>
+                            </div>
+                            <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                              <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                              <p className="text-sm font-bold text-emerald-700">{result.finalMonths} ay</p>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
 
-                    {result.savings > 0 && (
-                      <p className="text-xs text-emerald-700 font-semibold mt-3">
-                        Əlavə ödənişlər sayəsində təxminən {formatCurrency(result.savings)} qənaət edəcəksiniz.
-                      </p>
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                              <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
+                              <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
+                            </div>
+                            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                              <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
+                              <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
+                            </div>
+                            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                              <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
+                              <p className="text-sm font-bold text-blue-700">−{months - result.finalMonths} ay</p>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {(commission > 0 || insurance > 0 || other > 0 || result.penaltyCost > 0) && (
+                      <div className="mt-4 border-t border-gray-100 pt-4 space-y-2">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Əlavə xərclər</p>
+                        {commission > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Komissiya</span>
+                            <span className="text-gray-700 font-medium">{formatCurrency(commission)}</span>
+                          </div>
+                        )}
+                        {insurance > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Sığorta</span>
+                            <span className="text-gray-700 font-medium">{formatCurrency(insurance)}</span>
+                          </div>
+                        )}
+                        {other > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Digər xərclər</span>
+                            <span className="text-gray-700 font-medium">{formatCurrency(other)}</span>
+                          </div>
+                        )}
+                        {result.penaltyCost > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Erkən ödəniş kompensasiyası</span>
+                            <span className="text-gray-700 font-medium">{formatCurrency(result.penaltyCost)}</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-
-                  {bgn !== null && (
-                    <div className={`rounded-2xl border p-5 ${bgn > 70 ? "bg-red-50 border-red-100" : bgn > 50 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                      <p className="text-sm font-bold mb-1" style={{ color: bgn > 70 ? "#b91c1c" : bgn > 50 ? "#92400e" : "#065f46" }}>
-                        BGN (Borc-Gəlir Nisbəti): {bgn.toFixed(1)}%
-                      </p>
-                      <p className="text-xs" style={{ color: bgn > 70 ? "#dc2626" : bgn > 50 ? "#d97706" : "#059669" }}>
-                        {bgn > 70 ? "Borc yükü həddindən yüksəkdir. Bank kredit verməkdən imtina edə bilər." :
-                          bgn > 50 ? "Borc yükü yüksəkdir. Bankın qərarı şübhəlidir." :
-                            "Borc yükü normaldadır. Kredit almaq mümkündür."}
-                      </p>
-                    </div>
-                  )}
 
                   <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                     <p className="text-xs text-amber-700 font-semibold">FİFD BARƏDƏ</p>
