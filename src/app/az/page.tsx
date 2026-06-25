@@ -216,54 +216,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── FEATURE CARDS ── */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {[
-              {
-                icon: <CreditCard size={24} className="text-blue-600" />,
-                iconBg: "bg-blue-50",
-                title: "Sürətli kredit yoxlaması",
-                desc: "Cəmi 3 dəqiqəyə kredit profilinizi öyrənin və imkanlarınızı görün.",
-                href: "/az/kredit-yoxlama",
-              },
-              {
-                icon: <Calculator size={24} className="text-purple-600" />,
-                iconBg: "bg-purple-50",
-                title: "Dəqiq kalkulyatorlar",
-                desc: "Aylıq ödəniş, faiz dərəcəsi və ümumi məsrəfləri əvvəlcədən hesablayın.",
-                href: "/az/calculators",
-              },
-              {
-                icon: <BookOpen size={24} className="text-emerald-600" />,
-                iconBg: "bg-emerald-50",
-                title: "Ağıllı maliyyə köməkçisi",
-                desc: "Xərclərini izləyin, büdcənizi idarə edin və daha sağlam maliyyə planı qurun.",
-                href: "/az/financial-assistant",
-              },
-            ].map((c) => (
-              <Link
-                key={c.title}
-                href={c.href}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-all duration-200"
-              >
-                <div className={`w-14 h-14 rounded-2xl ${c.iconBg} flex items-center justify-center shrink-0`}>
-                  {c.icon}
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-900 text-sm mb-1">{c.title}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{c.desc}</p>
-                </div>
-                <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0" />
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── SERVICES ── */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Navio sizə necə kömək edir?</h2>
@@ -271,11 +225,11 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "Kredit yoxlaması", desc: "Kredit profilinizi və əsas risk faktorlarınızı yoxlayın.", cta: "Yoxlamaya başla", href: "/az/kredit-yoxlama" },
-              { icon: <Calculator size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "Kredit kalkulyatorları", desc: "İstehlak, ipoteka və avtokredit üçün ödənişləri hesablayın.", cta: "Kalkulyatorları aç", href: "/az/calculators" },
-              { icon: <BookOpen size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Maliyyə köməkçisi", desc: "Maliyyə vəziyyətinizi yaxşılaşdırmaq üçün tövsiyələr alın.", cta: "Köməkçidən istifadə et", href: "/az/financial-assistant" },
+              { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "Kredit yoxlaması", desc: "Cəmi 3 dəqiqəyə kredit profilinizi öyrənin və imkanlarınızı görün.", cta: "Yoxlamaya başla", href: "/az/kredit-yoxlama" },
+              { icon: <Calculator size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "Kredit kalkulyatorları", desc: "Aylıq ödəniş, faiz dərəcəsi və ümumi məsrəfləri əvvəlcədən hesablayın.", cta: "Kalkulyatorları aç", href: "/az/calculators" },
+              { icon: <BookOpen size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Maliyyə köməkçisi", desc: "Xərclərini izləyin, büdcənizi idarə edin və daha sağlam maliyyə planı qurun.", cta: "Köməkçidən istifadə et", href: "/az/financial-assistant" },
             ].map((c) => (
-              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
+              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col items-center text-center">
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
                   {c.icon}
                 </div>
