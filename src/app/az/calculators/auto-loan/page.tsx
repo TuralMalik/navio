@@ -205,7 +205,7 @@ export default function AutoLoanPage() {
               />
               <SliderRow
                 label="İllik faiz dərəcəsi"
-                value={rate} min={5} max={35} step={0.5}
+                value={rate} min={5} max={35} step={0.1}
                 format={(v) => `${v}%`}
                 onChange={setRate}
               />

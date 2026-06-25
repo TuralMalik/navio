@@ -157,7 +157,7 @@ export default function MortgagePage() {
               />
               <SliderRow
                 label="İllik faiz dərəcəsi"
-                value={rate} min={1} max={30} step={0.5}
+                value={rate} min={1} max={30} step={0.1}
                 format={(v) => `${v}%`}
                 onChange={setRate}
               />
