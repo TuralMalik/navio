@@ -181,6 +181,12 @@ export default function MortgagePage() {
                     onChange={(e) => setRate(Number(e.target.value))} />
                 </div>
               </div>
+              {loanAmount > 0 && (
+                <div className="mt-2 flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-3">
+                  <span className="text-xs text-blue-600 font-medium">Kredit məbləği:</span>
+                  <span className="text-sm font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
+                </div>
+              )}
             </div>
 
             {/* Əlavə ödənişlər */}
@@ -341,47 +347,88 @@ export default function MortgagePage() {
                 <p className="text-xs text-gray-500 font-medium mb-1">Aylıq ödəniş</p>
                 <p className="text-4xl font-bold text-gray-900 mb-5">{formatCurrency(baseMonthly)}</p>
 
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                {/* Base metrics */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
                   <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-1">Kredit məbləği</p>
-                    <p className="text-xl font-bold text-gray-900">{formatCurrency(loanAmount)}</p>
+                    <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(baseMonthly * months - loanAmount)}</p>
                   </div>
                   <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-1">İlkin ödəniş</p>
-                    <p className="text-xl font-bold text-gray-900">{(propertyValue > 0 ? (downPayment / propertyValue) * 100 : 0).toFixed(1)}%</p>
+                    <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(baseMonthly * months)}</p>
                   </div>
-                  {extraResult && (
-                    <>
-                      <div className="bg-emerald-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-1">Yeni müddət</p>
-                        <p className="text-xl font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
-                        {extraResult.finalMonths < months && (erkenRejim === "muddət") && (
-                          <p className="text-xs text-emerald-600 font-semibold mt-0.5">−{months - extraResult.finalMonths} ay</p>
-                        )}
-                      </div>
-                      <div className="bg-emerald-50 rounded-xl p-3">
-                        {erkenRejim === "odəniş" ? (
-                          <>
-                            <p className="text-xs text-gray-400 mb-1">Qənaət edilmiş məbləğ</p>
-                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xs text-gray-400 mb-1">Qənaət</p>
-                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                    <p className="text-base font-bold text-gray-900">{months} ay</p>
+                  </div>
                 </div>
+
+                {/* Extra payment result — before/after */}
+                {extraResult && (
+                  <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 overflow-hidden">
+                    <div className="px-4 pt-3 pb-2 border-b border-emerald-100">
+                      <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Əlavə ödənişlə nəticə</p>
+                    </div>
+                    <div className="p-4 grid grid-cols-2 gap-3">
+                      {erkenRejim === "muddət" ? (
+                        <>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Yeni müddət</p>
+                            <p className="text-lg font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
+                            {extraResult.finalMonths < months && (
+                              <p className="text-xs text-emerald-600 font-semibold">−{months - extraResult.finalMonths} ay</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Qənaət</p>
+                            <p className="text-lg font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
+                          </div>
+                          <div className="col-span-2 border-t border-emerald-100 pt-3 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                            <div>
+                              <span>Əvvəl: </span>
+                              <span className="font-semibold text-gray-700">{formatCurrency(baseMonthly * months)}</span>
+                            </div>
+                            <div>
+                              <span>İndi: </span>
+                              <span className="font-semibold text-emerald-700">{formatCurrency(baseMonthly * months - extraResult.savings)}</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Yeni aylıq ödəniş</p>
+                            <p className="text-lg font-bold text-emerald-700">{formatCurrency(extraResult.lastPayment)}</p>
+                            {extraResult.lastPayment < baseMonthly && (
+                              <p className="text-xs text-emerald-600 font-semibold">−{formatCurrency(baseMonthly - extraResult.lastPayment)}/ay</p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Qənaət</p>
+                            <p className="text-lg font-bold text-emerald-700">{formatCurrency(extraResult.savings)}</p>
+                          </div>
+                          <div className="col-span-2 border-t border-emerald-100 pt-3 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                            <div>
+                              <span>Əvvəl: </span>
+                              <span className="font-semibold text-gray-700">{formatCurrency(baseMonthly)}/ay</span>
+                            </div>
+                            <div>
+                              <span>İndi: </span>
+                              <span className="font-semibold text-emerald-700">{formatCurrency(extraResult.lastPayment)}/ay</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-gray-900 rounded-xl p-4">
                   <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
                   <p className="text-2xl font-bold text-white mb-4">{formatCurrency(baseMonthly * months)}</p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Faizlər</span>
+                      <span className="text-gray-400">Toplam faiz</span>
                       <span className="text-white font-medium">{formatCurrency(baseMonthly * months - loanAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
