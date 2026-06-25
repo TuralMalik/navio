@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
 import { formatCurrency } from "@/lib/utils";
+import { SliderRow } from "@/components/ui/SliderRow";
 
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
 const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition appearance-none";
@@ -12,38 +13,6 @@ const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-x
 type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
-
-function SliderRow({
-  label, value, min, max, step, format, onChange,
-}: {
-  label: string; value: number; min: number; max: number; step: number;
-  format: (v: number) => string; onChange: (v: number) => void;
-}) {
-  const pct = ((value - min) / (max - min)) * 100;
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-base font-bold text-gray-900">{format(value)}</span>
-      </div>
-      <div className="relative">
-        <input
-          type="range" min={min} max={max} step={step} value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-2 rounded-full appearance-none cursor-pointer"
-          style={{
-            background: `linear-gradient(to right, #2563eb ${pct}%, #e5e7eb ${pct}%)`,
-            accentColor: "#2563eb",
-          }}
-        />
-      </div>
-      <div className="flex justify-between mt-1">
-        <span className="text-xs text-gray-400">{format(min)}</span>
-        <span className="text-xs text-gray-400">{format(max)}</span>
-      </div>
-    </div>
-  );
-}
 
 export default function AutoLoanPage() {
   const [carPrice, setCarPrice] = useState(30000);
@@ -146,6 +115,21 @@ export default function AutoLoanPage() {
 
   const displayedRows = showAllRows ? schedule : schedule.slice(0, 10);
   const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
+
+  // EAR — Effektiv İllik Gəlirlilik Dərəcəsi
+  const commission = Math.round((commissionPct / 100) * loanAmount);
+  const ear = useMemo(() => {
+    if (!loanAmount || !months) return null;
+    const netPrincipal = loanAmount - commission;
+    if (netPrincipal <= 0) return (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100;
+    let lo = 0, hi = 10;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const pv = mid === 0 ? baseMonthly * months : baseMonthly * (1 - Math.pow(1 + mid, -months)) / mid;
+      if (pv > netPrincipal) lo = mid; else hi = mid;
+    }
+    return (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100;
+  }, [loanAmount, months, baseMonthly, commission, rate]);
 
   const carTypes = [
     { key: "electric", label: "Elektrik" },
@@ -376,7 +360,7 @@ export default function AutoLoanPage() {
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     {[
                       { label: "Kredit məbləği", value: formatCurrency(loanAmount) },
-                      { label: "İllik faiz", value: `${rate}%` },
+                      { label: "Nominal faiz", value: `${rate}%` },
                       { label: "Müddət", value: `${months} ay` },
                       { label: "Toplam faiz", value: formatCurrency(baseMonthly * months - loanAmount) },
                     ].map((m) => (
@@ -386,6 +370,19 @@ export default function AutoLoanPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* EAR */}
+                  {ear !== null && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
+                          <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
+                        </div>
+                        <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Total with separator */}
                   <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
