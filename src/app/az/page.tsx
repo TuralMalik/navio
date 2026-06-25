@@ -15,6 +15,9 @@ import {
   ChevronRight,
   BarChart2,
   Lock,
+  Banknote,
+  House,
+  Car,
 } from "lucide-react";
 
 const faqs = [
@@ -253,11 +256,11 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "İstehlak krediti", desc: "Nağd pul ehtiyaclarınız üçün kredit imkanlarını hesablayın.", href: "/az/calculators/consumer-loan" },
-              { icon: <Shield size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "İpoteka krediti", desc: "Ev almaq üçün ipoteka şərtlərini hesablayın.", href: "/az/calculators/mortgage" },
-              { icon: <Zap size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Avtokredit", desc: "Avtomobil almaq üçün kredit şərtlərini hesablayın.", href: "/az/calculators/auto-loan" },
+              { icon: <Banknote size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "İstehlak krediti", desc: "Nağd pul ehtiyaclarınız üçün kredit imkanlarını hesablayın.", href: "/az/calculators/consumer-loan" },
+              { icon: <House size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "İpoteka krediti", desc: "Ev almaq üçün ipoteka şərtlərini hesablayın.", href: "/az/calculators/mortgage" },
+              { icon: <Car size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Avtokredit", desc: "Avtomobil almaq üçün kredit şərtlərini hesablayın.", href: "/az/calculators/auto-loan" },
             ].map((c) => (
-              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300">
+              <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col items-center text-center">
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300`}>
                   {c.icon}
                 </div>
