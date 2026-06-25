@@ -162,9 +162,20 @@ export default function ConsumerLoanPage() {
     oneTimePayments, penalty, erkenRejim,
   ]);
 
-  const bgn = showBgn && bgnGelir > 0 && result
-    ? ((bgnMovcud + result.firstPayment) / bgnGelir) * 100
-    : null;
+  // FIFD — Faktiki İllik Faiz Dərəcəsi (APR). Binary search on monthly IRR.
+  const fifd = useMemo(() => {
+    if (!result || !principal || !months) return null;
+    const pmt = result.firstPayment;
+    const netPrincipal = principal - commission - insurance - other;
+    if (netPrincipal <= 0) return null;
+    let lo = 0, hi = 10;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const pv = mid === 0 ? pmt * months : pmt * (1 - Math.pow(1 + mid, -months)) / mid;
+      if (pv > netPrincipal) lo = mid; else hi = mid;
+    }
+    return ((lo + hi) / 2) * 12 * 100;
+  }, [result, principal, months, commission, insurance, other]);
 
   const displayedRows = result?.schedule
     ? (showAllRows ? result.schedule : result.schedule.slice(0, 10))
@@ -210,7 +221,7 @@ export default function ConsumerLoanPage() {
                     onChange={(e) => setRate(Number(e.target.value))} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Kredit, %</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Komissiya, %</label>
                   <input type="number" min={0} max={100} step={0.1} className={inputClass} value={commissionPct}
                     onChange={(e) => handleCommissionPctChange(Number(e.target.value))} />
                 </div>
@@ -448,9 +459,14 @@ export default function ConsumerLoanPage() {
                   </div>
 
                   <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                    <p className="text-xs text-amber-700 font-semibold">FİFD BARƏDƏ</p>
-                    <p className="text-xs text-amber-600 mt-1 leading-relaxed">
-                      FİFD kreditin ümumi dəyərini göstərən informasiya göstəricisidir. Real bank təklifi komissiya, sığorta və digər şərtlərə görə fərqlənə bilər.
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-amber-700 font-semibold">FİFD — Faktiki İllik Faiz Dərəcəsi</p>
+                      {fifd !== null && (
+                        <p className="text-lg font-bold text-amber-800">{fifd.toFixed(2)}%</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-amber-600 leading-relaxed">
+                      Kreditin bütün xərclərini (faiz, komissiya, sığorta) nəzərə alan real illik dəyər göstəricisidir. Banklar bu rəqəmi müqavilədə göstərməyə borcludur.
                     </p>
                   </div>
                 </>
