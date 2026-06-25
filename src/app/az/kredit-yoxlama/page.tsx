@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, CheckCircle, Info, ArrowRight, Building2, Landmark } from "lucide-react";
 
 /* ─── Types ─── */
@@ -258,14 +259,20 @@ const selectCls = inputCls;
 const sectionTitle = "text-xs font-bold text-gray-400 uppercase tracking-wider mb-3";
 
 /* ─── Main ─── */
-export default function KreditYoxlama() {
+function KreditYoxlamaContent() {
+  const searchParams = useSearchParams();
+  const initNov = (searchParams.get("nov") as KreditNovu) || "naqd";
+  const initMebleq = searchParams.get("mebleq") || "";
+  const initMuddet = searchParams.get("muddet") || "24";
+  const initFaiz = searchParams.get("faiz") || "24";
+
   const [mode, setMode] = useState<Mode>("bank");
 
   const [bank, setBank] = useState<BankForm>({
-    kreditNovu: "naqd",
-    meblег: "",
-    muddət: "24",
-    faiz: "24",
+    kreditNovu: initNov,
+    meblег: initMebleq,
+    muddət: initMuddet,
+    faiz: initFaiz,
     gelirNovu: "resmi",
     teqaudNovu: "yasa_gore",
     gelir: "",
@@ -611,5 +618,13 @@ export default function KreditYoxlama() {
 
       </div>
     </main>
+  );
+}
+
+export default function KreditYoxlamaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+      <KreditYoxlamaContent />
+    </Suspense>
   );
 }

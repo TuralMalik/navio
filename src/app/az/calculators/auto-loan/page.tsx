@@ -199,7 +199,7 @@ export default function AutoLoanPage() {
               />
               <SliderRow
                 label="Kredit müddəti"
-                value={months} min={6} max={84} step={6}
+                value={months} min={6} max={59} step={1}
                 format={(v) => `${v} ay`}
                 onChange={setMonths}
               />
@@ -371,19 +371,6 @@ export default function AutoLoanPage() {
                     ))}
                   </div>
 
-                  {/* EAR */}
-                  {ear !== null && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
-                          <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
-                        </div>
-                        <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Total with separator */}
                   <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
                     <span className="text-sm text-gray-500">Ümumi ödəniş</span>
@@ -392,13 +379,26 @@ export default function AutoLoanPage() {
                     </span>
                   </div>
 
-                  <Link href="/az/kredit-yoxlama"
+                  <Link href={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=avto`}
                     className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
                     style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
                     Kredit yoxlamasına keç →
                   </Link>
                 </div>
               </div>
+
+              {/* EAR — separate card below result */}
+              {ear !== null && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
+                      <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
+                    </div>
+                    <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                  </div>
+                </div>
+              )}
 
               {/* Extra payment result */}
               {extraResult && (

@@ -311,19 +311,6 @@ export default function MortgagePage() {
                     </div>
                   </div>
 
-                  {/* EAR */}
-                  {ear !== null && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
-                          <p className="text-xs text-blue-500 mt-0.5">Aylıq kapitallaşmanı nəzərə alan real dəyər</p>
-                        </div>
-                        <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Extra payment result */}
                   {extraResult && (
                     <>
@@ -370,13 +357,26 @@ export default function MortgagePage() {
                     <span className="text-lg font-bold text-gray-900">{formatCurrency(baseMonthly * months)}</span>
                   </div>
 
-                  <Link href="/az/kredit-yoxlama"
+                  <Link href={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=ipoteka`}
                     className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
                     style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
                     Kredit yoxlamasına keç →
                   </Link>
                 </div>
               </div>
+
+              {/* EAR — separate card below result */}
+              {ear !== null && (
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
+                      <p className="text-xs text-blue-500 mt-0.5">Aylıq kapitallaşmanı nəzərə alan real dəyər</p>
+                    </div>
+                    <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

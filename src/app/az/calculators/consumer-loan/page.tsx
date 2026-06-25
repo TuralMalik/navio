@@ -19,7 +19,7 @@ export default function ConsumerLoanPage() {
   const [months, setMonths] = useState(36);
   const [rate, setRate] = useState(18);
   const [commissionPct, setCommissionPct] = useState(0);
-  const [insurance, setInsurance] = useState(0);
+  const [insurancePct, setInsurancePct] = useState(0);
   const [other, setOther] = useState(0);
 
   const [showExtra, setShowExtra] = useState(false);
@@ -33,6 +33,7 @@ export default function ConsumerLoanPage() {
   const [showAllRows, setShowAllRows] = useState(false);
 
   const commission = Math.round((commissionPct / 100) * principal);
+  const insurance = Math.round((insurancePct / 100) * principal);
 
   const addOneTime = () => setOneTimePayments((p) => [...p, { id: Date.now(), month: 1, amount: 0 }]);
   const removeOneTime = (id: number) => setOneTimePayments((p) => p.filter((x) => x.id !== id));
@@ -159,6 +160,8 @@ export default function ConsumerLoanPage() {
     : [];
   const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
 
+  const checkUrl = `/az/kredit-yoxlama?mebleq=${principal}&muddet=${months}&faiz=${rate}&nov=naqd`;
+
   return (
     <main className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -186,7 +189,7 @@ export default function ConsumerLoanPage() {
               />
               <SliderRow
                 label="Kredit müddəti"
-                value={months} min={3} max={84} step={3}
+                value={months} min={3} max={59} step={3}
                 format={(v) => `${v} ay`}
                 onChange={setMonths}
               />
@@ -202,19 +205,18 @@ export default function ConsumerLoanPage() {
                 format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
                 onChange={setCommissionPct}
               />
+              <SliderRow
+                label="Sığorta"
+                value={insurancePct} min={0} max={5} step={0.25}
+                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
+                onChange={setInsurancePct}
+              />
 
-              {/* Optional manual fees */}
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Sığorta (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={insurance || ""}
-                    onChange={(e) => setInsurance(parseInt(e.target.value, 10) || 0)} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={other || ""}
-                    onChange={(e) => setOther(parseInt(e.target.value, 10) || 0)} />
-                </div>
+              {/* Other fees — manual */}
+              <div className="pt-2 border-t border-gray-100">
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
+                <input type="number" min={0} className={inputClass} value={other || ""}
+                  onChange={(e) => setOther(parseInt(e.target.value, 10) || 0)} />
               </div>
             </div>
 
@@ -345,13 +347,15 @@ export default function ConsumerLoanPage() {
                     <div className="p-6">
                       <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
                       <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(result.firstPayment)}</p>
-                      {commissionPct > 0 && (
-                        <p className="text-xs text-gray-400 mb-4">+ ₼ {commission.toLocaleString()} komissiya (birdəfəlik)</p>
+                      {(commissionPct > 0 || insurancePct > 0) && (
+                        <p className="text-xs text-gray-400 mb-4">
+                          + ₼ {(commission + insurance).toLocaleString()} birdəfəlik xərclər
+                        </p>
                       )}
-                      {commissionPct === 0 && <div className="mb-4" />}
+                      {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}
 
                       {/* Base metrics */}
-                      <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="grid grid-cols-3 gap-3">
                         <div className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
                           <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
@@ -366,23 +370,10 @@ export default function ConsumerLoanPage() {
                         </div>
                       </div>
 
-                      {/* EAR */}
-                      {ear !== null && (
-                        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
-                              <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
-                            </div>
-                            <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Extra payment sections */}
                       {result.withExtra && (
                         <>
-                          <div className="border-t border-gray-100 pt-4">
+                          <div className="mt-4 border-t border-gray-100 pt-4">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
                             <div className="grid grid-cols-3 gap-3">
                               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
@@ -455,13 +446,26 @@ export default function ConsumerLoanPage() {
                         <span className="text-lg font-bold text-gray-900">{formatCurrency(result.totalPayment)}</span>
                       </div>
 
-                      <Link href="/az/kredit-yoxlama"
+                      <Link href={checkUrl}
                         className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
                         style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
                         Kredit yoxlamasına keç →
                       </Link>
                     </div>
                   </div>
+
+                  {/* EAR — separate card, above FIFD */}
+                  {ear !== null && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
+                          <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
+                        </div>
+                        <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* FIFD card */}
                   <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
