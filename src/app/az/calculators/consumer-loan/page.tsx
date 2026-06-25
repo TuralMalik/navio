@@ -189,7 +189,7 @@ export default function ConsumerLoanPage() {
               />
               <SliderRow
                 label="Kredit müddəti"
-                value={months} min={3} max={59} step={3}
+                value={months} min={3} max={59} step={1}
                 format={(v) => `${v} ay`}
                 onChange={setMonths}
               />
@@ -259,7 +259,7 @@ export default function ConsumerLoanPage() {
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
                           <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
-                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 1)} />
+                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 0)} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
@@ -279,7 +279,7 @@ export default function ConsumerLoanPage() {
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
                             <input type="number" min={1} max={months} className={inputClass} value={op.month || ""}
-                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 1)} />
+                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 0)} />
                           </div>
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ (₼)</label>
