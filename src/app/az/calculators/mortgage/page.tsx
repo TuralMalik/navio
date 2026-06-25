@@ -171,6 +171,10 @@ export default function MortgagePage() {
                     onChange={(e) => handleDownAmtChange(Number(e.target.value))} />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Kredit məbləği (₼)</label>
+                  <input type="number" readOnly className={inputClass + " bg-gray-50 text-gray-500 cursor-default"} value={loanAmount} />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Kredit müddəti (ay)</label>
                   <input type="number" min={1} max={360} className={inputClass} value={months}
                     onChange={(e) => setMonths(Number(e.target.value))} />
@@ -180,18 +184,12 @@ export default function MortgagePage() {
                   <input type="number" min={0} step={0.1} className={inputClass} value={rate}
                     onChange={(e) => setRate(Number(e.target.value))} />
                 </div>
-                {loanAmount > 0 && (
-                  <div className="sm:col-span-2 flex items-center gap-3 bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
-                    <span className="text-xs text-blue-600 font-medium">Kredit məbləği:</span>
-                    <span className="text-base font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Əlavə ödənişlər */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-1">
+              <div className={`flex items-center justify-between ${showExtra ? "mb-1" : ""}`}>
                 <div>
                   <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
@@ -305,39 +303,6 @@ export default function MortgagePage() {
               )}
             </div>
 
-            {/* BGN yoxlaması */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-1">
-                <div>
-                  <h3 className="font-bold text-gray-900">BGN yoxlamasını da göstər</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Aylıq gəlirinizə əsasən borc-gəlir nisbətini hesablayır.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setShowBgn(false)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showBgn ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
-                    Xeyr
-                  </button>
-                  <button onClick={() => setShowBgn(true)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showBgn ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
-                    Bəli
-                  </button>
-                </div>
-              </div>
-              {showBgn && (
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Aylıq xalis gəlir (₼)</label>
-                    <input type="number" min={0} className={inputClass} value={income}
-                      onChange={(e) => setIncome(Number(e.target.value))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Mövcud aylıq öhdəliklər (₼)</label>
-                    <input type="number" min={0} className={inputClass} value={existingPayments}
-                      onChange={(e) => setExistingPayments(Number(e.target.value))} />
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Results */}
@@ -405,22 +370,6 @@ export default function MortgagePage() {
                 )}
               </div>
 
-              {bgn !== null && (
-                <div className={`rounded-2xl border p-5 ${bgn > 70 ? "bg-red-50 border-red-100" : bgn > 50 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-                  <p className="text-sm font-bold mb-1" style={{ color: bgn > 70 ? "#b91c1c" : bgn > 50 ? "#92400e" : "#065f46" }}>
-                    BGN: {bgn.toFixed(1)}%
-                  </p>
-                  <p className="text-xs" style={{ color: bgn > 70 ? "#dc2626" : bgn > 50 ? "#d97706" : "#059669" }}>
-                    {bgn > 70 ? "Borc yükü çox yüksəkdir." : bgn > 50 ? "Borc yükü yüksəkdir." : "Borc yükü normaldadır."}
-                  </p>
-                </div>
-              )}
-
-              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  LTV 80%-dən yüksəkdirsə, banklar əlavə sığorta və ya girov tələb edə bilər.
-                </p>
-              </div>
             </div>
           </div>
         </div>
