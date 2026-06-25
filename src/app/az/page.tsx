@@ -226,8 +226,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: <CreditCard size={24} className="text-white" />, gradient: "from-blue-500 to-blue-700", title: "Kredit yoxlaması", desc: "Cəmi 3 dəqiqəyə kredit profilinizi öyrənin və imkanlarınızı görün.", cta: "Yoxlamaya başla", href: "/az/kredit-yoxlama" },
-              { icon: <Calculator size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "Kredit kalkulyatorları", desc: "Aylıq ödəniş, faiz dərəcəsi və ümumi məsrəfləri əvvəlcədən hesablayın.", cta: "Kalkulyatorları aç", href: "/az/calculators" },
-              { icon: <BookOpen size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Maliyyə köməkçisi", desc: "Xərclərini izləyin, büdcənizi idarə edin və daha sağlam maliyyə planı qurun.", cta: "Köməkçidən istifadə et", href: "/az/financial-assistant" },
+              { icon: <Calculator size={24} className="text-white" />, gradient: "from-emerald-500 to-teal-600", title: "Kredit kalkulyatorları", desc: "İstehlak, ipoteka və avtokredit üçün ödənişləri hesablayın.", cta: "Kalkulyatorları aç", href: "/az/calculators" },
+              { icon: <BookOpen size={24} className="text-white" />, gradient: "from-purple-500 to-indigo-600", title: "Maliyyə köməkçisi", desc: "Maliyyə vəziyyətinizi yaxşılaşdırmaq üçün tövsiyələr alın.", cta: "Köməkçidən istifadə et", href: "/az/financial-assistant" },
             ].map((c) => (
               <div key={c.title} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col items-center text-center">
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow-md group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
