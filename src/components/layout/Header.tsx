@@ -20,13 +20,34 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/az" className="flex flex-col leading-tight">
-            <span className="text-xl font-bold text-navy-900 tracking-tight" style={{ color: "#0f1f3d" }}>
-              Navio
-            </span>
-            <span className="text-xs text-gray-400 font-medium tracking-wide">
-              Sizin maliyyə bələdçiniz
-            </span>
+          <Link href="/az" className="flex items-center gap-2">
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="bar1g" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#93c5fd" />
+                  <stop offset="100%" stopColor="#3b82f6" />
+                </linearGradient>
+                <linearGradient id="bar2g" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#1d4ed8" />
+                </linearGradient>
+                <linearGradient id="bar3g" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#1e3a8a" />
+                </linearGradient>
+              </defs>
+              <rect x="3" y="20" width="8" height="13" rx="2" fill="url(#bar1g)" />
+              <rect x="14" y="12" width="8" height="21" rx="2" fill="url(#bar2g)" />
+              <rect x="25" y="4" width="8" height="29" rx="2" fill="url(#bar3g)" />
+            </svg>
+            <div className="flex flex-col leading-tight">
+              <span className="text-xl font-bold tracking-tight" style={{ color: "#0f1f3d" }}>
+                Navio
+              </span>
+              <span className="text-xs text-gray-400 font-medium tracking-wide">
+                Sizin maliyyə bələdçiniz
+              </span>
+            </div>
           </Link>
 
           {/* Desktop nav */}
