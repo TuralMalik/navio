@@ -220,13 +220,13 @@ export default function MortgagePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Aylıq əlavə məbləğ</label>
-                          <input type="number" min={0} className={inputClass} value={recurringAmount}
-                            onChange={(e) => setRecurringAmount(Number(e.target.value))} />
+                          <input type="number" min={0} className={inputClass} value={recurringAmount || ""}
+                            onChange={(e) => setRecurringAmount(parseInt(e.target.value, 10) || 0)} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
-                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom}
-                            onChange={(e) => setRecurringFrom(Number(e.target.value))} />
+                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
+                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 1)} />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
@@ -245,13 +245,15 @@ export default function MortgagePage() {
                         <div key={op.id} className="grid grid-cols-5 gap-3 items-end">
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
-                            <input type="number" min={1} max={months} className={inputClass} value={op.month}
-                              onChange={(e) => updateOneTime(op.id, "month", Number(e.target.value))} />
+                            <input type="number" min={1} max={months} className={inputClass}
+                              value={op.month || ""}
+                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 1)} />
                           </div>
                           <div className="col-span-2">
                             <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ (₼)</label>
-                            <input type="number" min={0} className={inputClass} value={op.amount}
-                              onChange={(e) => updateOneTime(op.id, "amount", Number(e.target.value))} />
+                            <input type="number" min={0} className={inputClass}
+                              value={op.amount || ""}
+                              onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)} />
                           </div>
                           <button onClick={() => removeOneTime(op.id)}
                             className="h-10 flex items-center justify-center px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
