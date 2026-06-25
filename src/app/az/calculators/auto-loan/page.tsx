@@ -61,6 +61,7 @@ export default function AutoLoanPage() {
   const [recurringTo, setRecurringTo] = useState<number | "">("");
   const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([{ id: 1, month: 1, amount: 0 }]);
   const [penalty, setPenalty] = useState(0);
+  const [commissionPct, setCommissionPct] = useState(0);
   const [showAllRows, setShowAllRows] = useState(false);
 
   const downPayment = Math.round((downPaymentPct / 100) * carPrice);
@@ -147,9 +148,9 @@ export default function AutoLoanPage() {
   const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
 
   const carTypes = [
-    { key: "passenger", label: "Minik" },
-    { key: "suv", label: "SUV" },
-    { key: "commercial", label: "Kommersiya" },
+    { key: "electric", label: "Elektrik" },
+    { key: "hybrid", label: "Hibrid" },
+    { key: "other", label: "Digər" },
   ];
 
   return (
@@ -223,6 +224,12 @@ export default function AutoLoanPage() {
                 value={rate} min={5} max={35} step={0.5}
                 format={(v) => `${v}%`}
                 onChange={setRate}
+              />
+              <SliderRow
+                label="Komissiya"
+                value={commissionPct} min={0} max={5} step={0.25}
+                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * loanAmount).toLocaleString()})`}
+                onChange={setCommissionPct}
               />
 
               {/* Kredit məbləği pill */}
@@ -352,41 +359,48 @@ export default function AutoLoanPage() {
           {/* Right — blue result card */}
           <div className="lg:col-span-2">
             <div className="sticky top-20 space-y-4">
-              <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%)" }}>
-                <p className="text-sm text-blue-200 font-medium mb-1">Aylıq ödəniş</p>
-                <p className="text-5xl font-bold mb-6">{formatCurrency(baseMonthly)}</p>
+              {/* Result card — dark navy */}
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Top accent bar */}
+                <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #1e40af, #3b82f6)" }} />
 
-                <div className="h-px bg-white/20 mb-5" />
+                <div className="p-6">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
+                  <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(baseMonthly)}</p>
+                  {commissionPct > 0 && (
+                    <p className="text-xs text-gray-400 mb-4">+ ₼ {Math.round((commissionPct / 100) * loanAmount).toLocaleString()} komissiya (birdəfəlik)</p>
+                  )}
+                  {commissionPct === 0 && <div className="mb-4" />}
 
-                <div className="grid grid-cols-2 gap-4 mb-5">
-                  <div>
-                    <p className="text-xs text-blue-200 mb-0.5">Kredit məbləği</p>
-                    <p className="text-lg font-bold">{formatCurrency(loanAmount)}</p>
+                  {/* Metrics grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {[
+                      { label: "Kredit məbləği", value: formatCurrency(loanAmount) },
+                      { label: "İllik faiz", value: `${rate}%` },
+                      { label: "Müddət", value: `${months} ay` },
+                      { label: "Toplam faiz", value: formatCurrency(baseMonthly * months - loanAmount) },
+                    ].map((m) => (
+                      <div key={m.label} className="bg-gray-50 rounded-xl px-3 py-2.5">
+                        <p className="text-xs text-gray-400 mb-0.5">{m.label}</p>
+                        <p className="text-sm font-bold text-gray-900">{m.value}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-xs text-blue-200 mb-0.5">İllik faiz</p>
-                    <p className="text-lg font-bold">{rate}%</p>
+
+                  {/* Total with separator */}
+                  <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Ümumi ödəniş</span>
+                    <span className="text-lg font-bold text-gray-900">
+                      {formatCurrency(baseMonthly * months + Math.round((commissionPct / 100) * loanAmount))}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs text-blue-200 mb-0.5">Müddət</p>
-                    <p className="text-lg font-bold">{months} ay</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-blue-200 mb-0.5">Ümumi ödəniş</p>
-                    <p className="text-lg font-bold">{formatCurrency(baseMonthly * months)}</p>
-                  </div>
+
+                  <Link href="/az/kredit-yoxlama"
+                    className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
+                    style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
+                    Kredit yoxlamasına keç →
+                  </Link>
                 </div>
-
-                <div className="h-px bg-white/20 mb-5" />
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-200">Toplam faiz</span>
-                  <span className="font-semibold">{formatCurrency(baseMonthly * months - loanAmount)}</span>
-                </div>
-
-                <Link href="/az/kredit-yoxlama"
-                  className="mt-5 flex items-center justify-center w-full py-3 rounded-xl bg-white text-blue-700 font-bold text-sm hover:bg-blue-50 transition-colors">
-                  Kredit yoxlamasına keç →
-                </Link>
               </div>
 
               {/* Extra payment result */}
