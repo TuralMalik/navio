@@ -13,13 +13,43 @@ type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
+function SliderRow({
+  label, value, min, max, step, format, onChange,
+}: {
+  label: string; value: number; min: number; max: number; step: number;
+  format: (v: number) => string; onChange: (v: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-base font-bold text-gray-900">{format(value)}</span>
+      </div>
+      <div className="relative">
+        <input
+          type="range" min={min} max={max} step={step} value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #2563eb ${pct}%, #e5e7eb ${pct}%)`,
+            accentColor: "#2563eb",
+          }}
+        />
+      </div>
+      <div className="flex justify-between mt-1">
+        <span className="text-xs text-gray-400">{format(min)}</span>
+        <span className="text-xs text-gray-400">{format(max)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function AutoLoanPage() {
   const [carPrice, setCarPrice] = useState(30000);
   const [carType, setCarType] = useState("passenger");
   const [isNew, setIsNew] = useState("new");
-  const [carAge, setCarAge] = useState(0);
-  const [downPaymentPctInput, setDownPaymentPctInput] = useState(20);
-  const [downPayment, setDownPayment] = useState(6000);
+  const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [months, setMonths] = useState(60);
   const [rate, setRate] = useState(15);
 
@@ -31,33 +61,16 @@ export default function AutoLoanPage() {
   const [recurringTo, setRecurringTo] = useState<number | "">("");
   const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([{ id: 1, month: 1, amount: 0 }]);
   const [penalty, setPenalty] = useState(0);
-
-  const [showBgn, setShowBgn] = useState(false);
-  const [bgnGelir, setBgnGelir] = useState(0);
-  const [bgnMovcud, setBgnMovcud] = useState(0);
-
   const [showAllRows, setShowAllRows] = useState(false);
 
-  const handleCarPriceChange = (val: number) => {
-    setCarPrice(val);
-    setDownPayment(Math.round((downPaymentPctInput / 100) * val));
-  };
-  const handleDownPctChange = (pct: number) => {
-    setDownPaymentPctInput(pct);
-    setDownPayment(Math.round((pct / 100) * carPrice));
-  };
-  const handleDownAmtChange = (amt: number) => {
-    setDownPayment(amt);
-    setDownPaymentPctInput(carPrice > 0 ? Math.round((amt / carPrice) * 1000) / 10 : 0);
-  };
+  const downPayment = Math.round((downPaymentPct / 100) * carPrice);
+  const loanAmount = Math.max(0, carPrice - downPayment);
+  const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
 
   const addOneTime = () => setOneTimePayments((p) => [...p, { id: Date.now(), month: 1, amount: 0 }]);
   const removeOneTime = (id: number) => setOneTimePayments((p) => p.filter((x) => x.id !== id));
   const updateOneTime = (id: number, field: "month" | "amount", value: number) =>
     setOneTimePayments((p) => p.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
-
-  const loanAmount = Math.max(0, carPrice - downPayment);
-  const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
 
   const { schedule, extraResult } = useMemo(() => {
     const r = rate / 100 / 12;
@@ -109,8 +122,7 @@ export default function AutoLoanPage() {
         totalPaid += actualExtra + pen;
         balance -= actualExtra;
         if (balance > 0 && erkenRejim === "odəniş" && remainingMonths > 0) {
-          const newN = remainingMonths;
-          currentPayment = (balance * r * Math.pow(1 + r, newN)) / (Math.pow(1 + r, newN) - 1);
+          currentPayment = (balance * r * Math.pow(1 + r, remainingMonths)) / (Math.pow(1 + r, remainingMonths) - 1);
         }
       }
 
@@ -131,12 +143,14 @@ export default function AutoLoanPage() {
   }, [loanAmount, rate, months, baseMonthly, showExtra, recurringEnabled, recurringAmount,
       recurringFrom, recurringTo, oneTimePayments, penalty, erkenRejim]);
 
-  const bgn = showBgn && bgnGelir > 0
-    ? ((bgnMovcud + baseMonthly) / bgnGelir) * 100
-    : null;
-
   const displayedRows = showAllRows ? schedule : schedule.slice(0, 10);
   const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
+
+  const carTypes = [
+    { key: "passenger", label: "Minik" },
+    { key: "suv", label: "SUV" },
+    { key: "commercial", label: "Kommersiya" },
+  ];
 
   return (
     <main className="bg-gray-50 min-h-screen py-10">
@@ -153,67 +167,74 @@ export default function AutoLoanPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left — sliders */}
           <div className="lg:col-span-3 space-y-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
 
-            {/* Avtomobil məlumatları */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-              <h3 className="font-bold text-gray-900">Avtomobil məlumatları</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Avtomobilin qiyməti (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={carPrice}
-                    onChange={(e) => handleCarPriceChange(Number(e.target.value))} />
+              {/* Car type tabs */}
+              <div className="flex gap-2">
+                {carTypes.map((t) => (
+                  <button key={t.key} onClick={() => setCarType(t.key)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                      carType === t.key
+                        ? "bg-gray-900 text-white border-gray-900"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
+                <div className="ml-auto flex gap-2">
+                  {[{ key: "new", label: "Yeni" }, { key: "used", label: "İşlənmiş" }].map((t) => (
+                    <button key={t.key} onClick={() => setIsNew(t.key)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
+                        isNew === t.key
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
+                      }`}>
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Avtomobil tipi</label>
-                  <select className={selectClass} value={carType} onChange={(e) => setCarType(e.target.value)}>
-                    <option value="passenger">Minik avtomobili</option>
-                    <option value="suv">SUV / Krossover</option>
-                    <option value="commercial">Kommersiya</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Yeni və ya işlənmiş</label>
-                  <select className={selectClass} value={isNew} onChange={(e) => setIsNew(e.target.value)}>
-                    <option value="new">Yeni</option>
-                    <option value="used">İşlənmiş</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Avtomobilin yaşı (il)</label>
-                  <input type="number" min={0} max={30} className={inputClass} value={carAge}
-                    onChange={(e) => setCarAge(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">İlkin ödəniş faizi (%)</label>
-                  <input type="number" min={0} max={100} step={0.5} className={inputClass} value={downPaymentPctInput}
-                    onChange={(e) => handleDownPctChange(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">İlkin ödəniş məbləği (₼)</label>
-                  <input type="number" min={0} className={inputClass} value={downPayment}
-                    onChange={(e) => handleDownAmtChange(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Kredit müddəti (ay)</label>
-                  <input type="number" min={1} max={84} className={inputClass} value={months || ""}
-                    onChange={(e) => setMonths(parseInt(e.target.value, 10) || 1)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">İllik faiz dərəcəsi (%)</label>
-                  <input type="number" min={0} step={0.1} className={inputClass} value={rate || ""}
-                    onChange={(e) => setRate(Number(e.target.value))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Kredit məbləği (₼)</label>
-                  <input type="number" readOnly className={inputClass + " bg-gray-50 text-gray-500 cursor-default"} value={loanAmount} />
-                </div>
+              </div>
+
+              <div className="h-px bg-gray-100" />
+
+              {/* Sliders */}
+              <SliderRow
+                label="Avtomobilin qiyməti"
+                value={carPrice} min={3000} max={200000} step={1000}
+                format={(v) => `₼ ${v.toLocaleString()}`}
+                onChange={setCarPrice}
+              />
+              <SliderRow
+                label="İlkin ödəniş"
+                value={downPaymentPct} min={10} max={90} step={5}
+                format={(v) => `${v}%  (₼ ${Math.round((v / 100) * carPrice).toLocaleString()})`}
+                onChange={setDownPaymentPct}
+              />
+              <SliderRow
+                label="Kredit müddəti"
+                value={months} min={6} max={84} step={6}
+                format={(v) => `${v} ay`}
+                onChange={setMonths}
+              />
+              <SliderRow
+                label="İllik faiz dərəcəsi"
+                value={rate} min={5} max={35} step={0.5}
+                format={(v) => `${v}%`}
+                onChange={setRate}
+              />
+
+              {/* Kredit məbləği pill */}
+              <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
+                <span className="text-sm text-blue-600 font-medium">Kredit məbləği</span>
+                <span className="text-base font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
               </div>
             </div>
 
             {/* Əlavə ödənişlər */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className={`flex items-center justify-between ${showExtra ? "mb-1" : ""}`}>
+              <div className={`flex items-center justify-between ${showExtra ? "mb-5" : ""}`}>
                 <div>
                   <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
@@ -231,7 +252,7 @@ export default function AutoLoanPage() {
               </div>
 
               {showExtra && (
-                <div className="mt-5 space-y-5">
+                <div className="space-y-5">
                   <div className="border border-gray-100 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <input type="checkbox" id="rec-a" checked={recurringEnabled}
@@ -326,77 +347,92 @@ export default function AutoLoanPage() {
                 </div>
               )}
             </div>
-
           </div>
 
-          {/* Results */}
+          {/* Right — blue result card */}
           <div className="lg:col-span-2">
             <div className="sticky top-20 space-y-4">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <p className="text-xs text-gray-500 font-medium mb-1">Aylıq ödəniş</p>
-                <p className="text-4xl font-bold text-gray-900 mb-5">{formatCurrency(baseMonthly)}</p>
+              <div className="rounded-2xl p-6 text-white" style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #3b82f6 100%)" }}>
+                <p className="text-sm text-blue-200 font-medium mb-1">Aylıq ödəniş</p>
+                <p className="text-5xl font-bold mb-6">{formatCurrency(baseMonthly)}</p>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
-                    <p className="text-sm font-bold text-gray-900">{formatCurrency(baseMonthly * months - loanAmount)}</p>
+                <div className="h-px bg-white/20 mb-5" />
+
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div>
+                    <p className="text-xs text-blue-200 mb-0.5">Kredit məbləği</p>
+                    <p className="text-lg font-bold">{formatCurrency(loanAmount)}</p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
-                    <p className="text-sm font-bold text-gray-900">{formatCurrency(baseMonthly * months)}</p>
+                  <div>
+                    <p className="text-xs text-blue-200 mb-0.5">İllik faiz</p>
+                    <p className="text-lg font-bold">{rate}%</p>
                   </div>
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-1">Müddət</p>
-                    <p className="text-sm font-bold text-gray-900">{months} ay</p>
+                  <div>
+                    <p className="text-xs text-blue-200 mb-0.5">Müddət</p>
+                    <p className="text-lg font-bold">{months} ay</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-200 mb-0.5">Ümumi ödəniş</p>
+                    <p className="text-lg font-bold">{formatCurrency(baseMonthly * months)}</p>
                   </div>
                 </div>
 
-                {extraResult && (
-                  <>
-                    <div className="mt-4 border-t border-gray-100 pt-4">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                          <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
-                          <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalInterest)}</p>
-                        </div>
-                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                          <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
-                          <p className="text-sm font-bold text-emerald-700">{formatCurrency(baseMonthly * months - extraResult.savings)}</p>
-                        </div>
-                        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                          <p className="text-xs text-gray-400 mb-1">Müddət</p>
-                          <p className="text-sm font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="h-px bg-white/20 mb-5" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-200">Toplam faiz</span>
+                  <span className="font-semibold">{formatCurrency(baseMonthly * months - loanAmount)}</span>
+                </div>
 
-                    <div className="mt-3">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                          <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
-                          <p className="text-sm font-bold text-blue-700">−{formatCurrency((baseMonthly * months - loanAmount) - extraResult.totalInterest)}</p>
-                        </div>
-                        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                          <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
-                          <p className="text-sm font-bold text-blue-700">−{formatCurrency(extraResult.savings)}</p>
-                        </div>
-                        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                          <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
-                          <p className="text-sm font-bold text-blue-700">−{months - extraResult.finalMonths} ay</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
+                <Link href="/az/kredit-yoxlama"
+                  className="mt-5 flex items-center justify-center w-full py-3 rounded-xl bg-white text-blue-700 font-bold text-sm hover:bg-blue-50 transition-colors">
+                  Kredit yoxlamasına keç →
+                </Link>
               </div>
 
-              {isNew === "used" && carAge > 10 && (
+              {/* Extra payment result */}
+              {extraResult && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                        <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalInterest)}</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                        <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(baseMonthly * months - extraResult.savings)}</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                        <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                        <p className="text-sm font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                        <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
+                        <p className="text-sm font-bold text-blue-700">−{formatCurrency((baseMonthly * months - loanAmount) - extraResult.totalInterest)}</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                        <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
+                        <p className="text-sm font-bold text-blue-700">−{formatCurrency(extraResult.savings)}</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                        <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
+                        <p className="text-sm font-bold text-blue-700">−{months - extraResult.finalMonths} ay</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isNew === "used" && (
                 <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
                   <p className="text-xs text-amber-700 leading-relaxed">
-                    İşlənmiş avtomobillər üçün yaş məhdudiyyəti bankdan banka dəyişir.
-                    10 ildən köhnə nəqliyyat vasitələri üçün banklar fərqli şərtlər qoya bilər.
+                    İşlənmiş avtomobillər üçün yaş məhdudiyyəti bankdan banka dəyişir. Banklar fərqli şərtlər qoya bilər.
                   </p>
                 </div>
               )}
