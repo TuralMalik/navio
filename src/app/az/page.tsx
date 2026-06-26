@@ -43,22 +43,11 @@ export default function HomePage() {
 
       {/* ── HERO ── */}
       <section className="relative min-h-[600px] flex items-center overflow-hidden bg-white py-16 md:py-24">
-        {/* Decorative wave / mesh on the right */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 overflow-hidden">
-          <svg viewBox="0 0 600 600" className="absolute right-0 top-0 h-full w-full opacity-60" preserveAspectRatio="xMidYMid slice">
-            <defs>
-              <linearGradient id="wg1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#e9d5ff" stopOpacity="0.3" />
-              </linearGradient>
-            </defs>
-            <path d="M 0 150 Q 150 50 300 200 Q 450 350 600 150 L 600 0 L 0 0 Z" fill="url(#wg1)" />
-            <path d="M 0 300 Q 200 180 400 320 Q 520 400 600 280 L 600 600 L 0 600 Z" fill="url(#wg1)" opacity="0.4" />
-            <path d="M 100 0 Q 300 100 200 300 Q 100 500 400 500 Q 550 500 600 400 L 600 0 Z" fill="none" stroke="#93c5fd" strokeWidth="1.5" opacity="0.4" />
-            <path d="M 0 200 Q 200 50 350 250 Q 500 450 600 300" fill="none" stroke="#c4b5fd" strokeWidth="1.5" opacity="0.3" />
-          </svg>
-          <div className="absolute -top-20 right-0 w-96 h-96 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #93c5fd, transparent 70%)" }} />
-          <div className="absolute bottom-0 right-20 w-72 h-72 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #c4b5fd, transparent 70%)" }} />
+        {/* Decorative blobs — soft, no hard edges */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: "radial-gradient(circle at 70% 30%, #dbeafe 0%, transparent 60%)", opacity: 0.6 }} />
+          <div className="absolute bottom-0 right-20 w-[500px] h-[500px] rounded-full" style={{ background: "radial-gradient(circle at 60% 60%, #ede9fe 0%, transparent 55%)", opacity: 0.5 }} />
+          <div className="absolute top-1/3 right-1/3 w-[300px] h-[300px] rounded-full" style={{ background: "radial-gradient(circle, #bfdbfe 0%, transparent 65%)", opacity: 0.3 }} />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
