@@ -21,24 +21,17 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/az" className="flex items-center gap-2">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="40" height="38" viewBox="0 0 104 100" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="bar1g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#93c5fd" />
-                  <stop offset="100%" stopColor="#3b82f6" />
-                </linearGradient>
-                <linearGradient id="bar2g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#60a5fa" />
-                  <stop offset="100%" stopColor="#1d4ed8" />
-                </linearGradient>
-                <linearGradient id="bar3g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#1e3a8a" />
+                <linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="5" y1="0" x2="99" y2="0">
+                  <stop offset="0%" stopColor="#38bdf8" />
+                  <stop offset="48%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#4338ca" />
                 </linearGradient>
               </defs>
-              <rect x="3" y="20" width="8" height="13" rx="2" fill="url(#bar1g)" />
-              <rect x="14" y="12" width="8" height="21" rx="2" fill="url(#bar2g)" />
-              <rect x="25" y="4" width="8" height="29" rx="2" fill="url(#bar3g)" />
+              <path d="M 5,70 L 27,55 Q 33,55 33,61 L 33,88 Q 33,94 27,94 L 11,94 Q 5,94 5,88 Z" fill="url(#ng)" />
+              <path d="M 38,48 L 60,33 Q 66,33 66,39 L 66,88 Q 66,94 60,94 L 44,94 Q 38,94 38,88 Z" fill="url(#ng)" />
+              <path d="M 71,20 L 93,5 Q 99,5 99,11 L 99,88 Q 99,94 93,94 L 77,94 Q 71,94 71,88 Z" fill="url(#ng)" />
             </svg>
             <div className="flex flex-col leading-tight">
               <span className="text-xl font-bold tracking-tight" style={{ color: "#0f1f3d" }}>
