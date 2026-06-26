@@ -2,7 +2,10 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
+import { ChevronRight, Plus, Trash2, ChevronDown, GitCompare, Calculator } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from "recharts";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
 import { formatCurrency } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
@@ -14,7 +17,182 @@ type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
+interface ScenarioParams {
+  principal: number;
+  months: number;
+  rate: number;
+  commissionPct: number;
+  insurancePct: number;
+  other: number;
+}
+
+function calcScenario(p: ScenarioParams) {
+  const { principal, months, rate, commissionPct, insurancePct, other } = p;
+  if (!principal || !months || !rate) return null;
+  const commission = Math.round((commissionPct / 100) * principal);
+  const insurance = Math.round((insurancePct / 100) * principal);
+  const r = rate / 100 / 12;
+  const baseMonthly = calcAnnuityPayment(principal, rate, months);
+
+  const schedule: ScheduleRow[] = [];
+  let balance = principal;
+  for (let i = 1; i <= months; i++) {
+    const interest = balance * r;
+    const principalPart = baseMonthly - interest;
+    balance = Math.max(0, balance - principalPart);
+    schedule.push({ month: i, payment: baseMonthly, extra: 0, interest, principal: principalPart, balance });
+    if (balance <= 0) break;
+  }
+
+  const totalInterest = baseMonthly * months - principal;
+  const netPrincipal = principal - commission - insurance - other;
+
+  // EAR
+  let ear = (Math.pow(1 + r, 12) - 1) * 100;
+  if (netPrincipal > 0 && netPrincipal < principal) {
+    let lo = 0, hi = 10;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const pv = mid === 0 ? baseMonthly * months : baseMonthly * (1 - Math.pow(1 + mid, -months)) / mid;
+      if (pv > netPrincipal) lo = mid; else hi = mid;
+    }
+    ear = (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100;
+  }
+
+  // FIFD
+  let fifd: number | null = null;
+  if (netPrincipal > 0) {
+    let lo = 0, hi = 10;
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const pv = mid === 0 ? baseMonthly * months : baseMonthly * (1 - Math.pow(1 + mid, -months)) / mid;
+      if (pv > netPrincipal) lo = mid; else hi = mid;
+    }
+    fifd = ((lo + hi) / 2) * 12 * 100;
+  }
+
+  return {
+    firstPayment: baseMonthly,
+    totalPayment: baseMonthly * months + commission + insurance + other,
+    totalInterest,
+    commission, insurance, other,
+    additionalCosts: commission + insurance + other,
+    finalMonths: months,
+    schedule,
+    ear,
+    fifd,
+  };
+}
+
+function ScenarioSliders({
+  label, color, params, onChange,
+}: {
+  label: string;
+  color: "blue" | "purple";
+  params: ScenarioParams;
+  onChange: (p: Partial<ScenarioParams>) => void;
+}) {
+  const accent = color === "blue" ? "#2563eb" : "#7c3aed";
+  const badgeBg = color === "blue" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700";
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${badgeBg}`}>{label}</span>
+      </div>
+      <SliderRow label="Kredit məbləği" value={params.principal} min={500} max={100000} step={500}
+        format={(v) => `₼ ${v.toLocaleString()}`} onChange={(v) => onChange({ principal: v })} accentColor={accent} />
+      <SliderRow label="Kredit müddəti" value={params.months} min={3} max={59} step={1}
+        format={(v) => `${v} ay`} onChange={(v) => onChange({ months: v })} accentColor={accent} />
+      <SliderRow label="İllik faiz dərəcəsi" value={params.rate} min={5} max={50} step={0.1}
+        format={(v) => `${v}%`} onChange={(v) => onChange({ rate: v })} accentColor={accent} />
+      <SliderRow label="Komissiya" value={params.commissionPct} min={0} max={10} step={0.25}
+        format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * params.principal).toLocaleString()})`}
+        onChange={(v) => onChange({ commissionPct: v })} accentColor={accent} />
+      <SliderRow label="Sığorta" value={params.insurancePct} min={0} max={5} step={0.25}
+        format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * params.principal).toLocaleString()})`}
+        onChange={(v) => onChange({ insurancePct: v })} accentColor={accent} />
+      <div className="pt-2 border-t border-gray-100">
+        <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
+        <input type="number" min={0} className={inputClass} value={params.other || ""}
+          onChange={(e) => onChange({ other: parseInt(e.target.value, 10) || 0 })} />
+      </div>
+    </div>
+  );
+}
+
+function CompareResultCard({
+  labelA, resA, labelB, resB,
+}: {
+  labelA: string;
+  resA: ReturnType<typeof calcScenario>;
+  labelB: string;
+  resB: ReturnType<typeof calcScenario>;
+}) {
+  if (!resA || !resB) return null;
+  const rows = [
+    { label: "Aylıq ödəniş", a: formatCurrency(resA.firstPayment), b: formatCurrency(resB.firstPayment), diffVal: resB.firstPayment - resA.firstPayment },
+    { label: "Toplam faiz", a: formatCurrency(resA.totalInterest), b: formatCurrency(resB.totalInterest), diffVal: resB.totalInterest - resA.totalInterest },
+    { label: "Ümumi ödəniş", a: formatCurrency(resA.totalPayment), b: formatCurrency(resB.totalPayment), diffVal: resB.totalPayment - resA.totalPayment },
+    { label: "Müddət", a: `${resA.finalMonths} ay`, b: `${resB.finalMonths} ay`, diffVal: resB.finalMonths - resA.finalMonths },
+    { label: "EAR", a: `${resA.ear.toFixed(2)}%`, b: `${resB.ear.toFixed(2)}%`, diffVal: resB.ear - resA.ear },
+    { label: "FİFD", a: resA.fifd !== null ? `${resA.fifd.toFixed(2)}%` : "—", b: resB.fifd !== null ? `${resB.fifd.toFixed(2)}%` : "—", diffVal: (resB.fifd ?? 0) - (resA.fifd ?? 0) },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #2563eb, #7c3aed)" }} />
+      <div className="p-6">
+        <h3 className="font-bold text-gray-900 mb-4">Müqayisə nəticələri</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-gray-400 border-b border-gray-100">
+                <th className="pb-3 text-left font-medium w-1/4">Göstərici</th>
+                <th className="pb-3 text-center font-medium">
+                  <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{labelA}</span>
+                </th>
+                <th className="pb-3 text-center font-medium">
+                  <span className="bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-bold">{labelB}</span>
+                </th>
+                <th className="pb-3 text-center font-medium">Fərq</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const diff = row.diffVal;
+                const diffStr = diff === 0 ? "—"
+                  : `${diff > 0 ? "+" : ""}${typeof row.a === "string" && row.a.includes("₼")
+                    ? formatCurrency(Math.abs(diff))
+                    : row.a.includes("%") ? `${Math.abs(diff).toFixed(2)}%`
+                    : `${Math.abs(diff)} ay`}`;
+                const diffColor = diff === 0 ? "text-gray-400"
+                  : diff > 0 ? "text-red-500" : "text-emerald-600";
+                return (
+                  <tr key={row.label} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="py-3 text-gray-500 font-medium">{row.label}</td>
+                    <td className="py-3 text-center font-bold text-blue-700">{row.a}</td>
+                    <td className="py-3 text-center font-bold text-purple-700">{row.b}</td>
+                    <td className={`py-3 text-center text-xs font-semibold ${diffColor}`}>
+                      {diff !== 0 && (diff > 0 ? "▲ " : "▼ ")}{diffStr}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ErkenRejimType = "muddət" | "odəniş";
+interface OneTimePaymentType { id: number; month: number; amount: number; }
+
 export default function ConsumerLoanPage() {
+  const [mode, setMode] = useState<"single" | "compare">("single");
+
+  // Scenario A (also used in single mode)
   const [principal, setPrincipal] = useState(20000);
   const [months, setMonths] = useState(36);
   const [rate, setRate] = useState(18);
@@ -22,15 +200,22 @@ export default function ConsumerLoanPage() {
   const [insurancePct, setInsurancePct] = useState(0);
   const [other, setOther] = useState(0);
 
+  // Scenario B (compare mode only)
+  const [paramsB, setParamsB] = useState<ScenarioParams>({
+    principal: 20000, months: 24, rate: 15, commissionPct: 0, insurancePct: 0, other: 0,
+  });
+
+  // Extra payments (single mode)
   const [showExtra, setShowExtra] = useState(false);
-  const [erkenRejim, setErkenRejim] = useState<ErkenRejim>("muddət");
+  const [erkenRejim, setErkenRejim] = useState<ErkenRejimType>("muddət");
   const [recurringEnabled, setRecurringEnabled] = useState(false);
   const [recurringAmount, setRecurringAmount] = useState(100);
   const [recurringFrom, setRecurringFrom] = useState(1);
   const [recurringTo, setRecurringTo] = useState<number | "">("");
-  const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([{ id: 1, month: 1, amount: 0 }]);
+  const [oneTimePayments, setOneTimePayments] = useState<OneTimePaymentType[]>([{ id: 1, month: 1, amount: 0 }]);
   const [penalty, setPenalty] = useState(0);
   const [showAllRows, setShowAllRows] = useState(false);
+  const [showChart, setShowChart] = useState(true);
 
   const commission = Math.round((commissionPct / 100) * principal);
   const insurance = Math.round((insurancePct / 100) * principal);
@@ -126,7 +311,6 @@ export default function ConsumerLoanPage() {
       showExtra, recurringEnabled, recurringAmount, recurringFrom, recurringTo,
       oneTimePayments, penalty, erkenRejim]);
 
-  // FIFD — Faktiki İllik Faiz Dərəcəsi (IRR-based APR)
   const fifd = useMemo(() => {
     if (!result || !principal || !months) return null;
     const pmt = result.firstPayment;
@@ -141,7 +325,6 @@ export default function ConsumerLoanPage() {
     return ((lo + hi) / 2) * 12 * 100;
   }, [result, principal, months, commission, insurance, other]);
 
-  // EAR — Effektiv İllik Faiz (compounded, including fees via IRR)
   const ear = useMemo(() => {
     if (!principal || !months) return null;
     const netPrincipal = principal - commission - insurance - other;
@@ -155,6 +338,30 @@ export default function ConsumerLoanPage() {
     return (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100;
   }, [principal, months, baseMonthly, commission, insurance, other, rate]);
 
+  // Amortization chart data
+  const chartData = useMemo(() => {
+    if (!result) return [];
+    return result.schedule.map((row) => ({
+      month: row.month,
+      "Qalıq borc": Math.round(row.balance),
+      "Faiz hissəsi": Math.round(row.interest),
+    }));
+  }, [result]);
+
+  // Compare mode results
+  const resA = useMemo(() => calcScenario({ principal, months, rate, commissionPct, insurancePct, other }), [principal, months, rate, commissionPct, insurancePct, other]);
+  const resB = useMemo(() => calcScenario(paramsB), [paramsB]);
+
+  const chartDataCompare = useMemo(() => {
+    if (!resA || !resB) return [];
+    const len = Math.max(resA.schedule.length, resB.schedule.length);
+    return Array.from({ length: len }, (_, i) => ({
+      month: i + 1,
+      "Ssenari A": resA.schedule[i] ? Math.round(resA.schedule[i].balance) : 0,
+      "Ssenari B": resB.schedule[i] ? Math.round(resB.schedule[i].balance) : 0,
+    }));
+  }, [resA, resB]);
+
   const displayedRows = result?.schedule
     ? (showAllRows ? result.schedule : result.schedule.slice(0, 10))
     : [];
@@ -165,6 +372,7 @@ export default function ConsumerLoanPage() {
   return (
     <main className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
             <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
@@ -173,354 +381,428 @@ export default function ConsumerLoanPage() {
             <ChevronRight size={14} />
             <span className="text-gray-600">İstehlak krediti</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">İstehlak krediti kalkulyatoru</h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left — sliders */}
-          <div className="lg:col-span-3 space-y-5">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-
-              <SliderRow
-                label="Kredit məbləği"
-                value={principal} min={500} max={100000} step={500}
-                format={(v) => `₼ ${v.toLocaleString()}`}
-                onChange={setPrincipal}
-              />
-              <SliderRow
-                label="Kredit müddəti"
-                value={months} min={3} max={59} step={1}
-                format={(v) => `${v} ay`}
-                onChange={setMonths}
-              />
-              <SliderRow
-                label="İllik faiz dərəcəsi"
-                value={rate} min={5} max={50} step={0.1}
-                format={(v) => `${v}%`}
-                onChange={setRate}
-              />
-              <SliderRow
-                label="Komissiya"
-                value={commissionPct} min={0} max={10} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
-                onChange={setCommissionPct}
-              />
-              <SliderRow
-                label="Sığorta"
-                value={insurancePct} min={0} max={5} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
-                onChange={setInsurancePct}
-              />
-
-              {/* Other fees — manual */}
-              <div className="pt-2 border-t border-gray-100">
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
-                <input type="number" min={0} className={inputClass} value={other || ""}
-                  onChange={(e) => setOther(parseInt(e.target.value, 10) || 0)} />
-              </div>
-            </div>
-
-            {/* Əlavə ödənişlər */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className={`flex items-center justify-between ${showExtra ? "mb-5" : ""}`}>
-                <div>
-                  <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setShowExtra(false)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showExtra ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
-                    Xeyr
-                  </button>
-                  <button onClick={() => setShowExtra(true)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showExtra ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
-                    Bəli
-                  </button>
-                </div>
-              </div>
-
-              {showExtra && (
-                <div className="space-y-5">
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <input type="checkbox" id="rec-c" checked={recurringEnabled}
-                        onChange={(e) => setRecurringEnabled(e.target.checked)} className="w-4 h-4 accent-blue-600" />
-                      <label htmlFor="rec-c" className="font-semibold text-gray-800 text-sm cursor-pointer">
-                        Daimi əlavə ödəniş istifadə edilsin?
-                      </label>
-                    </div>
-                    {recurringEnabled && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Aylıq əlavə məbləğ</label>
-                          <input type="number" min={0} className={inputClass} value={recurringAmount || ""}
-                            onChange={(e) => setRecurringAmount(parseInt(e.target.value, 10) || 0)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
-                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
-                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 0)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
-                          <input type="number" min={recurringFrom} max={months} className={inputClass}
-                            placeholder="Kredit bitənə qədər" value={recurringTo}
-                            onChange={(e) => setRecurringTo(e.target.value === "" ? "" : Number(e.target.value))} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-4">Birdəfəlik əlavə ödənişlər</h4>
-                    <div className="space-y-3">
-                      {oneTimePayments.map((op) => (
-                        <div key={op.id} className="grid grid-cols-5 gap-3 items-end">
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
-                            <input type="number" min={1} max={months} className={inputClass} value={op.month || ""}
-                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 0)} />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ (₼)</label>
-                            <input type="number" min={0} className={inputClass} value={op.amount || ""}
-                              onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)} />
-                          </div>
-                          <button onClick={() => removeOneTime(op.id)}
-                            className="h-10 flex items-center justify-center px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={addOneTime}
-                      className="mt-3 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-                      <Plus size={16} /> Ödəniş əlavə et
-                    </button>
-                  </div>
-
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Erkən ödəniş kompensasiyası</h4>
-                    <div className="max-w-xs">
-                      <select className={selectClass} value={penalty} onChange={(e) => setPenalty(Number(e.target.value))}>
-                        <option value={0}>0%</option>
-                        <option value={1}>1%</option>
-                        <option value={2}>2%</option>
-                        <option value={3}>3%</option>
-                        <option value={5}>5%</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödənişdən sonra nə azalsın?</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
-                        { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
-                      ] as { key: ErkenRejim; icon: string; label: string; note: string }[]).map(({ key, icon, label, note }) => (
-                        <button key={key} onClick={() => setErkenRejim(key)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            erkenRejim === key
-                              ? "border-blue-600 bg-white text-blue-700 shadow-sm"
-                              : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
-                          }`}>
-                          <span className="text-lg">{icon}</span>
-                          <span className="text-center leading-tight">{label}</span>
-                          <span className="text-xs font-normal text-gray-400">{note}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">İstehlak krediti kalkulyatoru</h1>
+            {/* Mode toggle */}
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+              <button
+                onClick={() => setMode("single")}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "single" ? "bg-blue-600 text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                <Calculator size={14} />
+                Tək ssenari
+              </button>
+              <button
+                onClick={() => setMode("compare")}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${mode === "compare" ? "bg-purple-600 text-white shadow" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                <GitCompare size={14} />
+                Müqayisə et
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Right — result card */}
-          <div className="lg:col-span-2">
-            <div className="sticky top-20 space-y-4">
-              {result && (
-                <>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #1e40af, #3b82f6)" }} />
-                    <div className="p-6">
-                      <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
-                      <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(result.firstPayment)}</p>
-                      {(commissionPct > 0 || insurancePct > 0) && (
-                        <p className="text-xs text-gray-400 mb-4">
-                          + ₼ {(commission + insurance).toLocaleString()} birdəfəlik xərclər
-                        </p>
-                      )}
-                      {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}
+        {/* ── COMPARE MODE ── */}
+        {mode === "compare" && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ScenarioSliders
+                label="Ssenari A"
+                color="blue"
+                params={{ principal, months, rate, commissionPct, insurancePct, other }}
+                onChange={(p) => {
+                  if (p.principal !== undefined) setPrincipal(p.principal);
+                  if (p.months !== undefined) setMonths(p.months);
+                  if (p.rate !== undefined) setRate(p.rate);
+                  if (p.commissionPct !== undefined) setCommissionPct(p.commissionPct);
+                  if (p.insurancePct !== undefined) setInsurancePct(p.insurancePct);
+                  if (p.other !== undefined) setOther(p.other);
+                }}
+              />
+              <ScenarioSliders
+                label="Ssenari B"
+                color="purple"
+                params={paramsB}
+                onChange={(p) => setParamsB((prev) => ({ ...prev, ...p }))}
+              />
+            </div>
 
-                      {/* Base metrics */}
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(result.totalPayment)}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl p-3">
-                          <p className="text-xs text-gray-400 mb-1">Müddət</p>
-                          <p className="text-sm font-bold text-gray-900">{result.finalMonths} ay</p>
-                        </div>
-                      </div>
+            <CompareResultCard labelA="Ssenari A" resA={resA} labelB="Ssenari B" resB={resB} />
 
-                      {/* Extra payment sections */}
-                      {result.withExtra && (
-                        <>
-                          <div className="mt-4 border-t border-gray-100 pt-4">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                                <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
-                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.interestCost)}</p>
-                              </div>
-                              <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                                <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
-                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.totalPayment)}</p>
-                              </div>
-                              <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                                <p className="text-xs text-gray-400 mb-1">Müddət</p>
-                                <p className="text-sm font-bold text-emerald-700">{result.finalMonths} ay</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-3">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
-                                <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
-                              </div>
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
-                                <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
-                              </div>
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
-                                <p className="text-sm font-bold text-blue-700">−{months - result.finalMonths} ay</p>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
+            {/* Compare chart */}
+            {chartDataCompare.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Qalıq borc dinamikası</h3>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={chartDataCompare} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} label={{ value: "Ay", position: "insideBottom", offset: -2, fontSize: 11, fill: "#9ca3af" }} />
+                    <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v) => `₼${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v) => formatCurrency(Number(v))} labelFormatter={(l) => `${l}-ci ay`} />
+                    <Legend />
+                    <Line type="monotone" dataKey="Ssenari A" stroke="#2563eb" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="Ssenari B" stroke="#7c3aed" strokeWidth={2.5} dot={false} strokeDasharray="5 3" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
 
-                      {/* Additional costs breakdown */}
-                      {(commission > 0 || insurance > 0 || other > 0 || result.penaltyCost > 0) && (
-                        <div className="mt-4 border-t border-gray-100 pt-4 space-y-2">
-                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Əlavə xərclər</p>
-                          {commission > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Komissiya</span>
-                              <span className="text-gray-700 font-medium">{formatCurrency(commission)}</span>
-                            </div>
-                          )}
-                          {insurance > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Sığorta</span>
-                              <span className="text-gray-700 font-medium">{formatCurrency(insurance)}</span>
-                            </div>
-                          )}
-                          {other > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Digər xərclər</span>
-                              <span className="text-gray-700 font-medium">{formatCurrency(other)}</span>
-                            </div>
-                          )}
-                          {result.penaltyCost > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Erkən ödəniş kompensasiyası</span>
-                              <span className="text-gray-700 font-medium">{formatCurrency(result.penaltyCost)}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+        {/* ── SINGLE MODE ── */}
+        {mode === "single" && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Left — sliders */}
+              <div className="lg:col-span-3 space-y-5">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+                  <SliderRow label="Kredit məbləği" value={principal} min={500} max={100000} step={500}
+                    format={(v) => `₼ ${v.toLocaleString()}`} onChange={setPrincipal} />
+                  <SliderRow label="Kredit müddəti" value={months} min={3} max={59} step={1}
+                    format={(v) => `${v} ay`} onChange={setMonths} />
+                  <SliderRow label="İllik faiz dərəcəsi" value={rate} min={5} max={50} step={0.1}
+                    format={(v) => `${v}%`} onChange={setRate} />
+                  <SliderRow label="Komissiya" value={commissionPct} min={0} max={10} step={0.25}
+                    format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
+                    onChange={setCommissionPct} />
+                  <SliderRow label="Sığorta" value={insurancePct} min={0} max={5} step={0.25}
+                    format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
+                    onChange={setInsurancePct} />
+                  <div className="pt-2 border-t border-gray-100">
+                    <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
+                    <input type="number" min={0} className={inputClass} value={other || ""}
+                      onChange={(e) => setOther(parseInt(e.target.value, 10) || 0)} />
+                  </div>
+                </div>
 
-                      <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Ümumi ödəniş</span>
-                        <span className="text-lg font-bold text-gray-900">{formatCurrency(result.totalPayment)}</span>
-                      </div>
-
-                      <Link href={checkUrl}
-                        className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
-                        style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
-                        Kredit yoxlamasına keç →
-                      </Link>
+                {/* Əlavə ödənişlər */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <div className={`flex items-center justify-between ${showExtra ? "mb-5" : ""}`}>
+                    <div>
+                      <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowExtra(false)}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showExtra ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
+                        Xeyr
+                      </button>
+                      <button onClick={() => setShowExtra(true)}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showExtra ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
+                        Bəli
+                      </button>
                     </div>
                   </div>
 
-                  {/* EAR — separate card, above FIFD */}
-                  {ear !== null && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
-                          <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
+                  {showExtra && (
+                    <div className="space-y-5">
+                      <div className="border border-gray-100 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <input type="checkbox" id="rec-c" checked={recurringEnabled}
+                            onChange={(e) => setRecurringEnabled(e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                          <label htmlFor="rec-c" className="font-semibold text-gray-800 text-sm cursor-pointer">
+                            Daimi əlavə ödəniş istifadə edilsin?
+                          </label>
                         </div>
-                        <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                        {recurringEnabled && (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Aylıq əlavə məbləğ</label>
+                              <input type="number" min={0} className={inputClass} value={recurringAmount || ""}
+                                onChange={(e) => setRecurringAmount(parseInt(e.target.value, 10) || 0)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
+                              <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
+                                onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 0)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
+                              <input type="number" min={recurringFrom} max={months} className={inputClass}
+                                placeholder="Kredit bitənə qədər" value={recurringTo}
+                                onChange={(e) => setRecurringTo(e.target.value === "" ? "" : Number(e.target.value))} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border border-gray-100 rounded-xl p-4">
+                        <h4 className="font-semibold text-gray-800 text-sm mb-4">Birdəfəlik əlavə ödənişlər</h4>
+                        <div className="space-y-3">
+                          {oneTimePayments.map((op) => (
+                            <div key={op.id} className="grid grid-cols-5 gap-3 items-end">
+                              <div className="col-span-2">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
+                                <input type="number" min={1} max={months} className={inputClass} value={op.month || ""}
+                                  onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 0)} />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ (₼)</label>
+                                <input type="number" min={0} className={inputClass} value={op.amount || ""}
+                                  onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)} />
+                              </div>
+                              <button onClick={() => removeOneTime(op.id)}
+                                className="h-10 flex items-center justify-center px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={addOneTime}
+                          className="mt-3 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
+                          <Plus size={16} /> Ödəniş əlavə et
+                        </button>
+                      </div>
+
+                      <div className="border border-gray-100 rounded-xl p-4">
+                        <h4 className="font-semibold text-gray-800 text-sm mb-3">Erkən ödəniş kompensasiyası</h4>
+                        <div className="max-w-xs">
+                          <select className={selectClass} value={penalty} onChange={(e) => setPenalty(Number(e.target.value))}>
+                            <option value={0}>0%</option>
+                            <option value={1}>1%</option>
+                            <option value={2}>2%</option>
+                            <option value={3}>3%</option>
+                            <option value={5}>5%</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
+                        <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödənişdən sonra nə azalsın?</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
+                            { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
+                          ] as { key: ErkenRejim; icon: string; label: string; note: string }[]).map(({ key, icon, label, note }) => (
+                            <button key={key} onClick={() => setErkenRejim(key)}
+                              className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                                erkenRejim === key
+                                  ? "border-blue-600 bg-white text-blue-700 shadow-sm"
+                                  : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
+                              }`}>
+                              <span className="text-lg">{icon}</span>
+                              <span className="text-center leading-tight">{label}</span>
+                              <span className="text-xs font-normal text-gray-400">{note}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
 
-                  {/* FIFD card */}
-                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-amber-700 font-semibold">FİFD — Faktiki İllik Faiz Dərəcəsi</p>
-                      {fifd !== null && <p className="text-lg font-bold text-amber-800">{fifd.toFixed(2)}%</p>}
-                    </div>
-                    <p className="text-xs text-amber-600 leading-relaxed">
-                      Kreditin bütün xərclərini (faiz, komissiya, sığorta) nəzərə alan real illik dəyər göstəricisidir. Banklar bu rəqəmi müqavilədə göstərməyə borcludur.
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+              {/* Right — result card */}
+              <div className="lg:col-span-2">
+                <div className="sticky top-20 space-y-4">
+                  {result && (
+                    <>
+                      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #1e40af, #3b82f6)" }} />
+                        <div className="p-6">
+                          <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
+                          <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(result.firstPayment)}</p>
+                          {(commissionPct > 0 || insurancePct > 0) && (
+                            <p className="text-xs text-gray-400 mb-4">
+                              + ₼ {(commission + insurance).toLocaleString()} birdəfəlik xərclər
+                            </p>
+                          )}
+                          {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}
 
-        {/* Ödəniş cədvəli */}
-        {result && result.schedule.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Ödəniş cədvəli</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
-                    <th className="pb-3 pr-4 font-medium">Ay</th>
-                    <th className="pb-3 pr-4 font-medium">Aylıq ödəniş</th>
-                    {hasExtra && <th className="pb-3 pr-4 font-medium">Əlavə ödəniş</th>}
-                    <th className="pb-3 pr-4 font-medium">Faiz hissəsi</th>
-                    <th className="pb-3 pr-4 font-medium">Əsas borc</th>
-                    <th className="pb-3 font-medium">Qalıq borc</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedRows.map((row) => (
-                    <tr key={row.month} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="py-2.5 pr-4 font-medium text-gray-700">{row.month}</td>
-                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.payment)}</td>
-                      {hasExtra && <td className="py-2.5 pr-4 text-blue-600 font-medium">{row.extra > 0 ? formatCurrency(row.extra) : "—"}</td>}
-                      <td className="py-2.5 pr-4 text-orange-600">{formatCurrency(row.interest)}</td>
-                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.principal)}</td>
-                      <td className="py-2.5 text-gray-900 font-medium">{formatCurrency(row.balance)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-gray-50 rounded-xl p-3">
+                              <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                              <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-xl p-3">
+                              <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                              <p className="text-sm font-bold text-gray-900">{formatCurrency(result.totalPayment)}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-xl p-3">
+                              <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                              <p className="text-sm font-bold text-gray-900">{result.finalMonths} ay</p>
+                            </div>
+                          </div>
+
+                          {result.withExtra && (
+                            <>
+                              <div className="mt-4 border-t border-gray-100 pt-4">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                                    <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                                    <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.interestCost)}</p>
+                                  </div>
+                                  <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                                    <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                                    <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.totalPayment)}</p>
+                                  </div>
+                                  <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                                    <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                                    <p className="text-sm font-bold text-emerald-700">{result.finalMonths} ay</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                                    <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
+                                    <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
+                                  </div>
+                                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                                    <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
+                                    <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
+                                  </div>
+                                  <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                                    <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
+                                    <p className="text-sm font-bold text-blue-700">−{months - result.finalMonths} ay</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {(commission > 0 || insurance > 0 || other > 0 || result.penaltyCost > 0) && (
+                            <div className="mt-4 border-t border-gray-100 pt-4 space-y-2">
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Əlavə xərclər</p>
+                              {commission > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Komissiya</span>
+                                  <span className="text-gray-700 font-medium">{formatCurrency(commission)}</span>
+                                </div>
+                              )}
+                              {insurance > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Sığorta</span>
+                                  <span className="text-gray-700 font-medium">{formatCurrency(insurance)}</span>
+                                </div>
+                              )}
+                              {other > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Digər xərclər</span>
+                                  <span className="text-gray-700 font-medium">{formatCurrency(other)}</span>
+                                </div>
+                              )}
+                              {result.penaltyCost > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Erkən ödəniş kompensasiyası</span>
+                                  <span className="text-gray-700 font-medium">{formatCurrency(result.penaltyCost)}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between">
+                            <span className="text-sm text-gray-500">Ümumi ödəniş</span>
+                            <span className="text-lg font-bold text-gray-900">{formatCurrency(result.totalPayment)}</span>
+                          </div>
+
+                          <Link href={checkUrl}
+                            className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
+                            style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
+                            Kredit yoxlamasına keç →
+                          </Link>
+                        </div>
+                      </div>
+
+                      {ear !== null && (
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
+                              <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
+                            </div>
+                            <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-amber-700 font-semibold">FİFD — Faktiki İllik Faiz Dərəcəsi</p>
+                          {fifd !== null && <p className="text-lg font-bold text-amber-800">{fifd.toFixed(2)}%</p>}
+                        </div>
+                        <p className="text-xs text-amber-600 leading-relaxed">
+                          Kreditin bütün xərclərini (faiz, komissiya, sığorta) nəzərə alan real illik dəyər göstəricisidir. Banklar bu rəqəmi müqavilədə göstərməyə borcludur.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            {result.schedule.length > 10 && (
-              <button onClick={() => setShowAllRows(!showAllRows)}
-                className="mt-4 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-                <ChevronDown size={16} className={`transition-transform ${showAllRows ? "rotate-180" : ""}`} />
-                {showAllRows ? "Yığ" : `Bütün cədvəli göstər (${result.schedule.length} ay)`}
-              </button>
+
+            {/* Amortization Chart */}
+            {result && chartData.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-gray-900">Qalıq borc dinamikası</h3>
+                  <button
+                    onClick={() => setShowChart(!showChart)}
+                    className="text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors flex items-center gap-1"
+                  >
+                    <ChevronDown size={14} className={`transition-transform ${showChart ? "rotate-180" : ""}`} />
+                    {showChart ? "Gizlət" : "Göstər"}
+                  </button>
+                </div>
+                {showChart && (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} label={{ value: "Ay", position: "insideBottom", offset: -2, fontSize: 11, fill: "#9ca3af" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(v) => `₼${(v / 1000).toFixed(0)}k`} />
+                      <Tooltip formatter={(v) => formatCurrency(Number(v))} labelFormatter={(l) => `${l}-ci ay`} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Qalıq borc" stroke="#2563eb" strokeWidth={2.5} dot={false} />
+                      <Line type="monotone" dataKey="Faiz hissəsi" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="4 3" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             )}
-          </div>
+
+            {/* Ödəniş cədvəli */}
+            {result && result.schedule.length > 0 && (
+              <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 mb-4">Ödəniş cədvəli</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                        <th className="pb-3 pr-4 font-medium">Ay</th>
+                        <th className="pb-3 pr-4 font-medium">Aylıq ödəniş</th>
+                        {hasExtra && <th className="pb-3 pr-4 font-medium">Əlavə ödəniş</th>}
+                        <th className="pb-3 pr-4 font-medium">Faiz hissəsi</th>
+                        <th className="pb-3 pr-4 font-medium">Əsas borc</th>
+                        <th className="pb-3 font-medium">Qalıq borc</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayedRows.map((row) => (
+                        <tr key={row.month} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                          <td className="py-2.5 pr-4 font-medium text-gray-700">{row.month}</td>
+                          <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.payment)}</td>
+                          {hasExtra && <td className="py-2.5 pr-4 text-blue-600 font-medium">{row.extra > 0 ? formatCurrency(row.extra) : "—"}</td>}
+                          <td className="py-2.5 pr-4 text-orange-600">{formatCurrency(row.interest)}</td>
+                          <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.principal)}</td>
+                          <td className="py-2.5 text-gray-900 font-medium">{formatCurrency(row.balance)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {result.schedule.length > 10 && (
+                  <button onClick={() => setShowAllRows(!showAllRows)}
+                    className="mt-4 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
+                    <ChevronDown size={16} className={`transition-transform ${showAllRows ? "rotate-180" : ""}`} />
+                    {showAllRows ? "Yığ" : `Bütün cədvəli göstər (${result.schedule.length} ay)`}
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

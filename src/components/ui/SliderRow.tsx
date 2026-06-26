@@ -1,10 +1,10 @@
 "use client";
 
 export function SliderRow({
-  label, value, min, max, step, format, onChange,
+  label, value, min, max, step, format, onChange, accentColor = "#2563eb",
 }: {
   label: string; value: number; min: number; max: number; step: number;
-  format: (v: number) => string; onChange: (v: number) => void;
+  format: (v: number) => string; onChange: (v: number) => void; accentColor?: string;
 }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
@@ -18,8 +18,8 @@ export function SliderRow({
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full h-2 rounded-full appearance-none cursor-pointer"
         style={{
-          background: `linear-gradient(to right, #2563eb ${pct}%, #e5e7eb ${pct}%)`,
-          accentColor: "#2563eb",
+          background: `linear-gradient(to right, ${accentColor} ${pct}%, #e5e7eb ${pct}%)`,
+          accentColor,
         }}
       />
       <div className="flex justify-between mt-1">
