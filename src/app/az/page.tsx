@@ -57,18 +57,15 @@ export default function HomePage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-7 border border-blue-100">
                 <Zap size={12} />
-                Pulsuz · Sanadsız · 3 dəqiqə
+                Pulsuz · Sənədsiz · 3 dəqiqə
               </div>
 
               <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={{ color: "#0f1f3d" }}>
-                Banka getmədən əvvəl{" "}
-                <span className="text-blue-600">kredit</span>{" "}
-                profilinizi bilin
+                Kredit almaq şansınızı yoxlayın
               </h1>
 
               <p className="text-base text-gray-500 mb-8 leading-relaxed max-w-md">
-                Aylıq ödənişinizi, borc yükünüzü və risk faktorlarınızı əvvəlcədən görün.
-                Doğru qərar verin, daha sərfəli şərtlərlə kredit əldə edin.
+                Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı yoxlayın.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-10">
@@ -77,7 +74,7 @@ export default function HomePage() {
                   className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white transition-all shadow-lg"
                   style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}
                 >
-                  Kredit yoxlaması başla
+                  İlkin yoxlamaya başla
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-200" />
                 </Link>
                 <Link
@@ -85,17 +82,17 @@ export default function HomePage() {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-gray-700 bg-white border border-gray-200 hover:border-blue-300 hover:text-blue-700 transition-all"
                 >
                   <Calculator size={16} />
-                  Kalkulyatorlar
+                  Kalkulyatorlara keç
                 </Link>
               </div>
 
               {/* Trust badges */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: <Shield size={16} className="text-blue-500" />, title: "100%", sub: "Təhlükəsiz" },
                   { icon: <Zap size={16} className="text-blue-500" />, title: "3 dəqiqə", sub: "Nəticə vaxtı" },
-                  { icon: <CheckCircle size={16} className="text-blue-500" />, title: "Sanadsız", sub: "Sadə yoxlama" },
+                  { icon: <CheckCircle size={16} className="text-blue-500" />, title: "Sənədsiz", sub: "Sadə yoxlama" },
                   { icon: <Lock size={16} className="text-blue-500" />, title: "Məlumatınız", sub: "mühafizə olunur" },
+                  { icon: <Shield size={16} className="text-blue-500" />, title: "Pulsuz", sub: "Heç bir ödəniş yoxdur" },
                 ].map((b) => (
                   <div key={b.title} className="flex flex-col items-center gap-1.5 border border-gray-100 rounded-2xl px-3 py-3 bg-white shadow-sm">
                     {b.icon}
@@ -114,9 +111,7 @@ export default function HomePage() {
                     <span className="font-bold text-gray-900 text-sm">Kredit profili</span>
                     <Info size={13} className="text-gray-400" />
                   </div>
-                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    <CheckCircle size={11} /> Yaxşı
-                  </span>
+                  <span className="text-xs font-medium text-gray-400">Nümunə nəticə</span>
                 </div>
 
                 <div className="flex flex-col items-center px-6 pb-3">
@@ -133,19 +128,18 @@ export default function HomePage() {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
                       <span className="text-3xl font-extrabold text-gray-900 leading-none">
-                        72 <span className="text-lg text-gray-400 font-normal">/ 95</span>
+                        72 <span className="text-lg text-gray-400 font-normal">/ 100</span>
                       </span>
                     </div>
                   </div>
                   <p className="text-sm font-semibold text-emerald-600 mt-1">Yaxşı nəticə</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Mövcud tarix: 27 May 2025</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-0 border-t border-gray-100">
                   {[
-                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Borc yükü", value: "34%", tag: "Yaxşı", tagColor: "text-emerald-600" },
-                    { icon: <Calculator size={14} className="text-blue-500" />, label: "Aylıq ödəniş", value: "280 ₼", tag: "İdarəolunan", tagColor: "text-blue-600" },
-                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Risk faktoru", value: "Aşağı", tag: "Təhlükəsiz", tagColor: "text-emerald-600" },
+                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Borc yükü", value: "34%", tag: "Normal", tagColor: "text-emerald-600" },
+                    { icon: <Calculator size={14} className="text-blue-500" />, label: "Aylıq ödəniş", value: "280 ₼", tag: "Kafi", tagColor: "text-blue-600" },
+                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Risk göstəricisi", value: "Aşağı", tag: "Təhlükəsiz", tagColor: "text-emerald-600" },
                   ].map((m, i) => (
                     <div key={m.label} className={`flex flex-col items-center py-3 px-2 ${i < 2 ? "border-r border-gray-100" : ""}`}>
                       <span className="mb-1">{m.icon}</span>
@@ -160,7 +154,7 @@ export default function HomePage() {
                   <Link href="/az/kredit-yoxlama" className="flex items-center justify-between text-xs text-gray-500 hover:text-blue-600 transition-colors group">
                     <span className="flex items-center gap-1.5">
                       <Shield size={12} className="text-blue-400" />
-                      Profilinizi yaxşılaşdırmaq üçün fərdiləşdirilmiş tövsiyələr əldə edin.
+                      Profilinizi yaxşılaşdırmaq üçün tövsiyələri görün.
                     </span>
                     <ChevronRight size={13} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </Link>
