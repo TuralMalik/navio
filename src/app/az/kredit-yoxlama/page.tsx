@@ -69,6 +69,7 @@ function calcBankScore(f: BankForm) {
   const warnings: string[] = [];
 
   if (!f.emanet) {
+    if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır — qanunvericiliyə görə kredit verilə bilməz");
     if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
     if (f.kreditNovu === "naqd" && muddət > 59) stops.push("Nağd kredit müddəti 59 aydan çox ola bilməz");
     if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
