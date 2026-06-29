@@ -63,15 +63,9 @@ export function Header() {
             </span>
             <Link
               href="/az/login"
-              className="text-sm font-medium text-gray-600 hover:text-blue-700 transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-blue-700 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-300 transition-colors"
             >
-              Giriş
-            </Link>
-            <Link
-              href="/az/register"
-              className="text-sm font-medium text-gray-600 hover:text-blue-700 transition-colors"
-            >
-              Qeydiyyat
+              Giriş / Qeydiyyat
             </Link>
             <Link
               href="/az/kredit-yoxlama"
@@ -108,10 +102,7 @@ export function Header() {
           ))}
           <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
             <Link href="/az/login" className="text-sm font-medium text-gray-600 py-2">
-              Giriş
-            </Link>
-            <Link href="/az/register" className="text-sm font-medium text-gray-600 py-2">
-              Qeydiyyat
+              Giriş / Qeydiyyat
             </Link>
             <Link
               href="/az/kredit-yoxlama"

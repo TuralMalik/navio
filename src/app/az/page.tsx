@@ -55,13 +55,8 @@ export default function HomePage() {
 
             {/* Left */}
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-7 border border-blue-100">
-                <Zap size={12} />
-                Pulsuz · Sənədsiz · 3 dəqiqə
-              </div>
-
               <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={{ color: "#0f1f3d" }}>
-                Kredit almaq şansınızı yoxlayın
+                Kredit almaq <span style={{ color: "#2563eb" }}>şansınızı</span> yoxlayın
               </h1>
 
               <p className="text-base text-gray-500 mb-8 leading-relaxed max-w-md">
@@ -87,11 +82,10 @@ export default function HomePage() {
               </div>
 
               {/* Trust badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {[
                   { icon: <Zap size={16} className="text-blue-500" />, title: "3 dəqiqə", sub: "Nəticə vaxtı" },
                   { icon: <CheckCircle size={16} className="text-blue-500" />, title: "Sənədsiz", sub: "Sadə yoxlama" },
-                  { icon: <Lock size={16} className="text-blue-500" />, title: "Məlumatınız", sub: "mühafizə olunur" },
                   { icon: <Shield size={16} className="text-blue-500" />, title: "Pulsuz", sub: "Heç bir ödəniş yoxdur" },
                 ].map((b) => (
                   <div key={b.title} className="flex flex-col items-center gap-1.5 border border-gray-100 rounded-2xl px-3 py-3 bg-white shadow-sm">
