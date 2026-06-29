@@ -267,6 +267,7 @@ function KreditYoxlamaContent() {
   const initFaiz = searchParams.get("faiz") || "24";
 
   const [mode, setMode] = useState<Mode>("bank");
+  const [submitted, setSubmitted] = useState(false);
 
   const [bank, setBank] = useState<BankForm>({
     kreditNovu: initNov,
@@ -304,6 +305,7 @@ function KreditYoxlamaContent() {
   function switchToBokt() {
     setBokt(n => ({ ...n, meblег: bank.meblег, gelir: bank.gelir }));
     setMode("bokt");
+    setSubmitted(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -321,11 +323,11 @@ function KreditYoxlamaContent() {
           <p className="text-blue-100 text-base">Bank müraciətindən əvvəl kredit şansınızı qiymətləndirin</p>
 
           <div className="mt-6 inline-flex rounded-2xl bg-white/15 p-1 border border-white/20">
-            <button onClick={() => setMode("bank")}
+            <button onClick={() => { setMode("bank"); setSubmitted(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${mode === "bank" ? "bg-white text-blue-700 shadow-md" : "text-white/80 hover:text-white"}`}>
               <Landmark size={16} /> Banklar
             </button>
-            <button onClick={() => setMode("bokt")}
+            <button onClick={() => { setMode("bokt"); setSubmitted(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${mode === "bokt" ? "bg-white text-blue-700 shadow-md" : "text-white/80 hover:text-white"}`}>
               <Building2 size={16} /> BOKT
             </button>
@@ -525,6 +527,14 @@ function KreditYoxlamaContent() {
                 )}
               </>
             )}
+
+            <button
+              onClick={() => setSubmitted(true)}
+              className="w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all shadow-md hover:shadow-lg"
+              style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}
+            >
+              Hesabla <ArrowRight size={16} />
+            </button>
           </div>
         </div>
 
@@ -533,80 +543,95 @@ function KreditYoxlamaContent() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="font-bold text-gray-800 mb-4 text-center text-sm uppercase tracking-wider">Nəticə</h2>
 
-            {hasStops && (
-              <div className="mb-4 space-y-2">
-                {bStops.map((s, i) => (
-                  <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm">
-                    <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold text-red-700">⛔ {s}</p>
-                      <p className="text-red-600 text-xs mt-0.5">Banklar bu parametrlərlə kredit verə bilməz.</p>
-                    </div>
+            {!submitted ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <svg viewBox="0 0 180 100" className="w-12">
+                    <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#e5e7eb" strokeWidth="14" strokeLinecap="round" />
+                    <line x1="90" y1="90" x2="90" y2="25" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" />
+                    <circle cx="90" cy="90" r="5" fill="#d1d5db" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-400 font-medium">Məlumatları daxil edin<br />və "Hesabla" düyməsinə basın</p>
+              </div>
+            ) : (
+              <>
+                {hasStops && (
+                  <div className="mb-4 space-y-2">
+                    {bStops.map((s, i) => (
+                      <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm">
+                        <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-red-700">⛔ {s}</p>
+                          <p className="text-red-600 text-xs mt-0.5">Banklar bu parametrlərlə kredit verə bilməz.</p>
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={switchToBokt}
+                      className="w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition">
+                      BOKT-da yoxlamaq istəyirsiniz? <ArrowRight size={14} />
+                    </button>
                   </div>
-                ))}
-                <button onClick={switchToBokt}
-                  className="w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700 transition">
-                  BOKT-da yoxlamaq istəyirsiniz? <ArrowRight size={14} />
-                </button>
-              </div>
-            )}
-
-            {result.warnings.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {result.warnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs">
-                    <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-amber-700">⚠️ {w}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {result.isEmanet && result.emanetOk && (
-              <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-green-50 border border-green-200 text-sm">
-                <CheckCircle size={16} className="text-green-600 shrink-0 mt-0.5" />
-                <p className="text-green-700 font-medium">Əmanət kimi istifadə etdikdə təsdiqlənmə ehtimalı çox yüksəkdir.</p>
-              </div>
-            )}
-
-            <div className="mb-2">
-              <Gauge score={hasStops ? 0 : result.score} />
-            </div>
-
-            {!hasStops && (result.score > 0 || bank.meblег || bokt.meblег) && (
-              <div className={`mt-3 p-3 rounded-xl border text-sm font-medium text-center ${scoreLabel(result.score, mode).bg} ${scoreLabel(result.score, mode).color}`}>
-                {scoreLabel(result.score, mode).icon} {scoreLabel(result.score, mode).text}
-              </div>
-            )}
-
-            {mode === "bank" && bResult.bgn < 999 && !bank.emanet && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <BgnBar bgn={bResult.bgn} />
-                {bResult.yeniOdenis > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Yeni aylıq ödəniş: <strong className="text-gray-700">{bResult.yeniOdenis.toFixed(0)} AZN</strong>
-                    <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
-                  </p>
                 )}
-              </div>
-            )}
 
-            {mode === "bank" && bResult.blocks && !hasStops && !bank.emanet && (
-              <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bal bölgüsü</p>
-                {bResult.blocks.map((bl) => (
-                  <div key={bl.label}>
-                    <div className="flex justify-between text-xs text-gray-600 mb-0.5">
-                      <span>{bl.label}</span>
-                      <span className="font-bold">{bl.score} / {bl.max}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                        style={{ width: `${(bl.score / bl.max) * 100}%` }} />
-                    </div>
+                {result.warnings.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {result.warnings.map((w, i) => (
+                      <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs">
+                        <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-amber-700">⚠️ {w}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+
+                {result.isEmanet && result.emanetOk && (
+                  <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-green-50 border border-green-200 text-sm">
+                    <CheckCircle size={16} className="text-green-600 shrink-0 mt-0.5" />
+                    <p className="text-green-700 font-medium">Əmanət kimi istifadə etdikdə təsdiqlənmə ehtimalı çox yüksəkdir.</p>
+                  </div>
+                )}
+
+                <div className="mb-2">
+                  <Gauge score={hasStops ? 0 : result.score} />
+                </div>
+
+                {!hasStops && (
+                  <div className={`mt-3 p-3 rounded-xl border text-sm font-medium text-center ${scoreLabel(result.score, mode).bg} ${scoreLabel(result.score, mode).color}`}>
+                    {scoreLabel(result.score, mode).icon} {scoreLabel(result.score, mode).text}
+                  </div>
+                )}
+
+                {mode === "bank" && bResult.bgn < 999 && !bank.emanet && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <BgnBar bgn={bResult.bgn} />
+                    {bResult.yeniOdenis > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Yeni aylıq ödəniş: <strong className="text-gray-700">{bResult.yeniOdenis.toFixed(0)} AZN</strong>
+                        <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {mode === "bank" && bResult.blocks && !hasStops && !bank.emanet && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bal bölgüsü</p>
+                    {bResult.blocks.map((bl) => (
+                      <div key={bl.label}>
+                        <div className="flex justify-between text-xs text-gray-600 mb-0.5">
+                          <span>{bl.label}</span>
+                          <span className="font-bold">{bl.score} / {bl.max}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                            style={{ width: `${(bl.score / bl.max) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
 
