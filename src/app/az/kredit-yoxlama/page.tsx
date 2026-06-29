@@ -47,11 +47,42 @@ function annuityPayment(principal: number, months: number, annualRate: number): 
   return (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
 }
 
+/* ─── Nağd kredit rate estimator (two-pass) ─── */
+function estimateNaqdRate(meblег: number, muddət: number, gelir: number, movcudNaqdOdenis: number, kartAyliOdenis: number) {
+  const baseRate =
+    muddət <= 12 ? 12.5 :
+    muddət <= 24 ? 15.5 :
+    muddət <= 36 ? 18.5 :
+    muddət <= 48 ? 21.5 : 24.5;
+
+  function calcAddon(rate: number) {
+    const pmt = annuityPayment(meblег, muddət, rate);
+    const totalPayments = movcudNaqdOdenis + kartAyliOdenis + pmt;
+    const bgn = gelir > 0 ? (totalPayments / gelir) * 100 : 999;
+    const remaining = gelir - totalPayments;
+    const bgnAddon = bgn <= 35 ? 0 : bgn <= 45 ? 1.5 : bgn <= 60 ? 4 : bgn <= 70 ? 7 : 7;
+    const residualAddon = remaining < 317 ? 4 : 0;
+    return { addon: Math.max(bgnAddon, residualAddon), bgn, remaining, pmt };
+  }
+
+  const pass1 = calcAddon(baseRate);
+  const finalRate = Math.min(32, Math.max(10.9, baseRate + pass1.addon));
+  const pass2 = calcAddon(finalRate);
+
+  return {
+    estimatedRate: finalRate,
+    bgn: pass2.bgn,
+    yeniOdenis: pass2.pmt,
+    remaining: pass2.remaining,
+    highRisk: pass2.bgn > 45 || pass2.remaining < 317,
+    bgnOverLimit: pass2.bgn > 70,
+  };
+}
+
 /* ─── Bank scoring ─── */
 function calcBankScore(f: BankForm) {
   const meblег = parseFloat(f.meblег) || 0;
   const muddət = parseInt(f.muddət) || 0;
-  const faiz = parseFloat(f.faiz) || 24;
   const gelir = parseFloat(f.gelir) || 0;
   const yas = parseInt(f.yas) || 0;
   const movcudNaqdOdenis = parseFloat(f.movcudNaqdOdenis) || 0;
@@ -59,10 +90,28 @@ function calcBankScore(f: BankForm) {
   const cariGecikmeGun = parseInt(f.cariGecikmeGun) || 0;
   const son6ayGecikmeGun = parseInt(f.son6ayGecikmeGun) || 0;
 
-  const yeniOdenis = annuityPayment(meblег, muddət, faiz);
-  // Card limit contributes 5% of limit as monthly obligation
   const kartAyliOdenis = annuityPayment(movcudKartLimit, 24, 26);
-  const bgn = gelir > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / gelir) * 100 : 999;
+
+  let estimatedRate: number | null = null;
+  let remaining: number | null = null;
+  let highRisk = false;
+
+  let yeniOdenis: number;
+  let bgn: number;
+
+  if (f.kreditNovu === "naqd" && !f.emanet) {
+    const est = estimateNaqdRate(meblег, muddət, gelir, movcudNaqdOdenis, kartAyliOdenis);
+    estimatedRate = est.estimatedRate;
+    yeniOdenis = est.yeniOdenis;
+    bgn = est.bgn;
+    remaining = est.remaining;
+    highRisk = est.highRisk;
+  } else {
+    const faiz = parseFloat(f.faiz) || 24;
+    yeniOdenis = annuityPayment(meblег, muddət, faiz);
+    bgn = gelir > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / gelir) * 100 : 999;
+  }
+
   const ageAtEnd = yas + Math.ceil(muddət / 12);
 
   const stops: string[] = [];
@@ -86,6 +135,9 @@ function calcBankScore(f: BankForm) {
     if (bgn >= 45 && bgn <= 70) {
       warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
     }
+    if (highRisk) {
+      warnings.push("Borc yükü və ya gəlirdən sonra qalan məbləğ bank üçün əlavə risk yarada bilər. Buna görə hesablamada daha yüksək faiz ssenarisi istifadə olunub.");
+    }
     if (cariGecikmeGun > 0) {
       warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
     }
@@ -96,11 +148,11 @@ function calcBankScore(f: BankForm) {
 
   if (f.emanet) {
     const em = parseFloat(f.emanetMeblег) || 0;
-    return { score: em >= meblег ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, blocks: null, isEmanet: true, emanetOk: em >= meblег };
+    return { score: em >= meblег ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: true, emanetOk: em >= meblег };
   }
 
   if (stops.length > 0) {
-    return { score: 0, stops, warnings, bgn, yeniOdenis, blocks: null, isEmanet: false, emanetOk: false };
+    return { score: 0, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: false, emanetOk: false };
   }
 
   // Block 1: BGN (30)
@@ -156,7 +208,7 @@ function calcBankScore(f: BankForm) {
   const score = Math.min(100, b1 + b2 + b3 + b4 + b5);
 
   return {
-    score, stops, warnings, bgn, yeniOdenis, isEmanet: false, emanetOk: false,
+    score, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, isEmanet: false, emanetOk: false,
     blocks: [
       { label: "Borc yükü (BGN)", score: b1, max: 30 },
       { label: "Gəlir və sabitlik", score: b2, max: 25 },
@@ -394,10 +446,12 @@ function KreditYoxlamaContent() {
                         onChange={e => setBank(b => ({ ...b, muddət: e.target.value }))} className={inputCls} />
                     </Field>
 
-                    <Field label="Təxmini illik faiz dərəcəsi (%)" note="Bankın sizə təklif edəcəyi və ya istədiyiniz faiz">
-                      <input type="number" placeholder="24" min={1} max={60} step={0.5} value={bank.faiz}
-                        onChange={e => setBank(b => ({ ...b, faiz: e.target.value }))} className={inputCls} />
-                    </Field>
+                    {bank.kreditNovu !== "naqd" && (
+                      <Field label="Təxmini illik faiz dərəcəsi (%)" note="Bankın sizə təklif edəcəyi və ya istədiyiniz faiz">
+                        <input type="number" placeholder="24" min={1} max={60} step={0.5} value={bank.faiz}
+                          onChange={e => setBank(b => ({ ...b, faiz: e.target.value }))} className={inputCls} />
+                      </Field>
+                    )}
                   </div>
                 </div>
 
@@ -637,8 +691,18 @@ function KreditYoxlamaContent() {
                     {bResult.yeniOdenis > 0 && (
                       <p className="text-xs text-gray-500 mt-2">
                         Yeni aylıq ödəniş: <strong className="text-gray-700">{bResult.yeniOdenis.toFixed(0)} AZN</strong>
-                        <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
+                        {bResult.estimatedRate != null ? (
+                          <span className="text-gray-400"> ({bResult.estimatedRate.toFixed(1)}% illik — təxmini)</span>
+                        ) : (
+                          <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
+                        )}
                       </p>
+                    )}
+                    {bResult.estimatedRate != null && (
+                      <div className="mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 space-y-1">
+                        <p className="font-semibold">Navio tərəfindən hesablanan təxmini faiz: {bResult.estimatedRate.toFixed(1)}%</p>
+                        <p className="text-indigo-500">Faiz dərəcəsi kredit müddəti, borc yükü və gəlirdən sonra qalan məbləğ əsasında təxmini hesablanıb. Bankın real təklifi fərqli ola bilər.</p>
+                      </div>
                     )}
                   </div>
                 )}
