@@ -73,7 +73,6 @@ function calcBankScore(f: BankForm) {
     if (f.kreditNovu === "naqd" && muddət > 59) stops.push("Nağd kredit müddəti 59 aydan çox ola bilməz");
     if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
     if (f.kreditNovu === "kart" && movcudKartLimit >= gelir * 5) stops.push("Mövcud kart limiti gəlirin 5 mislindən artıqdır");
-    if (cariGecikmeGun >= 90) stops.push(`Cari gecikmə ${cariGecikmeGun} gün — 90+ gün aktiv gecikmə kreditə maneədir`);
   } else {
     const em = parseFloat(f.emanetMeblег) || 0;
     if (em < meblег) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
@@ -86,7 +85,7 @@ function calcBankScore(f: BankForm) {
     if (bgn >= 45 && bgn <= 70) {
       warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
     }
-    if (cariGecikmeGun > 0 && cariGecikmeGun < 90) {
+    if (cariGecikmeGun > 0) {
       warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
     }
     if (son6ayGecikmeGun >= 30) {
@@ -127,10 +126,23 @@ function calcBankScore(f: BankForm) {
   else if (yas >= 61 && ageAtEnd <= 73) b3 = 2;
 
   // Block 4: Kredit tarixçəsi (20)
-  // Cari gecikmə
-  const cariPts = cariGecikmeGun === 0 ? 5 : cariGecikmeGun <= 30 ? 2 : cariGecikmeGun <= 89 ? 0 : 0;
-  // Son 6 ay max gecikmə
-  const son6Pts = son6ayGecikmeGun === 0 ? 10 : son6ayGecikmeGun <= 7 ? 7 : son6ayGecikmeGun <= 29 ? 3 : 0;
+  // Cari gecikmə (0–5 pts)
+  let cariPts: number;
+  if (cariGecikmeGun === 0) cariPts = 5;
+  else if (cariGecikmeGun <= 5) cariPts = 4;
+  else if (cariGecikmeGun <= 15) cariPts = 2;
+  else if (cariGecikmeGun <= 25) cariPts = 1;
+  else if (cariGecikmeGun <= 30) cariPts = 0;
+  else cariPts = 0;
+
+  // Son 6 ay max gecikmə (0–10 pts)
+  let son6Pts: number;
+  if (son6ayGecikmeGun === 0) son6Pts = 10;
+  else if (son6ayGecikmeGun <= 29) son6Pts = 7;
+  else if (son6ayGecikmeGun <= 59) son6Pts = 3;
+  else if (son6ayGecikmeGun <= 89) son6Pts = 1;
+  else son6Pts = 0;
+
   const baglanmisPts = f.baglanmisTecrube === "var" ? 5 : 3;
   const b4 = cariPts + son6Pts + baglanmisPts;
 
