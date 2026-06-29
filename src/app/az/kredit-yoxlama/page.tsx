@@ -280,6 +280,7 @@ function KreditYoxlamaContent() {
 
   const [mode, setMode] = useState<Mode>("bank");
   const [submitted, setSubmitted] = useState(false);
+  const [pressed, setPressed] = useState(false);
 
   const [bank, setBank] = useState<BankForm>({
     kreditNovu: initNov,
@@ -541,11 +542,26 @@ function KreditYoxlamaContent() {
             )}
 
             <button
-              onClick={() => setSubmitted(true)}
-              className="w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all shadow-md hover:shadow-lg"
+              onClick={() => {
+                setPressed(true);
+                setTimeout(() => { setPressed(false); setSubmitted(true); }, 350);
+              }}
+              disabled={pressed}
+              className={`w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-md
+                ${pressed ? "scale-95 shadow-inner brightness-90" : "hover:shadow-lg hover:brightness-110 active:scale-95"}`}
               style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}
             >
-              Hesabla <ArrowRight size={16} />
+              {pressed ? (
+                <>
+                  <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeOpacity="0.3" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  Hesablanır...
+                </>
+              ) : (
+                <>Hesabla <ArrowRight size={16} /></>
+              )}
             </button>
           </div>
         </div>
