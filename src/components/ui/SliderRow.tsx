@@ -1,17 +1,51 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 export function SliderRow({
-  label, value, min, max, step, format, onChange, accentColor = "#2563eb",
+  label, value, min, max, step, format, onChange, accentColor = "#2563eb", unit = "",
 }: {
   label: string; value: number; min: number; max: number; step: number;
-  format: (v: number) => string; onChange: (v: number) => void; accentColor?: string;
+  format: (v: number) => string; onChange: (v: number) => void; accentColor?: string; unit?: string;
 }) {
+  const [inputVal, setInputVal] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setInputVal(String(value));
+  }, [value, focused]);
+
   const pct = ((value - min) / (max - min)) * 100;
+
+  function commitInput(raw: string) {
+    const n = parseFloat(raw);
+    if (!isNaN(n)) {
+      const clamped = Math.min(max, Math.max(min, Math.round(n / step) * step));
+      onChange(clamped);
+      setInputVal(String(clamped));
+    } else {
+      setInputVal(String(value));
+    }
+    setFocused(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-base font-bold text-gray-900">{format(value)}</span>
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            value={inputVal}
+            onFocus={() => setFocused(true)}
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={(e) => commitInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") commitInput((e.target as HTMLInputElement).value); }}
+            className="w-24 text-right text-base font-bold text-gray-900 bg-transparent border-b-2 border-transparent focus:border-blue-400 focus:outline-none transition-colors"
+            step={step}
+          />
+          {unit && <span className="text-sm text-gray-500 shrink-0">{unit}</span>}
+        </div>
       </div>
       <input
         type="range" min={min} max={max} step={step} value={value}
