@@ -123,7 +123,7 @@ function calcBankScore(f: BankForm) {
     if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
     if (f.kreditNovu === "naqd" && muddət > 59) stops.push("Nağd kredit müddəti 59 aydan çox ola bilməz");
     if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
-    if (f.kreditNovu === "kart" && movcudKartLimit >= gelir * 5) stops.push("Mövcud kart limiti gəlirin 5 mislindən artıqdır");
+    if (gelir > 0 && movcudKartLimit > gelir * 5) stops.push(`Mövcud kredit xətti limiti (₼ ${movcudKartLimit.toLocaleString()}) gəlirin 5 mislini (₼ ${(gelir * 5).toLocaleString()}) keçir — bank bu limiti kredit üçün maneə sayır`);
   } else {
     const em = parseFloat(f.emanetMeblег) || 0;
     if (em < meblег) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
