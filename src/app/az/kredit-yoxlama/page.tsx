@@ -441,7 +441,7 @@ function KreditYoxlamaContent() {
                       format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, meblег: String(v) }))} />
 
-                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={60} step={1}
+                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
                       format={(v) => `${v} ay`} unit="ay"
                       onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
 
