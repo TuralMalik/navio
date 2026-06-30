@@ -121,7 +121,7 @@ function calcBankScore(f: BankForm) {
   if (!f.emanet) {
     if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır — qanunvericiliyə görə kredit verilə bilməz");
     if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
-    if (f.kreditNovu === "naqd" && muddət > 59) stops.push("Nağd kredit müddəti 59 aydan çox ola bilməz");
+    if (f.kreditNovu !== "ipoteka" && muddət > 59) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti 59 aydan çox ola bilməz`);
     if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
     if (f.kreditNovu === "kart" && gelir > 0 && (meblег + movcudKartLimit) > gelir * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(meblег + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(gelir * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
   } else {
