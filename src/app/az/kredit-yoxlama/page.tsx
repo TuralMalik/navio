@@ -437,7 +437,8 @@ function KreditYoxlamaContent() {
                       </select>
                     </Field>
 
-                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.meblег) || 500} min={500} max={100000} step={500}
+                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.meblег) || 500} min={500}
+                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
                       format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, meblег: String(v) }))} />
 
@@ -446,7 +447,7 @@ function KreditYoxlamaContent() {
                       onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
 
                     {bank.kreditNovu !== "naqd" && (
-                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={5} max={60} step={0.5}
+                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
                         format={(v) => `${v}%`} unit="%"
                         onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
                     )}
@@ -477,9 +478,10 @@ function KreditYoxlamaContent() {
                       </Field>
                     )}
 
-                    <SliderRow label="Aylıq gəlir (net)" value={parseFloat(bank.gelir) || 500} min={100} max={10000} step={50}
-                      format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
-                      onChange={(v) => setBank(b => ({ ...b, gelir: String(v) }))} />
+                    <Field label="Aylıq gəlir (net, AZN)" note="Vergi çıxıldıqdan sonra">
+                      <input type="number" placeholder="1000" min={0} value={bank.gelir}
+                        onChange={e => setBank(b => ({ ...b, gelir: e.target.value }))} className={inputCls} />
+                    </Field>
 
                     {bank.gelirNovu !== "teqaud" && (
                       <Field label="Cari iş yerində staj">
@@ -506,19 +508,15 @@ function KreditYoxlamaContent() {
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Mövcud öhdəliklər</p>
                   <div className="space-y-4">
-                    <div>
-                      <SliderRow label="Mövcud aylıq nağd kredit ödənişi" value={parseFloat(bank.movcudNaqdOdenis) || 0} min={0} max={5000} step={50}
-                        format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
-                        onChange={(v) => setBank(b => ({ ...b, movcudNaqdOdenis: String(v) }))} />
-                      <p className="text-xs text-gray-400 mt-1">Aktiv kreditlər üzrə cəmi aylıq ödəniş. Yoxdursa 0 saxlayın.</p>
-                    </div>
+                    <Field label="Mövcud aylıq nağd kredit ödənişi (AZN)" note="Aktiv kreditlər üzrə cəmi aylıq ödəniş. Yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.movcudNaqdOdenis}
+                        onChange={e => setBank(b => ({ ...b, movcudNaqdOdenis: e.target.value }))} className={inputCls} />
+                    </Field>
 
-                    <div>
-                      <SliderRow label="Mövcud kredit kartı limiti" value={parseFloat(bank.movcudKartLimit) || 0} min={0} max={50000} step={500}
-                        format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
-                        onChange={(v) => setBank(b => ({ ...b, movcudKartLimit: String(v) }))} />
-                      <p className="text-xs text-gray-400 mt-1">Bütün aktiv kredit kartlarının ümumi limiti. Yoxdursa 0 saxlayın.</p>
-                    </div>
+                    <Field label="Mövcud kredit kartı limiti (AZN)" note="Bütün aktiv kredit kartlarının ümumi limiti. Yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.movcudKartLimit}
+                        onChange={e => setBank(b => ({ ...b, movcudKartLimit: e.target.value }))} className={inputCls} />
+                    </Field>
                   </div>
                 </div>
 
@@ -526,19 +524,15 @@ function KreditYoxlamaContent() {
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Kredit tarixçəsi</p>
                   <div className="space-y-4">
-                    <div>
-                      <SliderRow label="Cari gecikmə" value={parseInt(bank.cariGecikmeGun) || 0} min={0} max={180} step={1}
-                        format={(v) => v === 0 ? "0 gün (yoxdur)" : `${v} gün`} unit="gün"
-                        onChange={(v) => setBank(b => ({ ...b, cariGecikmeGun: String(v) }))} />
-                      <p className="text-xs text-gray-400 mt-1">Hazırda gecikmiş ödənişiniz yoxdursa 0 saxlayın.</p>
-                    </div>
+                    <Field label="Cari gecikmə (gün)" note="Hazırda gecikmiş ödənişiniz yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.cariGecikmeGun}
+                        onChange={e => setBank(b => ({ ...b, cariGecikmeGun: e.target.value }))} className={inputCls} />
+                    </Field>
 
-                    <div>
-                      <SliderRow label="Son 6 ayda maks. gecikmə" value={parseInt(bank.son6ayGecikmeGun) || 0} min={0} max={180} step={1}
-                        format={(v) => v === 0 ? "0 gün (yoxdur)" : `${v} gün`} unit="gün"
-                        onChange={(v) => setBank(b => ({ ...b, son6ayGecikmeGun: String(v) }))} />
-                      <p className="text-xs text-gray-400 mt-1">Son 6 ayda ən uzun gecikdiyiniz gün sayı. Yoxdursa 0 saxlayın.</p>
-                    </div>
+                    <Field label="Son 6 ayda maksimum gecikmə (gün)" note="Son 6 ayda ən uzun gecikdiyiniz gün sayı. Yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.son6ayGecikmeGun}
+                        onChange={e => setBank(b => ({ ...b, son6ayGecikmeGun: e.target.value }))} className={inputCls} />
+                    </Field>
 
                     <Field label="Bağlanmış kredit təcrübəsi">
                       <select value={bank.baglanmisTecrube} onChange={e => setBank(b => ({ ...b, baglanmisTecrube: e.target.value as BaglanmisTecrube }))} className={selectCls}>
@@ -548,12 +542,6 @@ function KreditYoxlamaContent() {
                       </select>
                     </Field>
 
-                    <Field label="Zamin / girov">
-                      <select value={bank.zamin ? "var" : "yox"} onChange={e => setBank(b => ({ ...b, zamin: e.target.value === "var" }))} className={selectCls}>
-                        <option value="yox">Yoxdur</option>
-                        <option value="var">Var</option>
-                      </select>
-                    </Field>
                   </div>
                 </div>
               </>
