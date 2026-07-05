@@ -15,7 +15,7 @@ type BaglanmisTecrube = "var" | "yoxdur" | "tecrube_yox";
 
 interface BankForm {
   kreditNovu: KreditNovu;
-  meblег: string;
+  mebleg: string;
   muddət: string;
   faiz: string;
   gelirNovu: GelirNovu;
@@ -30,15 +30,15 @@ interface BankForm {
   baglanmisTecrube: BaglanmisTecrube;
   zamin: boolean;
   emanet: boolean;
-  emanetMeblег: string;
+  emanetMebleg: string;
 }
 
 interface BoktForm {
-  meblег: string;
+  mebleg: string;
   gelir: string;
   kreditTarixce: "yox" | "gecikme";
   emanet: boolean;
-  emanetMeblег: string;
+  emanetMebleg: string;
 }
 
 /* ─── Annuity formula ─── */
@@ -49,7 +49,7 @@ function annuityPayment(principal: number, months: number, annualRate: number): 
 }
 
 /* ─── Nağd kredit rate estimator (two-pass) ─── */
-function estimateNaqdRate(meblег: number, muddət: number, gelir: number, movcudNaqdOdenis: number, kartAyliOdenis: number) {
+function estimateNaqdRate(mebleg: number, muddət: number, gelir: number, movcudNaqdOdenis: number, kartAyliOdenis: number) {
   const baseRate =
     muddət <= 12 ? 12.5 :
     muddət <= 24 ? 15.5 :
@@ -57,7 +57,7 @@ function estimateNaqdRate(meblег: number, muddət: number, gelir: number, movc
     muddət <= 48 ? 21.5 : 24.5;
 
   function calcAddon(rate: number) {
-    const pmt = annuityPayment(meblег, muddət, rate);
+    const pmt = annuityPayment(mebleg, muddət, rate);
     const totalPayments = movcudNaqdOdenis + kartAyliOdenis + pmt;
     const bgn = gelir > 0 ? (totalPayments / gelir) * 100 : 999;
     const remaining = gelir - totalPayments;
@@ -82,7 +82,7 @@ function estimateNaqdRate(meblег: number, muddət: number, gelir: number, movc
 
 /* ─── Bank scoring ─── */
 function calcBankScore(f: BankForm) {
-  const meblег = parseFloat(f.meblег) || 0;
+  const mebleg = parseFloat(f.mebleg) || 0;
   const muddət = parseInt(f.muddət) || 0;
   const gelir = parseFloat(f.gelir) || 0;
   const yas = parseInt(f.yas) || 0;
@@ -101,7 +101,7 @@ function calcBankScore(f: BankForm) {
   let bgn: number;
 
   if (f.kreditNovu === "naqd" && !f.emanet) {
-    const est = estimateNaqdRate(meblег, muddət, gelir, movcudNaqdOdenis, kartAyliOdenis);
+    const est = estimateNaqdRate(mebleg, muddət, gelir, movcudNaqdOdenis, kartAyliOdenis);
     estimatedRate = est.estimatedRate;
     yeniOdenis = est.yeniOdenis;
     bgn = est.bgn;
@@ -109,7 +109,7 @@ function calcBankScore(f: BankForm) {
     highRisk = est.highRisk;
   } else {
     const faiz = parseFloat(f.faiz) || 24;
-    yeniOdenis = annuityPayment(meblег, muddət, faiz);
+    yeniOdenis = annuityPayment(mebleg, muddət, faiz);
     bgn = gelir > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / gelir) * 100 : 999;
   }
 
@@ -123,14 +123,14 @@ function calcBankScore(f: BankForm) {
     if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
     if (f.kreditNovu !== "ipoteka" && muddət > 59) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti 59 aydan çox ola bilməz`);
     if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
-    if (f.kreditNovu === "kart" && gelir > 0 && (meblег + movcudKartLimit) > gelir * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(meblег + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(gelir * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
+    if (f.kreditNovu === "kart" && gelir > 0 && (mebleg + movcudKartLimit) > gelir * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(gelir * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
   } else {
-    const em = parseFloat(f.emanetMeblег) || 0;
-    if (em < meblег) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
+    const em = parseFloat(f.emanetMebleg) || 0;
+    if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
   }
 
   if (!f.emanet) {
-    if (f.gelirNovu === "qeyri_resmi" && meblег > 5000) {
+    if (f.gelirNovu === "qeyri_resmi" && mebleg > 5000) {
       warnings.push("Qeyri-rəsmi gəlir üçün yalnız Kapital Bank kredit verə bilər, maksimum hədd təxminən 5 000 AZN-dir.");
     }
     if (bgn >= 45 && bgn <= 70) {
@@ -148,8 +148,8 @@ function calcBankScore(f: BankForm) {
   }
 
   if (f.emanet) {
-    const em = parseFloat(f.emanetMeblег) || 0;
-    return { score: em >= meblег ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: true, emanetOk: em >= meblег };
+    const em = parseFloat(f.emanetMebleg) || 0;
+    return { score: em >= mebleg ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: true, emanetOk: em >= mebleg };
   }
 
   if (stops.length > 0) {
@@ -161,7 +161,7 @@ function calcBankScore(f: BankForm) {
 
   // Block 2: Gəlir və sabitlik (25)
   const gelirNovuPts = f.gelirNovu === "resmi" ? 10 : f.gelirNovu === "fs" ? 7 : f.gelirNovu === "teqaud" ? 5 : 1;
-  const gelirMeblегPts = gelir > 1500 ? 8 : gelir >= 800 ? 5 : 2;
+  const gelirMeblegPts = gelir > 1500 ? 8 : gelir >= 800 ? 5 : 2;
   let stajPts = 0;
   if (f.gelirNovu !== "teqaud") {
     if (f.gelirNovu === "fs") {
@@ -170,7 +170,7 @@ function calcBankScore(f: BankForm) {
       stajPts = f.isStaji === "12_plus" ? 7 : f.isStaji === "6_12" ? 5 : f.isStaji === "4_5" ? 2 : 0;
     }
   }
-  const b2 = gelirNovuPts + gelirMeblегPts + stajPts;
+  const b2 = gelirNovuPts + gelirMeblegPts + stajPts;
 
   // Block 3: Yaş (15)
   let b3 = 0;
@@ -202,9 +202,9 @@ function calcBankScore(f: BankForm) {
 
   // Block 5: Kredit parametrləri (10)
   const muddətPts = muddət <= 36 ? 4 : muddət <= 59 ? 2 : 0;
-  const meblегPts = meblег <= 10000 ? 3 : meblег <= 25000 ? 2 : 1;
+  const meblegPts = mebleg <= 10000 ? 3 : mebleg <= 25000 ? 2 : 1;
   const zaminPts = f.zamin ? 3 : 0;
-  const b5 = muddətPts + meblегPts + zaminPts;
+  const b5 = muddətPts + meblegPts + zaminPts;
 
   const score = Math.min(100, b1 + b2 + b3 + b4 + b5);
 
@@ -222,24 +222,24 @@ function calcBankScore(f: BankForm) {
 
 /* ─── BOKT scoring ─── */
 function calcBoktScore(f: BoktForm) {
-  const meblег = parseFloat(f.meblег) || 0;
+  const mebleg = parseFloat(f.mebleg) || 0;
   const gelir = parseFloat(f.gelir) || 0;
   const warnings: string[] = [];
 
   if (f.emanet) {
-    const em = parseFloat(f.emanetMeblег) || 0;
-    if (em < meblег) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
-    return { score: em >= meblег ? 92 : 0, warnings, stops: [] as string[], maxOdenis: meblег * 2, isEmanet: true, emanetOk: em >= meblег };
+    const em = parseFloat(f.emanetMebleg) || 0;
+    if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
+    return { score: em >= mebleg ? 92 : 0, warnings, stops: [] as string[], maxOdenis: mebleg * 2, isEmanet: true, emanetOk: em >= mebleg };
   }
 
-  if (meblег > 500) warnings.push("BOKT-larda maksimum məbləğ adətən 500 AZN-dir");
+  if (mebleg > 500) warnings.push("BOKT-larda maksimum məbləğ adətən 500 AZN-dir");
 
   const gelirPts = gelir > 500 ? 40 : gelir >= 300 ? 25 : 10;
   const tarixcePts = f.kreditTarixce === "yox" ? 40 : 15;
-  const meblегPts = meblег <= 500 ? 20 : 0;
-  const score = Math.min(100, gelirPts + tarixcePts + meblегPts);
+  const meblegPts = mebleg <= 500 ? 20 : 0;
+  const score = Math.min(100, gelirPts + tarixcePts + meblegPts);
 
-  return { score, warnings, stops: [] as string[], maxOdenis: meblег * 2, isEmanet: false, emanetOk: false };
+  return { score, warnings, stops: [] as string[], maxOdenis: mebleg * 2, isEmanet: false, emanetOk: false };
 }
 
 /* ─── Gauge SVG ─── */
@@ -338,7 +338,7 @@ function KreditYoxlamaContent() {
 
   const [bank, setBank] = useState<BankForm>({
     kreditNovu: initNov,
-    meblег: initMebleq,
+    mebleg: initMebleq,
     muddət: initMuddet,
     faiz: initFaiz,
     gelirNovu: "resmi",
@@ -353,15 +353,15 @@ function KreditYoxlamaContent() {
     baglanmisTecrube: "var",
     zamin: false,
     emanet: false,
-    emanetMeblег: "",
+    emanetMebleg: "",
   });
 
   const [bokt, setBokt] = useState<BoktForm>({
-    meblег: "",
+    mebleg: "",
     gelir: "",
     kreditTarixce: "yox",
     emanet: false,
-    emanetMeblег: "",
+    emanetMebleg: "",
   });
 
   const bResult = useMemo(() => calcBankScore(bank), [bank]);
@@ -370,7 +370,7 @@ function KreditYoxlamaContent() {
   const result = mode === "bank" ? bResult : nResult;
 
   function switchToBokt() {
-    setBokt(n => ({ ...n, meblег: bank.meblег, gelir: bank.gelir }));
+    setBokt(n => ({ ...n, mebleg: bank.mebleg, gelir: bank.gelir }));
     setMode("bokt");
     setSubmitted(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -419,8 +419,8 @@ function KreditYoxlamaContent() {
 
                 {bank.emanet && (
                   <Field label="Əmanət məbləği (AZN)">
-                    <input type="number" placeholder="5000" value={bank.emanetMeblег}
-                      onChange={e => setBank(b => ({ ...b, emanetMeblег: e.target.value }))} className={inputCls} />
+                    <input type="number" placeholder="5000" value={bank.emanetMebleg}
+                      onChange={e => setBank(b => ({ ...b, emanetMebleg: e.target.value }))} className={inputCls} />
                   </Field>
                 )}
 
@@ -437,10 +437,10 @@ function KreditYoxlamaContent() {
                       </select>
                     </Field>
 
-                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.meblег) || 500} min={500}
+                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.mebleg) || 500} min={500}
                       max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
                       format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
-                      onChange={(v) => setBank(b => ({ ...b, meblег: String(v) }))} />
+                      onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
 
                     <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
                       format={(v) => `${v} ay`} unit="ay"
@@ -556,14 +556,14 @@ function KreditYoxlamaContent() {
 
                 {bokt.emanet && (
                   <Field label="Əmanət məbləği (AZN)">
-                    <input type="number" placeholder="500" value={bokt.emanetMeblег}
-                      onChange={e => setBokt(n => ({ ...n, emanetMeblег: e.target.value }))} className={inputCls} />
+                    <input type="number" placeholder="500" value={bokt.emanetMebleg}
+                      onChange={e => setBokt(n => ({ ...n, emanetMebleg: e.target.value }))} className={inputCls} />
                   </Field>
                 )}
 
-                <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bokt.meblег) || 100} min={50} max={1000} step={50}
+                <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bokt.mebleg) || 100} min={50} max={1000} step={50}
                   format={(v) => `₼ ${v}`} unit="₼"
-                  onChange={(v) => setBokt(n => ({ ...n, meblег: String(v) }))} />
+                  onChange={(v) => setBokt(n => ({ ...n, mebleg: String(v) }))} />
 
                 <SliderRow label="Aylıq gəlir" value={parseFloat(bokt.gelir) || 300} min={100} max={5000} step={50}
                   format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
@@ -576,10 +576,10 @@ function KreditYoxlamaContent() {
                   </select>
                 </Field>
 
-                {parseFloat(bokt.meblег) > 0 && (
+                {parseFloat(bokt.mebleg) > 0 && (
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm">
                     <p className="font-bold text-amber-800 mb-1">💸 BOKT Xərc Hesablaması</p>
-                    <p className="text-amber-700">Maksimum ödəniləcək məbləğ: <strong>{(parseFloat(bokt.meblег) * 2).toFixed(0)} AZN</strong></p>
+                    <p className="text-amber-700">Maksimum ödəniləcək məbləğ: <strong>{(parseFloat(bokt.mebleg) * 2).toFixed(0)} AZN</strong></p>
                     <p className="text-xs text-amber-600 mt-1">Mərkəzi Bank qaydası: ümumi borcun artımı əsas borcun 100%-ni keçə bilməz</p>
                   </div>
                 )}

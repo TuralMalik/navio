@@ -127,7 +127,7 @@ export default function FinancialAssistantPage() {
               <p className="font-bold text-gray-900 mb-1">Kredit profilinizi yoxlayın</p>
               <p className="text-xs text-gray-500">2 dəqiqə, sənəd tələb olunmur</p>
             </div>
-            <Link href="/az/credit-check" className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+            <Link href="/az/kredit-yoxlama" className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}>
               Başla
             </Link>

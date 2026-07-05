@@ -22,7 +22,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold text-white mb-4">Xidmətlər</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/az/credit-check" className="hover:text-white transition-colors">Kredit yoxlaması</Link></li>
+              <li><Link href="/az/kredit-yoxlama" className="hover:text-white transition-colors">Kredit yoxlaması</Link></li>
               <li><Link href="/az/calculators/consumer-loan" className="hover:text-white transition-colors">İstehlak krediti kalkulyatoru</Link></li>
               <li><Link href="/az/calculators/mortgage" className="hover:text-white transition-colors">İpoteka kalkulyatoru</Link></li>
               <li><Link href="/az/calculators/auto-loan" className="hover:text-white transition-colors">Avtokredit kalkulyatoru</Link></li>

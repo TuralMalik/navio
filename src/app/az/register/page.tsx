@@ -37,7 +37,7 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          <Link href="/az/credit-check"
+          <Link href="/az/kredit-yoxlama"
             className="block w-full py-3 rounded-xl font-semibold text-white text-sm text-center"
             style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}>
             Sənədsiz ilkin yoxlama

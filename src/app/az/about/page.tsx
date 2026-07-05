@@ -78,7 +78,7 @@ export default function AboutPage() {
 
         <div className="text-center">
           <Link
-            href="/az/credit-check"
+            href="/az/kredit-yoxlama"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-md"
             style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}
           >
