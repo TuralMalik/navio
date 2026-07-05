@@ -1,20 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowRight,
   ChevronDown,
   Calculator,
   BookOpen,
   Info,
-  Shield,
-  Zap,
   CreditCard,
-  CheckCircle,
-  ChevronRight,
   BarChart2,
-  Lock,
   Banknote,
   House,
   Car,
@@ -35,6 +30,60 @@ const factors = [
   { label: "Yeni kredit sorğuları", score: 90, max: 100, rating: "Yaxşı", color: "bg-emerald-500", textColor: "text-emerald-600" },
 ];
 
+const NAVY = "#0A1F44";
+const BLUE = "#2447F0";
+const BLUE_DARK = "#1B36BE";
+const BLUE_SOFT = "#EBEFFE";
+const MINT = "#0BB07B";
+const MINT_SOFT = "#E7F7F1";
+const MUTED = "#5B6577";
+const LINE = "#E3E8F1";
+const WASH = "#F4F6FB";
+
+function AnimatedGauge({ target }: { target: number }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        let start: number | null = null;
+        const run = (ts: number) => {
+          if (start === null) start = ts;
+          const p = Math.min((ts - start) / 1200, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          setVal(Math.round(eased * target));
+          if (p < 1) requestAnimationFrame(run);
+        };
+        requestAnimationFrame(run);
+      });
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [target]);
+
+  return (
+    <div
+      ref={ref}
+      className="w-[180px] h-[180px] mx-auto mb-1.5 rounded-full grid place-items-center"
+      style={{ background: `conic-gradient(${MINT} ${val}%, ${LINE} 0)` }}
+      role="img"
+      aria-label={`${target} bal 100-dən`}
+    >
+      <div className="w-[142px] h-[142px] rounded-full bg-white grid place-items-center text-center">
+        <div>
+          <b className="block text-[44px] font-extrabold leading-none" style={{ color: NAVY }}>{val}</b>
+          <small className="text-[13px]" style={{ color: MUTED }}>/ 100</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
@@ -42,119 +91,111 @@ export default function HomePage() {
     <main className="bg-white overflow-x-hidden">
 
       {/* ── HERO ── */}
-      <section className="relative min-h-[600px] flex items-center overflow-hidden bg-white py-16 md:py-24">
-        {/* Decorative blobs — soft, no hard edges */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute top-0 right-0 w-[700px] h-[700px] rounded-full" style={{ background: "radial-gradient(circle at 70% 30%, #dbeafe 0%, transparent 60%)", opacity: 0.6 }} />
-          <div className="absolute bottom-0 right-20 w-[500px] h-[500px] rounded-full" style={{ background: "radial-gradient(circle at 60% 60%, #ede9fe 0%, transparent 55%)", opacity: 0.5 }} />
-          <div className="absolute top-1/3 right-1/3 w-[300px] h-[300px] rounded-full" style={{ background: "radial-gradient(circle, #bfdbfe 0%, transparent 65%)", opacity: 0.3 }} />
-        </div>
-
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section
+        className="py-20 md:py-24"
+        style={{ background: `radial-gradient(900px 420px at 85% -10%, ${BLUE_SOFT} 0%, transparent 60%), #FFFFFF` }}
+      >
+        <div className="max-w-[1120px] mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_.85fr] gap-12 lg:gap-16 items-center">
 
             {/* Left */}
             <div>
-              <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-5" style={{ color: "#0f1f3d" }}>
-                Kredit almaq <span style={{ color: "#2563eb" }}>şansınızı</span> yoxlayın
+              <h1
+                className="font-extrabold mb-6"
+                style={{ color: NAVY, fontSize: "clamp(40px, 5.6vw, 62px)", lineHeight: 1.12, letterSpacing: "-.028em" }}
+              >
+                Kredit almaq{" "}
+                <em className="not-italic relative whitespace-nowrap" style={{ color: BLUE }}>
+                  <span className="relative z-10">şansınızı</span>
+                  <span className="absolute left-0 right-0 bottom-1.5 h-2.5 rounded-[3px]" style={{ background: BLUE_SOFT }} />
+                </em>{" "}
+                yoxlayın
               </h1>
 
-              <p className="text-base text-gray-500 mb-8 leading-relaxed max-w-md">
-                Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı yoxlayın.
+              <p className="text-[19px] max-w-[460px] mb-9" style={{ color: MUTED }}>
+                Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı yoxlayın — sənədsiz, pulsuz, 3 dəqiqəyə.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <div className="flex flex-wrap gap-3.5 mb-10">
                 <Link
                   href="/az/kredit-yoxlama"
-                  className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white transition-all shadow-lg"
-                  style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}
+                  className="group inline-flex items-center gap-2 px-9 py-[18px] rounded-[10px] font-semibold text-white text-[17px] transition-all hover:-translate-y-px"
+                  style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.30)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}
                 >
                   İlkin yoxlamaya başla
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-200" />
+                  <ArrowRight size={17} className="group-hover:translate-x-0.5 transition-transform" />
                 </Link>
                 <Link
                   href="/az/calculators"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-gray-700 bg-white border border-gray-200 hover:border-blue-300 hover:text-blue-700 transition-all"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-[10px] font-semibold text-[15px] bg-transparent border-[1.5px] transition-colors"
+                  style={{ color: NAVY, borderColor: LINE }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = NAVY)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}
                 >
-                  <Calculator size={16} />
                   Kalkulyatorlara keç
                 </Link>
               </div>
 
-              {/* Trust badges */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Facts row */}
+              <div className="flex flex-wrap gap-y-4">
                 {[
-                  { icon: <Zap size={16} className="text-blue-500" />, title: "3 dəqiqə", sub: "Nəticə vaxtı" },
-                  { icon: <CheckCircle size={16} className="text-blue-500" />, title: "Sənədsiz", sub: "Sadə yoxlama" },
-                  { icon: <Shield size={16} className="text-blue-500" />, title: "Pulsuz", sub: "Heç bir ödəniş yoxdur" },
-                ].map((b) => (
-                  <div key={b.title} className="flex flex-col items-center gap-1.5 border border-gray-100 rounded-2xl px-3 py-3 bg-white shadow-sm">
-                    {b.icon}
-                    <span className="text-xs font-bold text-gray-800">{b.title}</span>
-                    <span className="text-xs text-gray-400 text-center leading-tight">{b.sub}</span>
+                  { b: "3 dəq", s: "Nəticə vaxtı" },
+                  { b: "Sənədsiz", s: "Rəsmi sorğu yoxdur" },
+                  { b: "Pulsuz", s: "Heç bir öhdəlik yoxdur" },
+                ].map((f, i) => (
+                  <div key={f.b} className="px-7 first:pl-0" style={{ borderLeft: i > 0 ? `1px solid ${LINE}` : "none" }}>
+                    <b className="block text-2xl font-extrabold" style={{ color: NAVY, letterSpacing: "-.01em" }}>{f.b}</b>
+                    <span className="text-[13.5px]" style={{ color: MUTED }}>{f.s}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right — credit profile card */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100">
-                <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-900 text-sm">Kredit profili</span>
-                    <Info size={13} className="text-gray-400" />
-                  </div>
-                  <span className="text-xs font-medium text-gray-400">Nümunə nəticə</span>
-                </div>
-
-                <div className="flex flex-col items-center px-6 pb-3">
-                  <div className="relative">
-                    <svg viewBox="0 0 180 100" className="w-44">
-                      <path d="M 15 90 A 75 75 0 0 1 165 90" fill="none" stroke="#e5e7eb" strokeWidth="14" strokeLinecap="round" />
-                      <path d="M 15 90 A 75 75 0 0 1 165 90" fill="none" stroke="url(#gh)" strokeWidth="14" strokeLinecap="round" strokeDasharray="175 240" />
-                      <defs>
-                        <linearGradient id="gh" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#10b981" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-                      <span className="text-3xl font-extrabold text-gray-900 leading-none">
-                        72 <span className="text-lg text-gray-400 font-normal">/ 100</span>
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm font-semibold text-emerald-600 mt-1">Yaxşı nəticə</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-0 border-t border-gray-100">
-                  {[
-                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Borc yükü", value: "34%", tag: "Normal", tagColor: "text-emerald-600" },
-                    { icon: <Calculator size={14} className="text-blue-500" />, label: "Aylıq ödəniş", value: "280 ₼", tag: "Kafi", tagColor: "text-blue-600" },
-                    { icon: <BarChart2 size={14} className="text-blue-500" />, label: "Risk göstəricisi", value: "Aşağı", tag: "Təhlükəsiz", tagColor: "text-emerald-600" },
-                  ].map((m, i) => (
-                    <div key={m.label} className={`flex flex-col items-center py-3 px-2 ${i < 2 ? "border-r border-gray-100" : ""}`}>
-                      <span className="mb-1">{m.icon}</span>
-                      <span className="text-xs text-gray-400 mb-0.5 text-center leading-tight">{m.label}</span>
-                      <span className="text-sm font-bold text-gray-900">{m.value}</span>
-                      <span className={`text-xs font-medium ${m.tagColor}`}>{m.tag}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-gray-100 px-5 py-3">
-                  <Link href="/az/kredit-yoxlama" className="flex items-center justify-between text-xs text-gray-500 hover:text-blue-600 transition-colors group">
-                    <span className="flex items-center gap-1.5">
-                      <Shield size={12} className="text-blue-400" />
-                      Profilinizi yaxşılaşdırmaq üçün tövsiyələri görün.
-                    </span>
-                    <ChevronRight size={13} className="text-gray-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                  </Link>
-                </div>
+            {/* Right — score card */}
+            <aside
+              className="relative bg-white rounded-[20px] p-[30px]"
+              style={{ border: `1px solid ${LINE}`, boxShadow: "0 8px 30px rgba(10,31,68,.10)" }}
+              aria-label="Kredit profili nümunəsi"
+            >
+              <div
+                className="pointer-events-none absolute rounded-[21px]"
+                style={{
+                  inset: "-1px", padding: "1px",
+                  background: `linear-gradient(140deg, ${BLUE} 0%, transparent 40%)`,
+                  WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                }}
+              />
+              <div className="flex justify-between items-center mb-[22px]">
+                <span className="font-bold text-[15.5px]" style={{ color: NAVY }}>Kredit profili</span>
+                <span className="text-xs font-bold px-[11px] py-[5px] rounded-full" style={{ color: MINT, background: MINT_SOFT }}>
+                  Nümunə nəticə
+                </span>
               </div>
-            </div>
+
+              <AnimatedGauge target={72} />
+              <div className="text-center font-bold text-[15px] mb-6" style={{ color: MINT }}>Yaxşı nəticə</div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                {[
+                  { label: "Borc yükü", value: "34%", good: true },
+                  { label: "Aylıq ödəniş", value: "280 ₼", good: false },
+                  { label: "Risk səviyyəsi", value: "Aşağı", good: true },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-xl px-3 py-3.5 text-center" style={{ background: WASH }}>
+                    <small className="block text-xs mb-1" style={{ color: MUTED }}>{m.label}</small>
+                    <b className="text-[15px] font-bold" style={{ color: m.good ? MINT : NAVY }}>{m.value}</b>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-[18px] text-[12.5px] text-center" style={{ color: MUTED }}>
+                Nəticələr ilkin qiymətləndirmə xarakteri daşıyır.
+              </p>
+            </aside>
 
           </div>
         </div>
