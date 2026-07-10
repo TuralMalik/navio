@@ -75,6 +75,12 @@ function annuityPayment(principal: number, months: number, annualRate: number): 
   return (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
 }
 
+/* ─── Доход для скоринга: неофициальный доход зажимается потолком ─── */
+function incomeForScoring(type: GelirNovu, entered: number): number {
+  if (type === "qeyri_resmi") return Math.min(entered, CONFIG.unofficialIncomeAvg);
+  return entered;
+}
+
 /* ─── Nağd kredit rate estimator (two-pass) ─── */
 function estimateNaqdRate(mebleg: number, muddət: number, gelir: number, movcudNaqdOdenis: number, kartAyliOdenis: number) {
   const baseRate =
@@ -118,7 +124,11 @@ function calcBankScore(f: BankForm) {
   const cariGecikmeGun = parseInt(f.cariGecikmeGun) || 0;
   const son6ayGecikmeGun = parseInt(f.son6ayGecikmeGun) || 0;
 
-  const kartAyliOdenis = annuityPayment(movcudKartLimit, 24, 26);
+  // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
+  const income = incomeForScoring(f.gelirNovu, gelir);
+
+  // Стресс-платёж по существующей кредитке (лимит под ставку CONFIG на CONFIG месяцев)
+  const kartAyliOdenis = annuityPayment(movcudKartLimit, CONFIG.cardStressMonths, CONFIG.cardStressRate);
 
   let estimatedRate: number | null = null;
   let remaining: number | null = null;
@@ -128,7 +138,7 @@ function calcBankScore(f: BankForm) {
   let bgn: number;
 
   if (f.kreditNovu === "naqd" && !f.emanet) {
-    const est = estimateNaqdRate(mebleg, muddət, gelir, movcudNaqdOdenis, kartAyliOdenis);
+    const est = estimateNaqdRate(mebleg, muddət, income, movcudNaqdOdenis, kartAyliOdenis);
     estimatedRate = est.estimatedRate;
     yeniOdenis = est.yeniOdenis;
     bgn = est.bgn;
@@ -137,7 +147,9 @@ function calcBankScore(f: BankForm) {
   } else {
     const faiz = parseFloat(f.faiz) || 24;
     yeniOdenis = annuityPayment(mebleg, muddət, faiz);
-    bgn = gelir > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / gelir) * 100 : 999;
+    // BGN с учётом нового кредита; знаменатель — доход для скоринга
+    bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
+    remaining = income - (movcudNaqdOdenis + kartAyliOdenis + yeniOdenis);
   }
 
   const ageAtEnd = yas + Math.ceil(muddət / 12);
