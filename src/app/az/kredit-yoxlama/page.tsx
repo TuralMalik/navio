@@ -7,8 +7,7 @@ import { SliderRow } from "@/components/ui/SliderRow";
 
 /* ─── Types ─── */
 type Mode = "bank" | "bokt";
-type GelirNovu = "resmi" | "qeyri_resmi" | "teqaud" | "fs";
-type TeqaudNovu = "yasa_gore" | "sosial" | "qazi" | "sehid_ailesi";
+type GelirNovu = "resmi" | "xarici" | "fs" | "teqaud" | "qeyri_resmi";
 type KreditNovu = "naqd" | "kart" | "ipoteka" | "avto";
 type IsStaji = "0_3" | "4_5" | "6_12" | "12_plus";
 type BaglanmisTecrube = "var" | "yoxdur" | "tecrube_yox";
@@ -19,16 +18,15 @@ interface BankForm {
   muddət: string;
   faiz: string;
   gelirNovu: GelirNovu;
-  teqaudNovu: TeqaudNovu;
   gelir: string;
   isStaji: IsStaji;
   yas: string;
   movcudNaqdOdenis: string;
   movcudKartLimit: string;
-  cariGecikmeGun: string;
-  son6ayGecikmeGun: string;
+  cariGecikmeGun: string;      // текущая активная просрочка, дней
+  kumulyativ6ay: string;       // суммарная просрочка за 6 мес, дней
+  maks12ay: string;            // максимальная единичная просрочка за 12 мес, дней
   baglanmisTecrube: BaglanmisTecrube;
-  zamin: boolean;
   emanet: boolean;
   emanetMebleg: string;
 }
@@ -81,35 +79,45 @@ function incomeForScoring(type: GelirNovu, entered: number): number {
   return entered;
 }
 
-/* ─── Nağd kredit rate estimator (two-pass) ─── */
-function estimateNaqdRate(mebleg: number, muddət: number, gelir: number, movcudNaqdOdenis: number, kartAyliOdenis: number) {
-  const baseRate =
-    muddət <= 12 ? 12.5 :
-    muddət <= 24 ? 15.5 :
-    muddət <= 36 ? 18.5 :
-    muddət <= 48 ? 21.5 : 24.5;
+/* ─── Прожиточный минимум по типу дохода ─── */
+function subsistenceMin(type: GelirNovu): number {
+  return type === "teqaud" ? CONFIG.subsistenceMinPensioner : CONFIG.subsistenceMinWorking;
+}
 
-  function calcAddon(rate: number) {
+/* ─── Ставка (two-pass): база по сроку + ступень BGN + эффект остатка, зажим ─── */
+function estimateRate(
+  mebleg: number, muddət: number, income: number,
+  movcudNaqdOdenis: number, kartAyliOdenis: number, incomeType: GelirNovu,
+) {
+  const baseRate = RATE.baseByTerm.find((t) => muddət <= t.maxMonths)?.rate
+    ?? RATE.baseByTerm[RATE.baseByTerm.length - 1].rate;
+  const subsistence = subsistenceMin(incomeType);
+
+  function calc(rate: number) {
     const pmt = annuityPayment(mebleg, muddət, rate);
     const totalPayments = movcudNaqdOdenis + kartAyliOdenis + pmt;
-    const bgn = gelir > 0 ? (totalPayments / gelir) * 100 : 999;
-    const remaining = gelir - totalPayments;
-    const bgnAddon = bgn <= 35 ? 0 : bgn <= 45 ? 1.5 : bgn <= 60 ? 4 : bgn <= 70 ? 7 : 7;
-    const residualAddon = remaining < 317 ? 4 : 0;
+    const bgn = income > 0 ? (totalPayments / income) * 100 : 999;
+    const remaining = income - totalPayments;
+    // Надбавка по BGN — плоские ступени
+    const bgnAddon = bgn <= 45 ? 0 : bgn <= 60 ? RATE.bgnAddonMid : RATE.bgnAddonHigh;
+    // Эффект остатка: если после платежей остаётся меньше прожминимума —
+    // усилить ступень на один уровень (минимум как переход 45% BGN → +mid)
+    const residualAddon = remaining < subsistence
+      ? (bgnAddon === 0 ? RATE.bgnAddonMid : RATE.bgnAddonHigh)
+      : 0;
     return { addon: Math.max(bgnAddon, residualAddon), bgn, remaining, pmt };
   }
 
-  const pass1 = calcAddon(baseRate);
-  const finalRate = Math.min(32, Math.max(10.9, baseRate + pass1.addon));
-  const pass2 = calcAddon(finalRate);
+  const pass1 = calc(baseRate);
+  const finalRate = Math.min(CONFIG.rateClampMax, Math.max(CONFIG.rateClampMin, baseRate + pass1.addon));
+  const pass2 = calc(finalRate);
 
   return {
     estimatedRate: finalRate,
     bgn: pass2.bgn,
     yeniOdenis: pass2.pmt,
     remaining: pass2.remaining,
-    highRisk: pass2.bgn > 45 || pass2.remaining < 317,
-    bgnOverLimit: pass2.bgn > 70,
+    highRisk: pass2.bgn > 45 || pass2.remaining < subsistence,
   };
 }
 
@@ -121,8 +129,9 @@ function calcBankScore(f: BankForm) {
   const yas = parseInt(f.yas) || 0;
   const movcudNaqdOdenis = parseFloat(f.movcudNaqdOdenis) || 0;
   const movcudKartLimit = parseFloat(f.movcudKartLimit) || 0;
-  const cariGecikmeGun = parseInt(f.cariGecikmeGun) || 0;
-  const son6ayGecikmeGun = parseInt(f.son6ayGecikmeGun) || 0;
+  const cariGecikmeGun = parseInt(f.cariGecikmeGun) || 0;   // текущая активная просрочка
+  const kumulyativ6ay = parseInt(f.kumulyativ6ay) || 0;    // суммарная просрочка за 6 мес
+  const maks12ay = parseInt(f.maks12ay) || 0;              // макс. единичная просрочка за 12 мес
 
   // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
   const income = incomeForScoring(f.gelirNovu, gelir);
@@ -138,7 +147,7 @@ function calcBankScore(f: BankForm) {
   let bgn: number;
 
   if (f.kreditNovu === "naqd" && !f.emanet) {
-    const est = estimateNaqdRate(mebleg, muddət, income, movcudNaqdOdenis, kartAyliOdenis);
+    const est = estimateRate(mebleg, muddət, income, movcudNaqdOdenis, kartAyliOdenis, f.gelirNovu);
     estimatedRate = est.estimatedRate;
     yeniOdenis = est.yeniOdenis;
     bgn = est.bgn;
@@ -174,8 +183,8 @@ function calcBankScore(f: BankForm) {
   }
 
   if (!f.emanet) {
-    if (f.gelirNovu === "qeyri_resmi" && mebleg > 5000) {
-      warnings.push("Qeyri-rəsmi gəlir üçün yalnız Kapital Bank kredit verə bilər, maksimum hədd təxminən 5 000 AZN-dir.");
+    if (f.gelirNovu === "qeyri_resmi") {
+      warnings.push("Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən 700 ₼) qiymətləndirilir — bank öz modeli ilə yoxlayır.");
     }
     if (bgn >= 45 && bgn <= 70) {
       warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
@@ -186,8 +195,11 @@ function calcBankScore(f: BankForm) {
     if (cariGecikmeGun > 0) {
       warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
     }
-    if (son6ayGecikmeGun >= 30) {
-      warnings.push(`Son 6 ayda maksimum gecikmə ${son6ayGecikmeGun} gün — banklar bu dövrə xüsusi diqqət yetirir.`);
+    if (kumulyativ6ay >= 90) {
+      warnings.push(`Son 6 ayda kumulyativ gecikmə ${kumulyativ6ay} gün — bu, ciddi risk faktorudur.`);
+    }
+    if (maks12ay >= 120) {
+      warnings.push(`Son 12 ayda maksimum gecikmə ${maks12ay} gün — banklar bu dövrə xüsusi diqqət yetirir.`);
     }
   }
 
@@ -200,66 +212,71 @@ function calcBankScore(f: BankForm) {
     return { score: 0, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: false, emanetOk: false };
   }
 
-  // Block 1: BGN (30)
-  let b1 = bgn < 30 ? 30 : bgn < 45 ? 20 : bgn < 60 ? 10 : bgn <= 70 ? 3 : 0;
+  // ── Блок BGN (35) — плоские ступени ──
+  const bBgn = bgn <= 45 ? 35 : bgn <= 60 ? 15 : 5;
 
-  // Block 2: Gəlir və sabitlik (25)
-  const gelirNovuPts = f.gelirNovu === "resmi" ? 10 : f.gelirNovu === "fs" ? 7 : f.gelirNovu === "teqaud" ? 5 : 1;
-  const gelirMeblegPts = gelir > 1500 ? 8 : gelir >= 800 ? 5 : 2;
-  let stajPts = 0;
-  if (f.gelirNovu !== "teqaud") {
-    if (f.gelirNovu === "fs") {
-      stajPts = f.isStaji === "12_plus" ? 7 : f.isStaji === "6_12" ? 4 : 0;
-    } else {
-      stajPts = f.isStaji === "12_plus" ? 7 : f.isStaji === "6_12" ? 5 : f.isStaji === "4_5" ? 2 : 0;
-    }
+  // ── Блок «Кредитная история» (35) ──
+  // Положительный опыт (0–15)
+  const positivePts =
+    f.baglanmisTecrube === "var" ? 15 :           // есть успешно закрытые кредиты
+    f.baglanmisTecrube === "tecrube_yox" ? 8 :    // новый заёмщик, нет истории
+    5;                                            // была проблемная история
+  // Текущий статус по активной просрочке (0–12)
+  const cariPts =
+    cariGecikmeGun === 0 ? 12 :
+    cariGecikmeGun <= 5 ? 8 :
+    cariGecikmeGun <= 15 ? 4 : 0;
+  // Недавняя история (кумулятив 6 мес): чистая / незначительные / серьёзные (0–8)
+  const recentPts =
+    kumulyativ6ay === 0 ? 8 :
+    kumulyativ6ay < 30 ? 4 : 0;
+  const bHistory = positivePts + cariPts + recentPts;
+
+  // ── Блок «Надёжность дохода» (15) — тип + бинарный порог стажа ──
+  let bIncome: number;
+  if (f.gelirNovu === "teqaud") {
+    bIncome = 8;                                  // пенсионер: стаж не применяется
+  } else if (f.gelirNovu === "qeyri_resmi") {
+    bIncome = 5;                                  // неофициальный: стаж не участвует
+  } else {
+    const base = f.gelirNovu === "resmi" ? 9 : 7; // resmi выше; xarici/fs — высокий
+    // Порог стажа: rəsmi ≥6 мес, xarici/VÖEN ≥12 мес — бинарно
+    const thresholdMet = f.gelirNovu === "resmi"
+      ? (f.isStaji === "6_12" || f.isStaji === "12_plus")
+      : f.isStaji === "12_plus";
+    const bonus = thresholdMet ? (f.gelirNovu === "resmi" ? 6 : 5) : 0;
+    bIncome = base + bonus;
   }
-  const b2 = gelirNovuPts + gelirMeblegPts + stajPts;
 
-  // Block 3: Yaş (15)
-  let b3 = 0;
-  if (yas >= 25 && yas <= 45) b3 = 15;
-  else if ((yas >= 21 && yas <= 24) || (yas >= 46 && yas <= 55)) b3 = 10;
-  else if ((yas >= 18 && yas <= 20) || (yas >= 56 && yas <= 60)) b3 = 5;
-  else if (yas >= 61 && ageAtEnd <= 73) b3 = 2;
+  // ── Блок «Доступность» (15) — срок + сумма ──
+  const termPts = muddət <= 36 ? 7 : muddət <= 48 ? 4 : 1;
+  const amountPts =
+    mebleg <= 10000 ? 8 :
+    mebleg <= 20000 ? 6 :
+    mebleg <= 30000 ? 4 :
+    mebleg <= 40000 ? 2 : 1;
+  const bAccess = termPts + amountPts;
 
-  // Block 4: Kredit tarixçəsi (20)
-  // Cari gecikmə (0–5 pts)
-  let cariPts: number;
-  if (cariGecikmeGun === 0) cariPts = 5;
-  else if (cariGecikmeGun <= 5) cariPts = 4;
-  else if (cariGecikmeGun <= 15) cariPts = 2;
-  else if (cariGecikmeGun <= 25) cariPts = 1;
-  else if (cariGecikmeGun <= 30) cariPts = 0;
-  else cariPts = 0;
+  const rawBlockScore = bBgn + bHistory + bIncome + bAccess;
 
-  // Son 6 ay max gecikmə (0–10 pts)
-  let son6Pts: number;
-  if (son6ayGecikmeGun === 0) son6Pts = 10;
-  else if (son6ayGecikmeGun <= 29) son6Pts = 7;
-  else if (son6ayGecikmeGun <= 59) son6Pts = 3;
-  else if (son6ayGecikmeGun <= 89) son6Pts = 1;
-  else son6Pts = 0;
+  // ── Капы балла (потолки) — срабатывает худший ──
+  const caps: number[] = [100];
+  if (bgn > 45 && bgn <= 60) caps.push(79);
+  else if (bgn > 60 && bgn <= 70) caps.push(59);
+  if (cariGecikmeGun >= 6 && cariGecikmeGun <= 15) caps.push(79);
+  else if (cariGecikmeGun > 15) caps.push(59);
+  if (kumulyativ6ay >= 90) caps.push(69);
+  if (maks12ay >= 120) caps.push(69);
 
-  const baglanmisPts = f.baglanmisTecrube === "var" ? 5 : 3;
-  const b4 = cariPts + son6Pts + baglanmisPts;
-
-  // Block 5: Kredit parametrləri (10)
-  const muddətPts = muddət <= 36 ? 4 : muddət <= 59 ? 2 : 0;
-  const meblegPts = mebleg <= 10000 ? 3 : mebleg <= 25000 ? 2 : 1;
-  const zaminPts = f.zamin ? 3 : 0;
-  const b5 = muddətPts + meblegPts + zaminPts;
-
-  const score = Math.min(100, b1 + b2 + b3 + b4 + b5);
+  const score = Math.min(rawBlockScore, ...caps);
 
   return {
     score, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, isEmanet: false, emanetOk: false,
     blocks: [
-      { label: "Borc yükü (BGN)", score: b1, max: 30 },
-      { label: "Gəlir və sabitlik", score: b2, max: 25 },
-      { label: "Yaş", score: b3, max: 15 },
-      { label: "Kredit tarixçəsi", score: b4, max: 20 },
-      { label: "Kredit parametrləri", score: b5, max: 10 },
+      { label: "Borc yükü (BGN)", score: bBgn, max: 35 },
+      { label: "Kredit tarixçəsi", score: bHistory, max: 35 },
+      { label: "Gəlirin etibarlılığı", score: bIncome, max: 15 },
+      { label: "Əlçatanlıq (məbləğ + müddət)", score: bAccess, max: 15 },
     ],
   };
 }
@@ -284,6 +301,35 @@ function calcBoktScore(f: BoktForm) {
   const score = Math.min(100, gelirPts + tarixcePts + meblegPts);
 
   return { score, warnings, stops: [] as string[], maxOdenis: mebleg * 2, isEmanet: false, emanetOk: false };
+}
+
+/* ─── Разбор кейса: почему такой балл и как улучшить (только текст) ─── */
+function explainResult(f: BankForm, r: { bgn: number }) {
+  const items: { title: string; text: string }[] = [];
+  const cari = parseInt(f.cariGecikmeGun) || 0;
+  const kum = parseInt(f.kumulyativ6ay) || 0;
+  const maks = parseInt(f.maks12ay) || 0;
+  const mebleg = parseFloat(f.mebleg) || 0;
+  const muddət = parseInt(f.muddət) || 0;
+
+  if (r.bgn > 45)
+    items.push({ title: "Borc yükü yüksəkdir", text: "Mövcud kreditləri azaltmaq və ya daha kiçik məbləğ seçmək şansınızı artırar." });
+  if (cari > 0)
+    items.push({ title: "Aktiv gecikmə", text: "Aktiv gecikməniz var. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
+  if (kum >= 90 || maks >= 120)
+    items.push({ title: "Kredit tarixçəsi", text: "Keçmiş gecikmələr nəticəni məhdudlaşdırır. Ödənişləri vaxtında etmək zamanla profilinizi yaxşılaşdırır." });
+  if (mebleg > 20000 || muddət > 48)
+    items.push({ title: "Məbləğ və müddət", text: "Daha kiçik məbləğ və ya qısa müddət təsdiq şansını artırır." });
+  if (f.gelirNovu === "qeyri_resmi")
+    items.push({ title: "Gəlir növü", text: "Rəsmi gəlir təsdiq şansını əhəmiyyətli artırır." });
+  const stajOk =
+    (f.gelirNovu === "resmi" && (f.isStaji === "6_12" || f.isStaji === "12_plus")) ||
+    ((f.gelirNovu === "fs" || f.gelirNovu === "xarici") && f.isStaji === "12_plus");
+  if ((f.gelirNovu === "resmi" || f.gelirNovu === "fs" || f.gelirNovu === "xarici") && !stajOk)
+    items.push({ title: "İş stajı", text: "Cari iş yerində daha uzun staj (rəsmi üçün 6+ ay, digərləri üçün 12+ ay) şansı artırır." });
+  // Всегда — позитивный совет про зарплатный проект (без названия банка)
+  items.push({ title: "Əmək haqqı layihəsi", text: "Əmək haqqınızı aldığınız banka müraciət etsəniz, şansınız adətən daha yüksək olur." });
+  return items;
 }
 
 /* ─── Gauge SVG ─── */
@@ -386,16 +432,15 @@ function KreditYoxlamaContent() {
     muddət: initMuddet,
     faiz: initFaiz,
     gelirNovu: "resmi",
-    teqaudNovu: "yasa_gore",
     gelir: "",
     isStaji: "12_plus",
     yas: "",
     movcudNaqdOdenis: "0",
     movcudKartLimit: "0",
     cariGecikmeGun: "0",
-    son6ayGecikmeGun: "0",
+    kumulyativ6ay: "0",
+    maks12ay: "0",
     baglanmisTecrube: "var",
-    zamin: false,
     emanet: false,
     emanetMebleg: "",
   });
@@ -505,30 +550,21 @@ function KreditYoxlamaContent() {
                     <Field label="Gəlir növü">
                       <select value={bank.gelirNovu} onChange={e => setBank(b => ({ ...b, gelirNovu: e.target.value as GelirNovu }))} className={selectCls}>
                         <option value="resmi">Rəsmi gəlir</option>
-                        <option value="qeyri_resmi">Qeyri-rəsmi gəlir</option>
-                        <option value="teqaud">Təqaüd</option>
+                        <option value="xarici">Xaricdə rəsmi iş (bank çıxarışı ilə)</option>
                         <option value="fs">Fiziki sahibkar (VÖEN)</option>
+                        <option value="teqaud">Təqaüd</option>
+                        <option value="qeyri_resmi">Qeyri-rəsmi gəlir</option>
                       </select>
                     </Field>
-
-                    {bank.gelirNovu === "teqaud" && (
-                      <Field label="Təqaüdün növü">
-                        <select value={bank.teqaudNovu} onChange={e => setBank(b => ({ ...b, teqaudNovu: e.target.value as TeqaudNovu }))} className={selectCls}>
-                          <option value="yasa_gore">Yaşa görə təqaüd</option>
-                          <option value="sosial">Sosial təqaüd</option>
-                          <option value="qazi">Qazi təqaüdü</option>
-                          <option value="sehid_ailesi">Şəhid ailəsi təqaüdü</option>
-                        </select>
-                      </Field>
-                    )}
 
                     <Field label="Aylıq gəlir (net, AZN)" note="Vergi çıxıldıqdan sonra">
                       <input type="number" placeholder="1000" min={0} value={bank.gelir}
                         onChange={e => setBank(b => ({ ...b, gelir: e.target.value }))} className={inputCls} />
                     </Field>
 
-                    {bank.gelirNovu !== "teqaud" && (
-                      <Field label="Cari iş yerində staj">
+                    {/* Стаж не применяется для пенсионера и неофициального дохода */}
+                    {bank.gelirNovu !== "teqaud" && bank.gelirNovu !== "qeyri_resmi" && (
+                      <Field label="Cari iş yerində staj" note={bank.gelirNovu === "resmi" ? "Rəsmi gəlir üçün minimum 6 ay tələb olunur" : "Minimum 12 ay tələb olunur"}>
                         <select value={bank.isStaji} onChange={e => setBank(b => ({ ...b, isStaji: e.target.value as IsStaji }))} className={selectCls}>
                           <option value="0_3">0 – 3 ay</option>
                           <option value="4_5">4 – 5 ay</option>
@@ -568,14 +604,19 @@ function KreditYoxlamaContent() {
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Kredit tarixçəsi</p>
                   <div className="space-y-4">
-                    <Field label="Cari gecikmə (gün)" note="Hazırda gecikmiş ödənişiniz yoxdursa 0 yazın.">
+                    <Field label="Cari (aktiv) gecikmə (gün)" note="Hazırda gecikmiş ödənişiniz yoxdursa 0 yazın.">
                       <input type="number" placeholder="0" min={0} value={bank.cariGecikmeGun}
                         onChange={e => setBank(b => ({ ...b, cariGecikmeGun: e.target.value }))} className={inputCls} />
                     </Field>
 
-                    <Field label="Son 6 ayda maksimum gecikmə (gün)" note="Son 6 ayda ən uzun gecikdiyiniz gün sayı. Yoxdursa 0 yazın.">
-                      <input type="number" placeholder="0" min={0} value={bank.son6ayGecikmeGun}
-                        onChange={e => setBank(b => ({ ...b, son6ayGecikmeGun: e.target.value }))} className={inputCls} />
+                    <Field label="Son 6 ayda kumulyativ gecikmə (gün)" note="Son 6 ayda bütün gecikmələrin cəmi. Yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.kumulyativ6ay}
+                        onChange={e => setBank(b => ({ ...b, kumulyativ6ay: e.target.value }))} className={inputCls} />
+                    </Field>
+
+                    <Field label="Son 12 ayda maksimum gecikmə (gün)" note="Son 12 ayda ən uzun tək gecikmə. Yoxdursa 0 yazın.">
+                      <input type="number" placeholder="0" min={0} value={bank.maks12ay}
+                        onChange={e => setBank(b => ({ ...b, maks12ay: e.target.value }))} className={inputCls} />
                     </Field>
 
                     <Field label="Bağlanmış kredit təcrübəsi">
@@ -735,7 +776,7 @@ function KreditYoxlamaContent() {
                     {bResult.estimatedRate != null && (
                       <div className="mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 space-y-1">
                         <p className="font-semibold">Navio tərəfindən hesablanan təxmini faiz: {bResult.estimatedRate.toFixed(1)}%</p>
-                        <p className="text-indigo-500">Faiz dərəcəsi kredit müddəti, borc yükü və gəlirdən sonra qalan məbləğ əsasında təxmini hesablanıb. Bankın real təklifi fərqli ola bilər.</p>
+                        <p className="text-indigo-500">İlkin hesablama. İctimai təklif deyil. Faiz fərdi hesablanır.</p>
                       </div>
                     )}
                   </div>
@@ -756,6 +797,24 @@ function KreditYoxlamaContent() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Разбор кейса — почему такой балл и как улучшить */}
+                {mode === "bank" && !hasStops && !bank.emanet && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Kredit şansını artır — nəticənin izahı</p>
+                    <div className="space-y-2">
+                      {explainResult(bank, bResult).map((it) => (
+                        <div key={it.title} className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                          <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs font-semibold text-blue-800">{it.title}</p>
+                            <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">{it.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </>
