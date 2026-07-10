@@ -158,11 +158,16 @@ function calcBankScore(f: BankForm) {
   const warnings: string[] = [];
 
   if (!f.emanet) {
+    // 1) Возраст < 18 — закон
     if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır — qanunvericiliyə görə kredit verilə bilməz");
+    // 2) Возраст на конец срока > лимит
+    if (ageAtEnd > CONFIG.maxAgeAtEnd) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit ${CONFIG.maxAgeAtEnd}-dür`);
+    // 3) BGN > 70% — долговая нагрузка
     if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
-    if (f.kreditNovu !== "ipoteka" && muddət > 59) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti 59 aydan çox ola bilməz`);
-    if (ageAtEnd > 73) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit 73-dür`);
-    if (f.kreditNovu === "kart" && gelir > 0 && (mebleg + movcudKartLimit) > gelir * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(gelir * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
+    // 4) Срок > лимит (кроме ипотеки)
+    if (f.kreditNovu !== "ipoteka" && muddət > CONFIG.maxTermMonths) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti ${CONFIG.maxTermMonths} aydan çox ola bilməz`);
+    // 5) Kredit kartı: новый + существующие лимиты > 5× дохода — закон о кредитных линиях
+    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(income * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
   } else {
     const em = parseFloat(f.emanetMebleg) || 0;
     if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
