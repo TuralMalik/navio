@@ -30,8 +30,11 @@ export default function MortgagePage() {
   const [penalty, setPenalty] = useState(0);
   const [showAllRows, setShowAllRows] = useState(false);
 
+  const MAX_LOAN = 500000; // банки не выдают ипотеку больше 500 000 ₼
   const downPayment = Math.round((downPaymentPct / 100) * propertyValue);
-  const loanAmount = Math.max(0, propertyValue - downPayment);
+  const rawLoan = Math.max(0, propertyValue - downPayment);
+  const loanAmount = Math.min(MAX_LOAN, rawLoan);
+  const loanCapped = rawLoan > MAX_LOAN;
   const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
 
   const addOneTime = () => setOneTimePayments((p) => [...p, { id: Date.now(), month: 1, amount: 0 }]);
@@ -139,13 +142,13 @@ export default function MortgagePage() {
 
               <SliderRow
                 label="Əmlakın dəyəri"
-                value={propertyValue} min={10000} max={500000} step={5000}
+                value={propertyValue} min={10000} max={2000000} step={1}
                 format={(v) => `₼ ${v.toLocaleString()}`}
                 onChange={setPropertyValue}
               />
               <SliderRow
                 label="İlkin ödəniş"
-                value={downPaymentPct} min={10} max={90} step={5}
+                value={downPaymentPct} min={5} max={90} step={1}
                 format={(v) => `${v}%  (₼ ${Math.round((v / 100) * propertyValue).toLocaleString()})`}
                 onChange={setDownPaymentPct}
               />
@@ -163,9 +166,16 @@ export default function MortgagePage() {
               />
 
               {/* Kredit məbləği pill */}
-              <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
-                <span className="text-sm text-blue-600 font-medium">Kredit məbləği</span>
-                <span className="text-base font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
+              <div className="bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-blue-600 font-medium">Kredit məbləği</span>
+                  <span className="text-base font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
+                </div>
+                {loanCapped && (
+                  <p className="text-xs text-amber-600 mt-1.5">
+                    Maksimum ipoteka məbləği 500 000 ₼-dir — banklar bundan çoxunu vermir. Qalan hissə ilkin ödəniş kimi ödənilməlidir.
+                  </p>
+                )}
               </div>
             </div>
 
