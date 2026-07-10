@@ -41,6 +41,33 @@ interface BoktForm {
   emanetMebleg: string;
 }
 
+/* ─── Scoring config — значения обновляются со временем (ежегодно) ─── */
+const CONFIG = {
+  subsistenceMinWorking: 317,    // прожиточный минимум, трудоспособные (2026)
+  subsistenceMinPensioner: 245,  // прожиточный минимум, пенсионеры (2026)
+  unofficialIncomeAvg: 700,      // рабочая оценка неофициального дохода
+  unofficialIncomeMax: 1000,     // потолок оценки неофициального дохода
+  cardStressMonths: 24,          // срок для стресс-платежа по кредитке
+  cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
+  rateClampMin: 10.9,            // нижний зажим ставки
+  rateClampMax: 32,              // верхний зажим ставки
+  maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
+  maxAgeAtEnd: 73,               // макс. возраст на конец срока
+};
+
+/* ─── Rate: база по сроку и надбавки (стартовые заглушки, будут уточнены) ─── */
+const RATE = {
+  baseByTerm: [           // порог месяцев → базовая ставка
+    { maxMonths: 12, rate: 10.9 },
+    { maxMonths: 24, rate: 13.5 },
+    { maxMonths: 36, rate: 16.5 },
+    { maxMonths: 48, rate: 19.5 },
+    { maxMonths: 59, rate: 22.5 },
+  ],
+  bgnAddonMid: 3.5,       // надбавка при BGN 45–60%
+  bgnAddonHigh: 7,        // надбавка при BGN 60–70%
+};
+
 /* ─── Annuity formula ─── */
 function annuityPayment(principal: number, months: number, annualRate: number): number {
   if (months <= 0 || principal <= 0 || annualRate <= 0) return principal / Math.max(months, 1);
