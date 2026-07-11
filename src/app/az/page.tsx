@@ -218,19 +218,19 @@ export default function HomePage() {
               <div className="step-charge" />
             </div>
             {[
-              { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE",
+              { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE", glow: "rgba(36,71,240,.6)", delay: 0,
                 title: "Məlumatlarınızı daxil edin", desc: "Sadə formu doldurun: əməkhaqqınız, mövcud borclarınız və istədiyiniz kredit məbləği.",
                 pillIcon: <Clock size={14} />, pill: "Təxminən 2–3 dəqiqə" },
-              { num: 2, icon: <BarChart3 size={26} />, color: "#0BB07B", soft: "#E7F7F1",
+              { num: 2, icon: <BarChart3 size={26} />, color: "#0BB07B", soft: "#E7F7F1", glow: "rgba(11,176,123,.6)", delay: 1.35,
                 title: "Kredit profilinizi qiymətləndiririk", desc: "Sistem məlumatlarınızı analiz edir, bank qaydaları əsasında kredit şansınızı hesablayır.",
                 pillIcon: <ShieldCheck size={14} />, pill: "Banklara sorğu göndərilmir" },
-              { num: 3, icon: <Target size={26} />, color: "#7C3AED", soft: "#F1EBFE",
+              { num: 3, icon: <Target size={26} />, color: "#7C3AED", soft: "#F1EBFE", glow: "rgba(124,58,237,.6)", delay: 2.7,
                 title: "Nəticənizi alın", desc: "Kredit şansınızı, əsas amilləri və şansınızı artırmaq üçün tövsiyələri görün.",
                 pillIcon: <FileText size={14} />, pill: "Fərdi nəticə və tövsiyələr" },
             ].map((s) => (
               <div key={s.num} className="flex flex-col items-center text-center relative">
-                <span className="relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px]"
-                  style={{ background: s.soft, color: s.color, boxShadow: `0 0 0 10px ${WASH}` }}>
+                <span className="step-icon relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px]"
+                  style={{ background: s.soft, color: s.color, boxShadow: `0 0 0 10px ${WASH}`, animationDelay: `${s.delay}s`, ["--glow" as string]: s.glow } as React.CSSProperties}>
                   {s.icon}
                   <span className="absolute -top-2 -right-2 w-[25px] h-[25px] rounded-full grid place-items-center text-[12.5px] font-bold text-white"
                     style={{ background: s.color, border: `2px solid ${WASH}` }}>
