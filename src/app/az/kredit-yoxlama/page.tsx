@@ -809,23 +809,7 @@ function KreditYoxlamaContent() {
                   </div>
                 )}
 
-                {mode === "bank" && bResult.blocks && !hasStops && !bank.emanet && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bal bölgüsü</p>
-                    {bResult.blocks.map((bl) => (
-                      <div key={bl.label}>
-                        <div className="flex justify-between text-xs text-gray-600 mb-0.5">
-                          <span>{bl.label}</span>
-                          <span className="font-bold">{bl.score} / {bl.max}</span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
-                            style={{ width: `${(bl.score / bl.max) * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Bal bölgüsü — внутренняя механика скоринга, клиенту не показываем */}
 
                 {/* Разбор кейса — почему такой балл и как улучшить */}
                 {mode === "bank" && !hasStops && !bank.emanet && (
