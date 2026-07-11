@@ -11,11 +11,12 @@ import {
   Car,
   ClipboardList,
   BarChart3,
-  CheckCircle2,
   TrendingUp,
   Clock,
   ShieldCheck,
   Wallet,
+  Target,
+  FileText,
 } from "lucide-react";
 
 const faqs = [
@@ -204,31 +205,38 @@ export default function HomePage() {
       <section className="py-24" style={{ background: WASH }}>
         <div className="max-w-[1120px] mx-auto px-6">
           <div className="max-w-[640px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
-            <span className="inline-block text-xs font-bold uppercase mb-3.5" style={{ color: BLUE, letterSpacing: ".14em" }}>Proses</span>
+            <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>3 sadə addım</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Necə işləyir?</h2>
-            <p className="text-[17px]" style={{ color: MUTED }}>Üç sadə addım — və siz banka getməzdən əvvəl vəziyyətinizi bilirsiniz.</p>
+            <p className="text-[17px]" style={{ color: MUTED }}>Cəmi bir neçə dəqiqəyə kredit almaq şansınızı öyrənin və fərdi tövsiyələr alın.</p>
           </div>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="hidden md:block absolute top-[34px] left-[17%] right-[17%] h-0.5"
               style={{ background: `repeating-linear-gradient(90deg, ${LINE} 0 8px, transparent 8px 16px)` }} />
             {[
-              { num: 1, icon: <ClipboardList size={26} />, title: "Məlumatları daxil edin", desc: "Sadə forma: gəliriniz, mövcud borclarınız və istədiyiniz kredit məbləği.", time: "≈ 2 dəqiqə" },
-              { num: 2, icon: <BarChart3 size={26} />, title: "Analiz edirik", desc: "Sistem kredit profilinizi anlarında hesablayır — heç bir rəsmi sorğu göndərilmir.", time: "≈ 30 saniyə" },
-              { num: 3, icon: <CheckCircle2 size={26} />, title: "Nəticəni alın", desc: "Nəticəni görün, fərdi tövsiyələrlə profilinizi yaxşılaşdırın.", time: "Dərhal" },
+              { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE",
+                title: "Məlumatlarınızı daxil edin", desc: "Sadə formu doldurun: əməkhaqqınız, mövcud borclarınız və istədiyiniz kredit məbləği.",
+                pillIcon: <Clock size={14} />, pill: "Təxminən 2–3 dəqiqə" },
+              { num: 2, icon: <BarChart3 size={26} />, color: "#0BB07B", soft: "#E7F7F1",
+                title: "Kredit profilinizi qiymətləndiririk", desc: "Sistem məlumatlarınızı analiz edir, bank qaydaları əsasında kredit şansınızı hesablayır.",
+                pillIcon: <ShieldCheck size={14} />, pill: "Banklara sorğu göndərilmir" },
+              { num: 3, icon: <Target size={26} />, color: "#7C3AED", soft: "#F1EBFE",
+                title: "Nəticənizi alın", desc: "Kredit şansınızı, əsas amilləri və şansınızı artırmaq üçün tövsiyələri görün.",
+                pillIcon: <FileText size={14} />, pill: "Fərdi nəticə və tövsiyələr" },
             ].map((s) => (
               <div key={s.num} className="flex flex-col items-center text-center relative">
-                <span className="relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px] bg-white"
-                  style={{ border: `1px solid ${LINE}`, color: BLUE, boxShadow: `0 0 0 10px ${WASH}, 0 6px 16px rgba(10,31,68,.08)` }}>
+                <span className="relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px]"
+                  style={{ background: s.soft, color: s.color, boxShadow: `0 0 0 10px ${WASH}` }}>
                   {s.icon}
                   <span className="absolute -top-2 -right-2 w-[25px] h-[25px] rounded-full grid place-items-center text-[12.5px] font-bold text-white"
-                    style={{ background: BLUE, border: `2px solid ${WASH}` }}>
+                    style={{ background: s.color, border: `2px solid ${WASH}` }}>
                     {s.num}
                   </span>
                 </span>
                 <h3 className="text-[19px] font-bold mb-2" style={{ color: NAVY }}>{s.title}</h3>
-                <p className="text-[15.5px] max-w-[280px]" style={{ color: MUTED }}>{s.desc}</p>
-                <span className="mt-auto pt-4 text-[13px] font-semibold">
-                  <i className="not-italic inline-block px-3.5 py-1.5 rounded-full" style={{ background: BLUE_SOFT, color: BLUE }}>{s.time}</i>
+                <p className="text-[15.5px] max-w-[280px] mb-5" style={{ color: MUTED }}>{s.desc}</p>
+                <span className="mt-auto inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-semibold"
+                  style={{ background: s.soft, color: s.color }}>
+                  {s.pillIcon} {s.pill}
                 </span>
               </div>
             ))}
