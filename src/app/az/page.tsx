@@ -213,8 +213,10 @@ export default function HomePage() {
             {/* Пунктирная база линии */}
             <div className="hidden md:block absolute top-[34px] left-[17%] right-[17%] h-0.5"
               style={{ background: `repeating-linear-gradient(90deg, ${LINE} 0 8px, transparent 8px 16px)` }} />
-            {/* Бегущий световой импульс поверх */}
-            <div className="step-flow hidden md:block absolute top-[33px] left-[17%] right-[17%] h-1 rounded-full pointer-events-none" />
+            {/* Неоновая линия, наполняющаяся светом слева направо */}
+            <div className="step-charge-track hidden md:block absolute top-[33px] left-[17%] right-[17%] h-1 rounded-full pointer-events-none">
+              <div className="step-charge" />
+            </div>
             {[
               { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE",
                 title: "Məlumatlarınızı daxil edin", desc: "Sadə formu doldurun: əməkhaqqınız, mövcud borclarınız və istədiyiniz kredit məbləği.",
