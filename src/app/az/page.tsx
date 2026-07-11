@@ -210,8 +210,11 @@ export default function HomePage() {
             <p className="text-[17px]" style={{ color: MUTED }}>Cəmi bir neçə dəqiqəyə kredit almaq şansınızı öyrənin və fərdi tövsiyələr alın.</p>
           </div>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Пунктирная база линии */}
             <div className="hidden md:block absolute top-[34px] left-[17%] right-[17%] h-0.5"
               style={{ background: `repeating-linear-gradient(90deg, ${LINE} 0 8px, transparent 8px 16px)` }} />
+            {/* Бегущий световой импульс поверх */}
+            <div className="step-flow hidden md:block absolute top-[33px] left-[17%] right-[17%] h-1 rounded-full pointer-events-none" />
             {[
               { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE",
                 title: "Məlumatlarınızı daxil edin", desc: "Sadə formu doldurun: əməkhaqqınız, mövcud borclarınız və istədiyiniz kredit məbləği.",
