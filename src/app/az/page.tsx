@@ -11,12 +11,16 @@ import {
   Car,
   ClipboardList,
   BarChart3,
-  TrendingUp,
   Clock,
   ShieldCheck,
   Wallet,
   Target,
   FileText,
+  PieChart,
+  BookOpen,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 
 const faqs = [
@@ -249,72 +253,133 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── HELP: flagship + side cards ── */}
+      {/* ── HELP: three rich cards ── */}
       <section className="py-24 bg-white">
         <div className="max-w-[1120px] mx-auto px-6">
-          <div className="max-w-[640px] mb-13" style={{ marginBottom: 52 }}>
-            <span className="inline-block text-xs font-bold uppercase mb-3.5" style={{ color: BLUE, letterSpacing: ".14em" }}>Xidmətlər</span>
+          <div className="max-w-[680px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
+            <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>Bütün ehtiyaclarınız bir yerdə</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Navio sizə necə kömək edir?</h2>
-            <p className="text-[17px]" style={{ color: MUTED }}>Əsas alət — kredit yoxlaması. Kalkulyatorlar və maliyyə köməkçisi onu tamamlayır.</p>
+            <p className="text-[17px]" style={{ color: MUTED }}>Kredit almazdan əvvəl hazır olun, daha ağıllı qərarlar verin və maliyyənizi idarə edin.</p>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] gap-6 items-stretch">
-            {/* Flagship */}
-            <div className="relative overflow-hidden rounded-[20px] p-11 flex flex-col text-white"
-              style={{ background: `linear-gradient(155deg, ${NAVY} 0%, #12306B 100%)` }}>
-              <div className="pointer-events-none absolute rounded-full"
-                style={{ right: -70, top: -70, width: 260, height: 260, background: "radial-gradient(circle, rgba(36,71,240,.45), transparent 70%)" }} />
-              <span className="self-start relative z-10 inline-block text-[11.5px] font-bold uppercase mb-5 px-3 py-1.5 rounded-full"
-                style={{ color: "#C7D3FF", background: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.16)", letterSpacing: ".12em" }}>
-                Əsas alət
-              </span>
-              <h3 className="text-[28px] font-extrabold mb-3 text-white relative" style={{ letterSpacing: "-.015em" }}>Kredit şansınızı yoxlayın</h3>
-              <p className="text-base max-w-[380px] mb-7 relative" style={{ color: "#B9C4E0" }}>
-                Cəmi 3 dəqiqəyə kredit profilinizi öyrənin və nəticəni banka getmədən əvvəl bilin.
-              </p>
-              <div className="flex mt-auto mb-7 relative z-10">
-                {[
-                  { b: "72", small: " /100", s: "Kredit şansı balı" },
-                  { b: "3 dəq", small: "", s: "Yoxlama müddəti" },
-                  { b: "0 ₼", small: "", s: "Tam pulsuz" },
-                ].map((m, i) => (
-                  <div key={m.s} className="px-[22px] first:pl-0" style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,.14)" : "none" }}>
-                    <b className="block text-[22px] font-extrabold whitespace-nowrap text-white">
-                      {m.b}{m.small && <small className="text-[13px] font-semibold" style={{ color: "#8FA0C9" }}>{m.small}</small>}
-                    </b>
-                    <span className="text-[13px]" style={{ color: "#8FA0C9" }}>{m.s}</span>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+
+            {/* Card 1 — Kredit şansı */}
+            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: BLUE_SOFT, color: BLUE }}><PieChart size={24} /></span>
+              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit alma şansınızı bilin</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banklara müraciət etmədən əvvəl kredit profilinizi öyrənin və güclü tərəflərinizi görün.</p>
+
+              <div className="rounded-2xl p-4 mb-5" style={{ background: WASH }}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(${BLUE} 72%, ${LINE} 0)` }}>
+                    <div className="w-[52px] h-[52px] rounded-full bg-white grid place-items-center">
+                      <span className="text-[18px] font-extrabold" style={{ color: NAVY }}>72</span>
+                    </div>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: NAVY }}>Kredit şansı balı</p>
+                    <p className="text-[13px] font-semibold" style={{ color: MINT }}>Yaxşı nəticə</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {["Bankların dəyərləndirdiyi amillər", "Risk səviyyəsi və tövsiyələr", "Kredit tarixçəsinə təsir etmir"].map((t) => (
+                    <div key={t} className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
+                      <CheckCircle2 size={15} style={{ color: MINT }} className="shrink-0" /> {t}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <Link href="/az/kredit-yoxlama"
-                className="group self-start relative z-10 inline-flex items-center gap-2 px-7 py-[15px] rounded-[10px] font-semibold text-white transition-all hover:-translate-y-px"
-                style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.30)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}>
-                Yoxlamağa başla <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+
+              <div className="mt-auto flex items-center gap-3">
+                <Link href="/az/kredit-yoxlama"
+                  className="group inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
+                  style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.30)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}>
+                  Kredit şansımı yoxla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+                <span className="text-[12.5px]" style={{ color: MUTED }}>3 dəqiqə • Pulsuz</span>
+              </div>
+            </div>
+
+            {/* Card 2 — Kalkulyatorlar */}
+            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: MINT_SOFT, color: MINT }}><Calculator size={24} /></span>
+              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və sizin üçün ən sərfəli variantı seçin.</p>
+
+              <div className="rounded-2xl p-4 mb-4" style={{ background: WASH }}>
+                <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
+                  <div className="rounded-xl bg-white p-3" style={{ border: `1px solid ${LINE}` }}>
+                    <Clock size={16} style={{ color: MINT }} className="mb-1.5" />
+                    <p className="text-[12.5px] font-bold" style={{ color: NAVY }}>Aylıq ödənişi azaldın</p>
+                    <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>Aylıq yükünüzü azaldın</p>
+                  </div>
+                  <span className="self-center text-[11px] font-bold" style={{ color: MUTED }}>vs</span>
+                  <div className="rounded-xl bg-white p-3" style={{ border: `1px solid ${LINE}` }}>
+                    <CalendarDays size={16} style={{ color: BLUE }} className="mb-1.5" />
+                    <p className="text-[12.5px] font-bold" style={{ color: NAVY }}>Müddəti azaldın</p>
+                    <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>Daha az müddətdə bitirin</p>
+                  </div>
+                </div>
+                <p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: MUTED }}>Populyar kalkulyatorlar</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { icon: <House size={13} />, label: "İpoteka", href: "/az/calculators/mortgage" },
+                    { icon: <Car size={13} />, label: "Avtokredit", href: "/az/calculators/auto-loan" },
+                    { icon: <Banknote size={13} />, label: "İstehlak krediti", href: "/az/calculators/consumer-loan" },
+                  ].map((c) => (
+                    <Link key={c.label} href={c.href} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white text-[12px] font-medium transition-colors hover:border-blue-300"
+                      style={{ border: `1px solid ${LINE}`, color: NAVY }}>
+                      {c.icon} {c.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <Link href="/az/calculators"
+                className="group mt-auto inline-flex items-center justify-center gap-2 w-full py-3 rounded-[10px] font-semibold text-sm transition-colors"
+                style={{ border: `1px solid ${LINE}`, color: NAVY }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = NAVY)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
+                Kalkulyatorlara keç <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
-            {/* Side cards — horizontal */}
-            <div className="flex flex-col gap-6">
-              {[
-                { icon: <Calculator size={24} />, title: "Kredit kalkulyatorları", desc: "İstehlak, ipoteka və avtokredit üçün aylıq ödənişi hesablayın.", href: "/az/calculators" },
-                { icon: <TrendingUp size={24} />, title: "Kredit şansını artır", desc: "Maliyyə vəziyyətinizi yaxşılaşdırmaq üçün fərdi tövsiyələr alın.", href: "/az/financial-assistant" },
-              ].map((c) => (
-                <Link key={c.title} href={c.href}
-                  className="group flex-1 bg-white rounded-[20px] p-7 grid grid-cols-[auto_1fr_auto] items-center gap-5 transition-all"
-                  style={{ border: `1px solid ${LINE}` }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.boxShadow = "0 8px 30px rgba(10,31,68,.10)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; }}>
-                  <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center flex-none" style={{ background: BLUE_SOFT, color: BLUE }}>{c.icon}</span>
-                  <div>
-                    <h3 className="text-[19px] font-bold mb-1" style={{ color: NAVY }}>{c.title}</h3>
-                    <p className="text-[14.5px]" style={{ color: MUTED }}>{c.desc}</p>
-                  </div>
-                  <span className="w-[38px] h-[38px] rounded-full grid place-items-center flex-none transition-all bg-[#F4F6FB] text-[#2447F0] group-hover:bg-[#2447F0] group-hover:text-white group-hover:translate-x-0.5">
-                    <ArrowRight size={18} />
-                  </span>
-                </Link>
-              ))}
+
+            {/* Card 3 — Bilik bazası */}
+            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: "#F1EBFE", color: "#7C3AED" }}><BookOpen size={24} /></span>
+              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Doğru məlumatla qərar verin</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Maliyyə ilə bağlı suallarınıza sadə və aydın cavablar tapın.</p>
+
+              <div className="space-y-2 mb-5">
+                {[
+                  "Gecikməm varsa, bank mənə nə edə bilər?",
+                  "Kredit tarixçəsi necə yaranır?",
+                  "Kredit reytinqimi necə artıra bilərəm?",
+                  "İmtina səbəbləri nələrdir?",
+                ].map((q) => (
+                  <Link key={q} href="/az/financial-assistant"
+                    className="group flex items-center justify-between gap-3 rounded-xl px-3.5 py-3 bg-white transition-colors"
+                    style={{ border: `1px solid ${LINE}` }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C3AED")}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
+                    <span className="text-[13px] font-medium" style={{ color: NAVY }}>{q}</span>
+                    <ChevronRight size={15} className="shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: MUTED }} />
+                  </Link>
+                ))}
+              </div>
+
+              <Link href="/az/financial-assistant"
+                className="group mt-auto inline-flex items-center justify-center gap-2 w-full py-3 rounded-[10px] font-semibold text-sm transition-colors"
+                style={{ border: `1px solid ${LINE}`, color: "#7C3AED" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C3AED")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
+                Bilik bazasına bax <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
+
           </div>
         </div>
       </section>
