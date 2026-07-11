@@ -43,10 +43,13 @@ interface BoktForm {
 const CONFIG = {
   subsistenceMinWorking: 317,    // прожиточный минимум, трудоспособные (2026)
   subsistenceMinPensioner: 245,  // прожиточный минимум, пенсионеры (2026)
-  unofficialIncomeAvg: 700,      // рабочая оценка неофициального дохода
-  unofficialIncomeMax: 1000,     // потолок оценки неофициального дохода
+  unofficialIncomeAvg: 600,      // оценка неофициального дохода (v2)
   cardStressMonths: 24,          // срок для стресс-платежа по кредитке
   cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
+  cashLoanRate: 35,              // действующая ставка наличного/неофиц. кредита (%)
+  commissionCash: 3,             // разовая комиссия, наличный/неофиц. (%)
+  commissionConsumer: 1,         // разовая комиссия, прочие потреб. (%)
+  commissionMortgage: 0.5,       // разовая комиссия, ипотека (%)
   rateClampMin: 10.9,            // нижний зажим ставки
   rateClampMax: 32,              // верхний зажим ставки
   maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
@@ -82,6 +85,15 @@ function incomeForScoring(type: GelirNovu, entered: number): number {
 /* ─── Прожиточный минимум по типу дохода ─── */
 function subsistenceMin(type: GelirNovu): number {
   return type === "teqaud" ? CONFIG.subsistenceMinPensioner : CONFIG.subsistenceMinWorking;
+}
+
+/* ─── Разовая комиссия от суммы кредита (v2), НЕ входит в месячный платёж ─── */
+function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number) {
+  let pct: number;
+  if (kreditNovu === "naqd" || gelirNovu === "qeyri_resmi") pct = CONFIG.commissionCash;      // 3%
+  else if (kreditNovu === "ipoteka") pct = CONFIG.commissionMortgage;                          // 0.5%
+  else pct = CONFIG.commissionConsumer;                                                        // 1%
+  return { pct, amount: Math.round((pct / 100) * amount) };
 }
 
 /* ─── Ставка (two-pass): база по сроку + ступень BGN + эффект остатка, зажим ─── */
@@ -136,6 +148,9 @@ function calcBankScore(f: BankForm) {
   // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
   const income = incomeForScoring(f.gelirNovu, gelir);
 
+  // Разовая комиссия от суммы кредита (показывается в общей стоимости)
+  const commission = calcCommission(f.kreditNovu, f.gelirNovu, mebleg);
+
   // Стресс-платёж по существующей кредитке (лимит под ставку CONFIG на CONFIG месяцев)
   const kartAyliOdenis = annuityPayment(movcudKartLimit, CONFIG.cardStressMonths, CONFIG.cardStressRate);
 
@@ -146,13 +161,15 @@ function calcBankScore(f: BankForm) {
   let yeniOdenis: number;
   let bgn: number;
 
-  if (f.kreditNovu === "naqd" && !f.emanet) {
-    const est = estimateRate(mebleg, muddət, income, movcudNaqdOdenis, kartAyliOdenis, f.gelirNovu);
-    estimatedRate = est.estimatedRate;
-    yeniOdenis = est.yeniOdenis;
-    bgn = est.bgn;
-    remaining = est.remaining;
-    highRisk = est.highRisk;
+  // Наличный кредит и любой неофициальный доход → действующая ставка наличного (35%, плоская).
+  const useCashRate = (f.kreditNovu === "naqd" || f.gelirNovu === "qeyri_resmi") && !f.emanet;
+
+  if (useCashRate) {
+    estimatedRate = CONFIG.cashLoanRate;
+    yeniOdenis = annuityPayment(mebleg, muddət, CONFIG.cashLoanRate);
+    bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
+    remaining = income - (movcudNaqdOdenis + kartAyliOdenis + yeniOdenis);
+    highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
   } else {
     const faiz = parseFloat(f.faiz) || 24;
     yeniOdenis = annuityPayment(mebleg, muddət, faiz);
@@ -205,11 +222,11 @@ function calcBankScore(f: BankForm) {
 
   if (f.emanet) {
     const em = parseFloat(f.emanetMebleg) || 0;
-    return { score: em >= mebleg ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: true, emanetOk: em >= mebleg };
+    return { score: em >= mebleg ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, blocks: null, isEmanet: true, emanetOk: em >= mebleg };
   }
 
   if (stops.length > 0) {
-    return { score: 0, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, blocks: null, isEmanet: false, emanetOk: false };
+    return { score: 0, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, blocks: null, isEmanet: false, emanetOk: false };
   }
 
   // ── Блок BGN (35) — плоские ступени ──
@@ -248,13 +265,14 @@ function calcBankScore(f: BankForm) {
     bIncome = base + bonus;
   }
 
-  // ── Блок «Доступность» (15) — срок + сумма ──
-  const termPts = muddət <= 36 ? 7 : muddət <= 48 ? 4 : 1;
-  const amountPts =
-    mebleg <= 10000 ? 8 :
-    mebleg <= 20000 ? 6 :
-    mebleg <= 30000 ? 4 :
-    mebleg <= 40000 ? 2 : 1;
+  // ── Блок «Доступность» (15) — срок + сумма, ЗАВИСИТ ОТ ТИПА ДОХОДА ──
+  const unofficial = f.gelirNovu === "qeyri_resmi";
+  const termPts = unofficial
+    ? (muddət <= 36 ? 7 : 1)                               // неофиц.: длинные сроки — только повторным
+    : (muddət <= 36 ? 7 : muddət <= 48 ? 4 : 1);
+  const amountPts = unofficial
+    ? (mebleg <= 1000 ? 7 : mebleg <= 1500 ? 5 : mebleg <= 2500 ? 2 : 1)  // неофиц.: потолок доверия ниже
+    : (mebleg <= 10000 ? 8 : mebleg <= 20000 ? 6 : mebleg <= 30000 ? 4 : mebleg <= 40000 ? 2 : 1);
   const bAccess = termPts + amountPts;
 
   const rawBlockScore = bBgn + bHistory + bIncome + bAccess;
@@ -267,11 +285,14 @@ function calcBankScore(f: BankForm) {
   else if (cariGecikmeGun > 15) caps.push(59);
   if (kumulyativ6ay >= 90) caps.push(69);
   if (maks12ay >= 120) caps.push(69);
+  // Неофициальный доход: потолок доверия. Малая сумма/короткий срок → не выше 79;
+  // всё что больше → не выше 59 (высокий шанс не даём вообще).
+  if (unofficial) caps.push(mebleg <= 1000 && muddət <= 36 ? 79 : 59);
 
   const score = Math.min(rawBlockScore, ...caps);
 
   return {
-    score, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, isEmanet: false, emanetOk: false,
+    score, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, isEmanet: false, emanetOk: false,
     blocks: [
       { label: "Borc yükü (BGN)", score: bBgn, max: 35 },
       { label: "Kredit tarixçəsi", score: bHistory, max: 35 },
@@ -771,6 +792,12 @@ function KreditYoxlamaContent() {
                         ) : (
                           <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
                         )}
+                      </p>
+                    )}
+                    {bResult.commission && bResult.commission.amount > 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Birdəfəlik komissiya: <strong className="text-gray-700">{bResult.commission.amount.toLocaleString()} AZN</strong>
+                        <span className="text-gray-400"> ({bResult.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
                       </p>
                     )}
                     {bResult.estimatedRate != null && (
