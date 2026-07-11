@@ -15,7 +15,8 @@ interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
 export default function MortgagePage() {
-  const [propertyValue, setPropertyValue] = useState(100000);
+  const [propertyValueStr, setPropertyValueStr] = useState("");
+  const propertyValue = parseFloat(propertyValueStr) || 0;
   const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [months, setMonths] = useState(240);
   const [rate, setRate] = useState(12);
@@ -140,12 +141,16 @@ export default function MortgagePage() {
           <div className="lg:col-span-3 space-y-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
 
-              <SliderRow
-                label="Əmlakın dəyəri"
-                value={propertyValue} min={10000} max={2000000} step={1}
-                format={(v) => `₼ ${v.toLocaleString()}`}
-                onChange={setPropertyValue}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Əmlakın dəyəri</label>
+                <input
+                  type="number" min={0} value={propertyValueStr}
+                  onChange={(e) => setPropertyValueStr(e.target.value)}
+                  placeholder="Mənzil və ya evin dəyəri (AZN)"
+                  className="w-full px-4 py-3.5 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition"
+                />
+                {!propertyValueStr && <p className="text-sm text-red-500 mt-1.5">Əmlakın dəyəri daxil edilməyib.</p>}
+              </div>
               <SliderRow
                 label="İlkin ödəniş"
                 value={downPaymentPct} min={5} max={90} step={1}

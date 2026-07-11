@@ -15,7 +15,8 @@ interface OneTimePayment { id: number; month: number; amount: number; }
 interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
 export default function AutoLoanPage() {
-  const [carPrice, setCarPrice] = useState(30000);
+  const [carPriceStr, setCarPriceStr] = useState("");
+  const carPrice = parseFloat(carPriceStr) || 0;
   const [carType, setCarType] = useState("passenger");
   const [isNew, setIsNew] = useState("new");
   const [downPaymentPct, setDownPaymentPct] = useState(20);
@@ -185,12 +186,16 @@ export default function AutoLoanPage() {
               <div className="h-px bg-gray-100" />
 
               {/* Sliders */}
-              <SliderRow
-                label="Avtomobilin qiyməti"
-                value={carPrice} min={3000} max={200000} step={1000}
-                format={(v) => `₼ ${v.toLocaleString()}`}
-                onChange={setCarPrice}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Avtomobilin qiyməti</label>
+                <input
+                  type="number" min={0} value={carPriceStr}
+                  onChange={(e) => setCarPriceStr(e.target.value)}
+                  placeholder="Avtomobilin dəyəri (AZN)"
+                  className="w-full px-4 py-3.5 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition"
+                />
+                {!carPriceStr && <p className="text-sm text-red-500 mt-1.5">Avtomobilin dəyəri daxil edilməyib.</p>}
+              </div>
               <SliderRow
                 label="İlkin ödəniş"
                 value={downPaymentPct} min={10} max={90} step={5}
