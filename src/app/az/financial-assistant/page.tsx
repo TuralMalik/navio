@@ -8,6 +8,29 @@ import {
 } from "lucide-react";
 import { articles, type Article } from "@/lib/articles";
 
+/* Нормализация: нижний регистр + сведение азербайджанских диакритик к базовым буквам,
+   чтобы «gecikmə»/«gecikme», «maaş»/«maas», «ödəniş»/«odenis» находились одинаково. */
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/ə/g, "e").replace(/ı/g, "i").replace(/ş/g, "s")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ö/g, "o").replace(/ü/g, "u");
+}
+
+/* Частые синонимы/разговорные формы → термин из базы */
+const SYNONYMS: Record<string, string> = {
+  zarplata: "maas", zp: "maas", gelir: "maas",
+  otkaz: "imtina", red: "imtina",
+  prosrochka: "gecikme", dolg: "borc",
+  ipoteka: "ipoteka", mashin: "avto", masin: "avto",
+  skor: "kredit skoru", rejting: "kredit skoru", reyting: "kredit skoru",
+};
+
+function expandQuery(raw: string): string[] {
+  const words = normalize(raw).split(/\s+/).filter(Boolean);
+  return words.map((w) => SYNONYMS[w] ?? w);
+}
+
 const NAVY = "#0A1F44";
 const BLUE = "#2447F0";
 const BLUE_DARK = "#1B36BE";
@@ -120,7 +143,7 @@ function AssistantCTA() {
         <Sparkles size={12} /> Sizə özəl
       </span>
       <p className="relative text-[17px] font-extrabold leading-snug mb-2">Ümumi cavablar buradadır. Sizin dəqiq şansınız — kredit yoxlamasında.</p>
-      <p className="relative text-[13.5px] mb-4" style={{ color: "#B9C4E0" }}>3 dəqiqə, sənədsiz və pulsuz. Öz profilinizə əsasən nəticə alın.</p>
+      <p className="relative text-[13.5px] mb-4" style={{ color: "#B9C4E0" }}>3 dəqiqə, sorğusuz və pulsuz — kredit tarixçənizə təsir etmir. Öz profilinizə əsasən nəticə alın.</p>
       <Link href="/az/kredit-yoxlama"
         className="group relative inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
         style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.35)" }}>
@@ -139,20 +162,34 @@ export default function FinancialAssistantPage() {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   const isSearching = q !== "" || activeTopic !== null;
 
   const results = useMemo(() => {
     if (!isSearching) return [];
+    const terms = expandQuery(q); // слова запроса + синонимы, нормализованные
     return articles.filter((a) => {
       const matchTopic = activeTopic === null || a.category === activeTopic;
-      const matchQ = q === "" ||
-        a.title.toLowerCase().includes(q) ||
-        a.summary.toLowerCase().includes(q) ||
-        a.content.toLowerCase().includes(q);
-      return matchTopic && matchQ;
+      if (!matchTopic) return false;
+      if (terms.length === 0) return true;
+      const hay = normalize(`${a.title} ${a.summary} ${a.content} ${a.category}`);
+      // все слова запроса должны встретиться (ловит перестановки и частичные формулировки)
+      return terms.every((t) => hay.includes(t));
     });
   }, [q, activeTopic, isSearching]);
+
+  // Fallback при нуле результатов: ближайшие вопросы (хотя бы одно слово совпадает)
+  const suggestions = useMemo(() => {
+    if (results.length > 0) return [];
+    const terms = expandQuery(q);
+    if (terms.length === 0) return [];
+    return articles
+      .filter((a) => {
+        const hay = normalize(`${a.title} ${a.summary} ${a.content} ${a.category}`);
+        return terms.some((t) => t.length >= 3 && hay.includes(t));
+      })
+      .slice(0, 4);
+  }, [q, results.length]);
 
   const popular = useMemo(
     () => POPULAR_SLUGS.map((s) => articles.find((a) => a.slug === s)).filter(Boolean) as Article[],
@@ -171,10 +208,10 @@ export default function FinancialAssistantPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ background: WASH }}>
+    <main className="min-h-screen overflow-x-hidden" style={{ background: WASH }}>
       {/* ── Ask hero ── */}
       <div style={{ background: `radial-gradient(700px 300px at 80% -20%, ${BLUE_SOFT} 0%, transparent 60%), #fff`, borderBottom: `1px solid ${LINE}` }}>
-        <div className="max-w-[1120px] mx-auto px-6 pt-8 pb-10">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8 pb-10">
           <div className="flex items-center gap-2 text-sm mb-5" style={{ color: MUTED }}>
             <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
             <ChevronRight size={14} />
@@ -237,7 +274,7 @@ export default function FinancialAssistantPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-[1120px] mx-auto px-6 py-10">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
 
           {/* Main column */}
@@ -256,20 +293,36 @@ export default function FinancialAssistantPage() {
                 </div>
 
                 {results.length === 0 ? (
-                  /* No-results = конверсия */
-                  <div className="rounded-2xl bg-white p-8 text-center" style={{ border: `1px solid ${LINE}` }}>
-                    <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: BLUE_SOFT, color: BLUE }}>
-                      <Search size={24} />
+                  /* No-results — не тупик: ближайшие вопросы + конверсия */
+                  <div className="flex flex-col gap-5">
+                    {suggestions.length > 0 && (
+                      <div>
+                        <p className="text-[13px] font-semibold mb-2.5" style={{ color: MUTED }}>Bəlkə bunu axtarırsınız?</p>
+                        <div className="flex flex-col gap-2.5">
+                          {suggestions.map((a) => (
+                            <div key={a.slug} id={`q-${a.slug}`}>
+                              <AnswerRow a={a} open={openSlug === a.slug} onToggle={() => toggle(a.slug)} onJump={jumpTo} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="rounded-2xl bg-white p-8 text-center" style={{ border: `1px solid ${LINE}` }}>
+                      <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: BLUE_SOFT, color: BLUE }}>
+                        <Search size={24} />
+                      </div>
+                      <p className="text-[16px] font-bold mb-1" style={{ color: NAVY }}>
+                        {suggestions.length > 0 ? "Dəqiq cavab tapmadınız?" : "Bu suala hazır cavab tapılmadı"}
+                      </p>
+                      <p className="text-[14px] mb-5 max-w-sm mx-auto" style={{ color: MUTED }}>
+                        Ən dəqiq cavab ümumi məqalədə deyil — sizin öz kredit profilinizdədir.
+                      </p>
+                      <Link href="/az/kredit-yoxlama"
+                        className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
+                        style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
+                        Kredit şansımı yoxla <ArrowRight size={15} />
+                      </Link>
                     </div>
-                    <p className="text-[16px] font-bold mb-1" style={{ color: NAVY }}>Bu suala hazır cavab tapılmadı</p>
-                    <p className="text-[14px] mb-5 max-w-sm mx-auto" style={{ color: MUTED }}>
-                      Ən dəqiq cavab ümumi məqalədə deyil — sizin öz kredit profilinizdədir.
-                    </p>
-                    <Link href="/az/kredit-yoxlama"
-                      className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
-                      style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
-                      Kredit şansımı yoxla <ArrowRight size={15} />
-                    </Link>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2.5">
