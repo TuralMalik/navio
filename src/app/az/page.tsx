@@ -13,6 +13,9 @@ import {
   BarChart3,
   CheckCircle2,
   TrendingUp,
+  Clock,
+  ShieldCheck,
+  Wallet,
 } from "lucide-react";
 
 const faqs = [
@@ -106,7 +109,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-[19px] max-w-[460px] mb-9" style={{ color: MUTED }}>
-                Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı yoxlayın — sənədsiz, pulsuz, 3 dəqiqəyə.
+                Banka müraciət etmədən əvvəl kredit profilinizi öyrənin və imtina riskini azaldın — sadə, sürətli və ödənişsiz.
               </p>
 
               <div className="flex flex-wrap gap-3.5 mb-10">
@@ -131,16 +134,19 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Facts row */}
-              <div className="flex flex-wrap gap-y-4">
+              {/* Feature row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-6">
                 {[
-                  { b: "3 dəq", s: "Nəticə vaxtı" },
-                  { b: "Sənədsiz", s: "Rəsmi sorğu yoxdur" },
-                  { b: "Pulsuz", s: "Heç bir öhdəlik yoxdur" },
-                ].map((f, i) => (
-                  <div key={f.b} className="px-7 first:pl-0" style={{ borderLeft: i > 0 ? `1px solid ${LINE}` : "none" }}>
-                    <b className="block text-2xl font-extrabold" style={{ color: NAVY, letterSpacing: "-.01em" }}>{f.b}</b>
-                    <span className="text-[13.5px]" style={{ color: MUTED }}>{f.s}</span>
+                  { icon: <Clock size={20} />, title: "3 dəqiqəlik analiz", sub: "Sadə və sürətli yoxlama prosesi" },
+                  { icon: <ShieldCheck size={20} />, title: "Kredit tarixçəsinə təsir etmir", sub: "Rəsmi sorğu olmadan təxmini nəticə" },
+                  { icon: <Wallet size={20} />, title: "Ödənişsiz", sub: "Tamamilə ödənişsiz, gizli ödəniş yoxdur" },
+                ].map((f) => (
+                  <div key={f.title}>
+                    <span className="inline-flex w-10 h-10 rounded-xl items-center justify-center mb-3" style={{ background: BLUE_SOFT, color: BLUE }}>
+                      {f.icon}
+                    </span>
+                    <p className="text-[15px] font-bold leading-snug" style={{ color: NAVY }}>{f.title}</p>
+                    <p className="text-[13px] mt-1 leading-snug" style={{ color: MUTED }}>{f.sub}</p>
                   </div>
                 ))}
               </div>
