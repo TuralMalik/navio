@@ -3,230 +3,92 @@
 import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
-  ChevronRight, Search, ArrowRight, Plus, Sparkles, X,
-  FileText, Scale, Landmark, Clock, CreditCard, Coins, Package, Car, House, Wrench,
+  ChevronRight, ChevronDown, Search, ArrowRight, X,
+  CreditCard, TrendingUp, AlertTriangle, RefreshCw, House, Car, Lightbulb,
+  Mail, ShieldCheck, Zap, MessageCircleQuestion,
 } from "lucide-react";
-import { articles, type Article } from "@/lib/articles";
-
-/* Нормализация: нижний регистр + сведение азербайджанских диакритик к базовым буквам,
-   чтобы «gecikmə»/«gecikme», «maaş»/«maas», «ödəniş»/«odenis» находились одинаково. */
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ə/g, "e").replace(/ı/g, "i").replace(/ş/g, "s")
-    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ö/g, "o").replace(/ü/g, "u");
-}
-
-/* Частые синонимы/разговорные формы → термин из базы */
-const SYNONYMS: Record<string, string> = {
-  zarplata: "maas", zp: "maas", gelir: "maas",
-  otkaz: "imtina", red: "imtina",
-  prosrochka: "gecikme", dolg: "borc",
-  ipoteka: "ipoteka", mashin: "avto", masin: "avto",
-  skor: "kredit skoru", rejting: "kredit skoru", reyting: "kredit skoru",
-};
-
-function expandQuery(raw: string): string[] {
-  const words = normalize(raw).split(/\s+/).filter(Boolean);
-  return words.map((w) => SYNONYMS[w] ?? w);
-}
+import { categories, allQuestions } from "@/lib/knowledgeQA";
 
 const NAVY = "#0A1F44";
 const BLUE = "#2447F0";
 const BLUE_DARK = "#1B36BE";
 const BLUE_SOFT = "#EBEFFE";
-const MINT = "#0BB07B";
 const MUTED = "#5B6577";
 const LINE = "#E3E8F1";
 const WASH = "#F4F6FB";
 
-/* Темы с иконками (в порядке важности) */
-const TOPICS: { name: string; icon: React.ReactNode }[] = [
-  { name: "Bank tələbləri", icon: <Landmark size={18} /> },
-  { name: "Borc yükü", icon: <Scale size={18} /> },
-  { name: "Gecikmə", icon: <Clock size={18} /> },
-  { name: "Kredit tarixçəsi", icon: <FileText size={18} /> },
-  { name: "Kredit kartı", icon: <CreditCard size={18} /> },
-  { name: "Erkən ödəniş", icon: <Coins size={18} /> },
-  { name: "Kredit məhsulları", icon: <Package size={18} /> },
-  { name: "İpoteka", icon: <House size={18} /> },
-  { name: "Avtokredit", icon: <Car size={18} /> },
-];
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  "kredit-alma": <CreditCard size={22} />,
+  "kredit-tarixcesi": <TrendingUp size={22} />,
+  "gecikme-mehkeme": <AlertTriangle size={22} />,
+  "refinans": <RefreshCw size={22} />,
+  "ipoteka": <House size={22} />,
+  "avtokredit": <Car size={22} />,
+  "faydali-meslehetler": <Lightbulb size={22} />,
+};
 
-/* Самые частые вопросы перед кредитом (high-intent) */
-const POPULAR_SLUGS = [
-  "bank-niye-redd-ede-biler",
-  "kredit-ucun-minimum-maas",
-  "borc-yuku-nedir",
-  "gecikme-kredit-tarixcesine-tesiri",
-  "redd-sonra-ne-vaxt-yeniden-muraciet",
-  "kredit-tarixcesi-nedir",
-];
+const POPULAR_TAGS = ["Kredit şansı", "Kredit tarixçəsi", "Gecikmə", "İpoteka", "Refinans", "Avtokredit"];
 
-function countByCategory(cat: string) {
-  return articles.filter((a) => a.category === cat).length;
-}
-
-/* Один раскрывающийся ответ */
-function AnswerRow({
-  a, open, onToggle, onJump,
-}: {
-  a: Article; open: boolean; onToggle: () => void; onJump: (slug: string) => void;
-}) {
-  const related = useMemo(
-    () => articles.filter((x) => x.category === a.category && x.slug !== a.slug).slice(0, 3),
-    [a.slug, a.category],
-  );
-
-  return (
-    <div className="rounded-2xl bg-white transition-colors" style={{ border: `1px solid ${open ? BLUE : LINE}` }}>
-      <button onClick={onToggle} className="w-full flex items-center gap-4 text-left px-5 py-4">
-        <span className="flex-1">
-          <span className="block text-[15px] font-semibold leading-snug" style={{ color: NAVY }}>{a.title}</span>
-          {!open && <span className="block text-[13px] mt-0.5 leading-snug line-clamp-1" style={{ color: MUTED }}>{a.summary}</span>}
-        </span>
-        <span className="shrink-0 w-8 h-8 rounded-full grid place-items-center transition-all"
-          style={{ background: open ? BLUE : WASH, color: open ? "#fff" : MUTED, transform: open ? "rotate(45deg)" : "none" }}>
-          <Plus size={16} />
-        </span>
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 pt-1">
-          <p className="text-[14.5px] leading-relaxed" style={{ color: "#37414f" }}>{a.content}</p>
-
-          {a.warning && (
-            <div className="mt-3 flex items-start gap-2 rounded-xl px-3.5 py-2.5" style={{ background: "#FEF6E7", border: "1px solid #FADFA6" }}>
-              <span className="text-[13px] leading-relaxed" style={{ color: "#8A5A00" }}>⚠️ {a.warning}</span>
-            </div>
-          )}
-
-          {a.relatedTool && (
-            <Link href={a.relatedTool.href}
-              className="group mt-3 inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
-              style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}>
-              <Wrench size={15} /> {a.relatedTool.label}
-              <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          )}
-
-          {related.length > 0 && (
-            <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${LINE}` }}>
-              <p className="text-[11.5px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>Bununla bağlı</p>
-              <div className="flex flex-col gap-1.5">
-                {related.map((r) => (
-                  <button key={r.slug} onClick={() => onJump(r.slug)}
-                    className="group flex items-center justify-between gap-3 text-left text-[13.5px] font-medium rounded-lg px-3 py-2 transition-colors"
-                    style={{ background: WASH, color: NAVY }}>
-                    {r.title}
-                    <ArrowRight size={14} className="shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: BLUE }} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* Ассистент-CTA, ведущий в главный продукт */
-function AssistantCTA() {
-  return (
-    <div className="rounded-2xl p-6 text-white relative overflow-hidden" style={{ background: `linear-gradient(155deg, ${NAVY} 0%, #12306B 100%)` }}>
-      <div className="pointer-events-none absolute rounded-full" style={{ right: -50, top: -50, width: 180, height: 180, background: "radial-gradient(circle, rgba(36,71,240,.45), transparent 70%)" }} />
-      <span className="relative inline-flex items-center gap-1.5 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full mb-3"
-        style={{ color: "#C7D3FF", background: "rgba(255,255,255,.10)", border: "1px solid rgba(255,255,255,.16)", letterSpacing: ".1em" }}>
-        <Sparkles size={12} /> Sizə özəl
-      </span>
-      <p className="relative text-[17px] font-extrabold leading-snug mb-2">Ümumi cavablar buradadır. Sizin dəqiq şansınız — kredit yoxlamasında.</p>
-      <p className="relative text-[13.5px] mb-4" style={{ color: "#B9C4E0" }}>3 dəqiqə, sorğusuz və pulsuz — kredit tarixçənizə təsir etmir. Öz profilinizə əsasən nəticə alın.</p>
-      <Link href="/az/kredit-yoxlama"
-        className="group relative inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
-        style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.35)" }}>
-        Kredit şansımı yoxla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-      </Link>
-      <Link href="/az/calculators" className="relative block mt-3 text-[13px] font-semibold" style={{ color: "#8FB0FF" }}>
-        və ya ödənişi hesablayın →
-      </Link>
-    </div>
-  );
+function normalize(s: string): string {
+  return s.toLowerCase()
+    .replace(/ə/g, "e").replace(/ı/g, "i").replace(/ş/g, "s")
+    .replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ö/g, "o").replace(/ü/g, "u");
 }
 
 export default function FinancialAssistantPage() {
   const [query, setQuery] = useState("");
-  const [activeTopic, setActiveTopic] = useState<string | null>(null);
-  const [openSlug, setOpenSlug] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const q = query.trim();
-  const isSearching = q !== "" || activeTopic !== null;
+  const q = normalize(query.trim());
+  const isSearching = q.length > 0;
 
-  const results = useMemo(() => {
+  const searchResults = useMemo(() => {
     if (!isSearching) return [];
-    const terms = expandQuery(q); // слова запроса + синонимы, нормализованные
-    return articles.filter((a) => {
-      const matchTopic = activeTopic === null || a.category === activeTopic;
-      if (!matchTopic) return false;
-      if (terms.length === 0) return true;
-      const hay = normalize(`${a.title} ${a.summary} ${a.content} ${a.category}`);
-      // все слова запроса должны встретиться (ловит перестановки и частичные формулировки)
+    const terms = q.split(/\s+/).filter(Boolean);
+    return allQuestions.filter((item) => {
+      const hay = normalize(`${item.question} ${item.answer} ${item.category}`);
       return terms.every((t) => hay.includes(t));
     });
-  }, [q, activeTopic, isSearching]);
+  }, [q, isSearching]);
 
-  // Fallback при нуле результатов: ближайшие вопросы (хотя бы одно слово совпадает)
-  const suggestions = useMemo(() => {
-    if (results.length > 0) return [];
-    const terms = expandQuery(q);
-    if (terms.length === 0) return [];
-    return articles
-      .filter((a) => {
-        const hay = normalize(`${a.title} ${a.summary} ${a.content} ${a.category}`);
-        return terms.some((t) => t.length >= 3 && hay.includes(t));
-      })
-      .slice(0, 4);
-  }, [q, results.length]);
+  function runSearch(term: string) {
+    setQuery(term);
+    setOpenId(null);
+  }
 
-  const popular = useMemo(
-    () => POPULAR_SLUGS.map((s) => articles.find((a) => a.slug === s)).filter(Boolean) as Article[],
-    [],
-  );
-
-  function jumpTo(slug: string) {
-    setOpenSlug(slug);
+  function scrollToCategory(slug: string) {
+    setQuery("");
+    setOpenId(null);
     requestAnimationFrame(() => {
-      document.getElementById(`q-${slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      sectionRefs.current[slug]?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
-  function toggle(slug: string) {
-    setOpenSlug((cur) => (cur === slug ? null : slug));
+  function toggle(id: string) {
+    setOpenId((cur) => (cur === id ? null : id));
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden" style={{ background: WASH }}>
-      {/* ── Ask hero ── */}
-      <div style={{ background: `radial-gradient(700px 300px at 80% -20%, ${BLUE_SOFT} 0%, transparent 60%), #fff`, borderBottom: `1px solid ${LINE}` }}>
-        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8 pb-10">
-          <div className="flex items-center gap-2 text-sm mb-5" style={{ color: MUTED }}>
+    <main className="min-h-screen overflow-x-hidden bg-white">
+      {/* ── Hero ── */}
+      <section
+        className="relative overflow-hidden"
+        style={{ background: `radial-gradient(900px 420px at 85% -10%, ${BLUE_SOFT} 0%, transparent 60%), #FFFFFF` }}
+      >
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pt-8 pb-14">
+          <div className="flex items-center gap-2 text-sm mb-6" style={{ color: MUTED }}>
             <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
             <ChevronRight size={14} />
             <span style={{ color: NAVY }}>Maliyyə köməkçisi</span>
           </div>
 
-          <div className="max-w-[720px]">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>
-              <Sparkles size={13} /> Navio bilik bazası
-            </span>
-            <h1 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,4vw,40px)", letterSpacing: "-.02em", lineHeight: 1.1 }}>
-              Kredit haqqında nə soruşmaq istəyirsiniz?
+          <div className="max-w-[680px]">
+            <h1 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(30px,4.4vw,44px)", letterSpacing: "-.02em", lineHeight: 1.12 }}>
+              Sizə necə kömək edə bilərik?
             </h1>
-            <p className="text-[16px] mb-6" style={{ color: MUTED }}>
-              Konkret sualınızı yazın — cavabı dərhal burada açılır. Məqalə oxumağa ehtiyac yoxdur.
+            <p className="text-[17px] mb-7" style={{ color: MUTED }}>
+              Kreditlər, gecikmələr, ipoteka, avtokredit, refinans və kredit tarixçəsi haqqında sadə və aydın cavablar.
             </p>
 
             {/* Search */}
@@ -234,150 +96,214 @@ export default function FinancialAssistantPage() {
               <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: MUTED }} />
               <input
                 type="text"
-                autoFocus
-                placeholder="Məsələn: bank niyə imtina edir?"
+                placeholder="Məsələn: gecikmə, ipoteka, kredit tarixçəsi, refinans"
                 value={query}
-                onChange={(e) => { setQuery(e.target.value); setOpenSlug(null); }}
-                className="w-full pl-12 pr-11 py-4 text-[15px] rounded-2xl bg-white focus:outline-none transition"
+                onChange={(e) => { setQuery(e.target.value); setOpenId(null); }}
+                className="w-full pl-12 pr-28 py-4 text-[15px] rounded-2xl bg-white focus:outline-none transition"
                 style={{ border: `1.5px solid ${LINE}`, boxShadow: "0 8px 30px rgba(10,31,68,.06)" }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = BLUE)}
                 onBlur={(e) => (e.currentTarget.style.borderColor = LINE)}
               />
-              {query && (
-                <button onClick={() => { setQuery(""); setOpenSlug(null); }} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: MUTED }}>
+              {query ? (
+                <button
+                  onClick={() => { setQuery(""); setOpenId(null); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center transition-colors"
+                  style={{ color: MUTED }}
+                  aria-label="Təmizlə"
+                >
                   <X size={18} />
                 </button>
+              ) : (
+                <span className="hidden sm:grid absolute right-2.5 top-1/2 -translate-y-1/2 place-items-center px-4 h-10 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: BLUE }}>
+                  Axtar
+                </span>
               )}
             </div>
 
-            {/* Topic chips */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              <button onClick={() => { setActiveTopic(null); setOpenSlug(null); }}
-                className="px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all"
-                style={activeTopic === null && q === ""
-                  ? { background: NAVY, color: "#fff" }
-                  : { background: "#fff", color: MUTED, border: `1px solid ${LINE}` }}>
-                Hamısı
-              </button>
-              {TOPICS.slice(0, 6).map((t) => (
-                <button key={t.name} onClick={() => { setActiveTopic(t.name); setQuery(""); setOpenSlug(null); }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all"
-                  style={activeTopic === t.name
-                    ? { background: BLUE, color: "#fff" }
-                    : { background: "#fff", color: MUTED, border: `1px solid ${LINE}` }}>
-                  {t.name}
+            {/* Popular tags */}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              <span className="text-[13px] mr-1" style={{ color: MUTED }}>Populyar axtarışlar:</span>
+              {POPULAR_TAGS.map((t) => (
+                <button key={t} onClick={() => runSearch(t)}
+                  className="px-3 py-1.5 rounded-full text-[13px] font-medium bg-white transition-colors"
+                  style={{ border: `1px solid ${LINE}`, color: NAVY }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = BLUE)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
+                  {t}
                 </button>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── Body ── */}
-      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 items-start">
+      <div className="max-w-[1120px] mx-auto px-4 sm:px-6 pb-16">
 
-          {/* Main column */}
-          <div ref={listRef}>
-            {isSearching ? (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-[13px] font-semibold" style={{ color: MUTED }}>
-                    {activeTopic ? activeTopic : `"${query}"`} — {results.length} cavab
-                  </p>
-                  {activeTopic && (
-                    <button onClick={() => setActiveTopic(null)} className="text-[13px] font-semibold inline-flex items-center gap-1" style={{ color: BLUE }}>
-                      <X size={13} /> Filtri sıfırla
-                    </button>
-                  )}
+        {isSearching ? (
+          /* ── Search results ── */
+          <div className="pt-8">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[14px] font-semibold" style={{ color: MUTED }}>
+                &ldquo;{query}&rdquo; — {searchResults.length} nəticə
+              </p>
+              <button onClick={() => { setQuery(""); setOpenId(null); }} className="text-[13px] font-semibold inline-flex items-center gap-1" style={{ color: BLUE }}>
+                <X size={13} /> Axtarışı bağla
+              </button>
+            </div>
+
+            {searchResults.length === 0 ? (
+              <div className="rounded-2xl bg-white p-10 text-center" style={{ border: `1px solid ${LINE}` }}>
+                <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: BLUE_SOFT, color: BLUE }}>
+                  <MessageCircleQuestion size={26} />
                 </div>
-
-                {results.length === 0 ? (
-                  /* No-results — не тупик: ближайшие вопросы + конверсия */
-                  <div className="flex flex-col gap-5">
-                    {suggestions.length > 0 && (
-                      <div>
-                        <p className="text-[13px] font-semibold mb-2.5" style={{ color: MUTED }}>Bəlkə bunu axtarırsınız?</p>
-                        <div className="flex flex-col gap-2.5">
-                          {suggestions.map((a) => (
-                            <div key={a.slug} id={`q-${a.slug}`}>
-                              <AnswerRow a={a} open={openSlug === a.slug} onToggle={() => toggle(a.slug)} onJump={jumpTo} />
-                            </div>
-                          ))}
-                        </div>
+                <p className="text-[17px] font-bold mb-1" style={{ color: NAVY }}>Bu suala hazır cavab tapılmadı</p>
+                <p className="text-[14px] mb-5 max-w-sm mx-auto" style={{ color: MUTED }}>
+                  Sizin öz vəziyyətinizə uyğun dəqiq nəticə üçün kredit şansınızı yoxlaya bilərsiniz.
+                </p>
+                <Link href="/az/kredit-yoxlama"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
+                  style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
+                  Kredit şansımı yoxla <ArrowRight size={15} />
+                </Link>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-white overflow-hidden" style={{ border: `1px solid ${LINE}` }}>
+                {searchResults.map((item, i) => (
+                  <div key={item.id} style={{ borderTop: i > 0 ? `1px solid ${LINE}` : "none" }}>
+                    <button onClick={() => toggle(item.id)}
+                      className="w-full flex items-center gap-3 text-left px-5 py-4 transition-colors hover:bg-[#F8F9FC]">
+                      <span className="w-8 h-8 rounded-lg grid place-items-center shrink-0 text-[15px]" style={{ background: item.soft }}>
+                        {item.emoji}
+                      </span>
+                      <span className="flex-1">
+                        <span className="block text-[14.5px] font-semibold" style={{ color: NAVY }}>{item.question}</span>
+                        <span className="text-[12px]" style={{ color: MUTED }}>{item.category}</span>
+                      </span>
+                      <ChevronDown size={16} className="shrink-0 transition-transform" style={{ color: MUTED, transform: openId === item.id ? "rotate(180deg)" : "none" }} />
+                    </button>
+                    {openId === item.id && (
+                      <div className="px-5 pb-5 pl-16">
+                        <p className="text-[14px] leading-relaxed" style={{ color: "#37414f" }}>{item.answer}</p>
+                        {item.cta && (
+                          <Link href={item.cta.href}
+                            className="group mt-3 inline-flex items-center gap-1.5 text-[13.5px] font-semibold"
+                            style={{ color: BLUE }}>
+                            {item.cta.label} <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                          </Link>
+                        )}
                       </div>
                     )}
-                    <div className="rounded-2xl bg-white p-8 text-center" style={{ border: `1px solid ${LINE}` }}>
-                      <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: BLUE_SOFT, color: BLUE }}>
-                        <Search size={24} />
-                      </div>
-                      <p className="text-[16px] font-bold mb-1" style={{ color: NAVY }}>
-                        {suggestions.length > 0 ? "Dəqiq cavab tapmadınız?" : "Bu suala hazır cavab tapılmadı"}
-                      </p>
-                      <p className="text-[14px] mb-5 max-w-sm mx-auto" style={{ color: MUTED }}>
-                        Ən dəqiq cavab ümumi məqalədə deyil — sizin öz kredit profilinizdədir.
-                      </p>
-                      <Link href="/az/kredit-yoxlama"
-                        className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
-                        style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
-                        Kredit şansımı yoxla <ArrowRight size={15} />
-                      </Link>
-                    </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    {results.map((a) => (
-                      <div key={a.slug} id={`q-${a.slug}`}>
-                        <AnswerRow a={a} open={openSlug === a.slug} onToggle={() => toggle(a.slug)} onJump={jumpTo} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              /* Empty state — веди за руку */
-              <>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-7 h-7 rounded-lg grid place-items-center" style={{ background: BLUE_SOFT, color: BLUE }}><Sparkles size={15} /></span>
-                  <h2 className="text-[17px] font-bold" style={{ color: NAVY }}>Ən çox soruşulanlar</h2>
-                </div>
-                <div className="flex flex-col gap-2.5 mb-10">
-                  {popular.map((a) => (
-                    <div key={a.slug} id={`q-${a.slug}`}>
-                      <AnswerRow a={a} open={openSlug === a.slug} onToggle={() => toggle(a.slug)} onJump={jumpTo} />
-                    </div>
-                  ))}
-                </div>
-
-                <h2 className="text-[17px] font-bold mb-4" style={{ color: NAVY }}>Mövzu üzrə axtarın</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {TOPICS.map((t) => (
-                    <button key={t.name} onClick={() => { setActiveTopic(t.name); setOpenSlug(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                      className="group text-left rounded-2xl bg-white p-4 transition-all"
-                      style={{ border: `1px solid ${LINE}` }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = BLUE; e.currentTarget.style.boxShadow = "0 8px 24px rgba(10,31,68,.08)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; }}>
-                      <span className="w-10 h-10 rounded-xl grid place-items-center mb-3" style={{ background: BLUE_SOFT, color: BLUE }}>{t.icon}</span>
-                      <p className="text-[14px] font-bold leading-snug" style={{ color: NAVY }}>{t.name}</p>
-                      <p className="text-[12px] mt-0.5" style={{ color: MUTED }}>{countByCategory(t.name)} sual</p>
-                    </button>
-                  ))}
-                </div>
-              </>
+                ))}
+              </div>
             )}
+          </div>
+        ) : (
+          <>
+            {/* ── Category cards ── */}
+            <div className="pt-10 pb-2">
+              <h2 className="text-[15px] font-bold uppercase tracking-wide mb-4" style={{ color: MUTED }}>Mövzu seçin</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {categories.map((c) => (
+                  <button key={c.slug} onClick={() => scrollToCategory(c.slug)}
+                    className="group text-left rounded-2xl bg-white p-4 sm:p-5 transition-all"
+                    style={{ border: `1px solid ${LINE}` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = c.color; e.currentTarget.style.boxShadow = "0 10px 28px rgba(10,31,68,.08)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}>
+                    <span className="w-11 h-11 rounded-xl grid place-items-center mb-3" style={{ background: c.soft, color: c.color }}>
+                      {CATEGORY_ICONS[c.slug]}
+                    </span>
+                    <p className="text-[14.5px] font-bold leading-snug" style={{ color: NAVY }}>{c.name}</p>
+                    <p className="text-[12px] mt-0.5" style={{ color: MUTED }}>{c.items.length} sual</p>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {/* Mobile CTA */}
-            <div className="lg:hidden mt-8">
-              <AssistantCTA />
+            {/* ── Question groups ── */}
+            <div className="pt-8 flex flex-col gap-6">
+              <h2 className="text-[15px] font-bold uppercase tracking-wide" style={{ color: MUTED }}>Suallar</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {categories.map((c) => (
+                  <div key={c.slug}
+                    ref={(el) => { sectionRefs.current[c.slug] = el; }}
+                    className="rounded-2xl bg-white overflow-hidden scroll-mt-24"
+                    style={{ border: `1px solid ${LINE}` }}
+                  >
+                    <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: `1px solid ${LINE}` }}>
+                      <span className="w-9 h-9 rounded-lg grid place-items-center" style={{ background: c.soft, color: c.color }}>
+                        {CATEGORY_ICONS[c.slug]}
+                      </span>
+                      <h3 className="text-[16px] font-bold" style={{ color: NAVY }}>{c.name}</h3>
+                    </div>
+                    <div>
+                      {c.items.map((item, i) => {
+                        const uid = `${c.slug}-${item.id}`;
+                        const open = openId === uid;
+                        return (
+                          <div key={item.id} style={{ borderTop: i > 0 ? `1px solid ${LINE}` : "none" }}>
+                            <button onClick={() => toggle(uid)}
+                              className="w-full flex items-center gap-3 text-left px-5 py-3.5 transition-colors hover:bg-[#F8F9FC]">
+                              <span className="flex-1 text-[14px] font-medium leading-snug" style={{ color: NAVY }}>{item.question}</span>
+                              <ChevronDown size={16} className="shrink-0 transition-transform" style={{ color: MUTED, transform: open ? "rotate(180deg)" : "none" }} />
+                            </button>
+                            {open && (
+                              <div className="px-5 pb-4">
+                                <p className="text-[13.5px] leading-relaxed" style={{ color: "#37414f" }}>{item.answer}</p>
+                                {item.cta && (
+                                  <Link href={item.cta.href}
+                                    className="group mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold"
+                                    style={{ color: c.color }}>
+                                    {item.cta.label} <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                                  </Link>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Bottom CTA ── */}
+        <div className="mt-14 rounded-[24px] p-7 sm:p-9 relative overflow-hidden"
+          style={{ background: `linear-gradient(155deg, ${NAVY} 0%, #12306B 100%)` }}>
+          <div className="pointer-events-none absolute rounded-full" style={{ right: -60, top: -60, width: 220, height: 220, background: "radial-gradient(circle, rgba(36,71,240,.45), transparent 70%)" }} />
+          <div className="relative grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <h3 className="text-[20px] sm:text-[22px] font-extrabold text-white mb-1.5">Cavabınızı tapa bilmədiniz?</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: "#B9C4E0" }}>Sualınızı yazın, biz sizə kömək edək.</p>
+              <a href="mailto:info@navio.az"
+                className="group inline-flex items-center gap-2 px-6 py-3 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
+                style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.35)" }}>
+                <Mail size={16} /> Bizə yazın
+              </a>
+            </div>
+            <div className="flex flex-wrap gap-x-7 gap-y-3">
+              {[
+                { icon: <Zap size={16} />, label: "Pulsuz" },
+                { icon: <MessageCircleQuestion size={16} />, label: "Sadə izah" },
+                { icon: <ShieldCheck size={16} />, label: "Tez cavab" },
+              ].map((t) => (
+                <div key={t.label} className="flex items-center gap-2 text-[13.5px] font-semibold text-white/90">
+                  <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "rgba(255,255,255,.10)" }}>{t.icon}</span>
+                  {t.label}
+                </div>
+              ))}
             </div>
           </div>
-
-          {/* Sticky assistant rail (desktop) */}
-          <aside className="hidden lg:block sticky top-24">
-            <AssistantCTA />
-          </aside>
-
         </div>
+
+        {/* Disclaimer */}
+        <p className="text-[12px] mt-6 text-center" style={{ color: MUTED }}>
+          Məlumatlar maarifləndirici xarakter daşıyır və hüquqi məsləhət deyil.
+        </p>
       </div>
     </main>
   );
