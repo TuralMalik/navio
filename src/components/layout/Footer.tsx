@@ -41,7 +41,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-xs text-gray-500">© 2025 Navio. Bütün hüquqlar qorunur.</p>
+          <p className="text-xs text-gray-500">© {new Date().getFullYear()} Navio. Bütün hüquqlar qorunur.</p>
           <p className="text-xs text-gray-500">
             Bu platforma yalnız məlumat xarakteri daşıyır.
           </p>

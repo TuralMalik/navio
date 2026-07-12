@@ -113,15 +113,16 @@ function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths: number
 
 /* ─── Bank scoring ─── */
 function calcBankScore(f: BankForm) {
-  const mebleg = parseFloat(f.mebleg) || 0;
-  const muddət = parseInt(f.muddət) || 0;
-  const gelir = parseFloat(f.gelir) || 0;
-  const yas = parseInt(f.yas) || 0;
-  const movcudNaqdOdenis = parseFloat(f.movcudNaqdOdenis) || 0;
-  const movcudKartLimit = parseFloat(f.movcudKartLimit) || 0;
-  const cariGecikmeGun = parseInt(f.cariGecikmeGun) || 0;   // текущая активная просрочка
-  const kumulyativ6ay = parseInt(f.kumulyativ6ay) || 0;    // суммарная просрочка за 6 мес
-  const maks12ay = parseInt(f.maks12ay) || 0;              // макс. единичная просрочка за 12 мес
+  const nn = (v: string) => Math.max(0, parseFloat(v) || 0); // отрицательные → 0
+  const mebleg = nn(f.mebleg);
+  const muddət = Math.max(0, parseInt(f.muddət) || 0);
+  const gelir = nn(f.gelir);
+  const yas = Math.max(0, parseInt(f.yas) || 0);
+  const movcudNaqdOdenis = nn(f.movcudNaqdOdenis);
+  const movcudKartLimit = nn(f.movcudKartLimit);
+  const cariGecikmeGun = Math.max(0, parseInt(f.cariGecikmeGun) || 0);   // текущая активная просрочка
+  const kumulyativ6ay = Math.max(0, parseInt(f.kumulyativ6ay) || 0);    // суммарная просрочка за 6 мес
+  const maks12ay = Math.max(0, parseInt(f.maks12ay) || 0);              // макс. единичная просрочка за 12 мес
 
   // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
   const income = incomeForScoring(f.gelirNovu, gelir);
@@ -147,6 +148,15 @@ function calcBankScore(f: BankForm) {
       bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
       commission: { pct: 0, amount: 0, unavailable: true },
       blocks: null, isEmanet: false, emanetOk: false,
+    };
+  }
+
+  // Пустой или нулевой доход — расчёт невозможен, просим заполнить (вместо «BGN 999%»)
+  if (!f.emanet && gelir <= 0) {
+    return {
+      score: 0, stops: ["Aylıq gəliri daxil edin — nəticə üçün gəlir məlumatı tələb olunur"], warnings: [],
+      bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
+      commission, blocks: null, isEmanet: false, emanetOk: false,
     };
   }
 
@@ -443,7 +453,7 @@ const sectionTitle = "text-xs font-bold text-gray-400 uppercase tracking-wider m
 function KreditYoxlamaContent() {
   const searchParams = useSearchParams();
   const initNov = (searchParams.get("nov") as KreditNovu) || "naqd";
-  const initMebleq = searchParams.get("mebleq") || "";
+  const initMebleq = searchParams.get("mebleq") || "500";
   const initMuddet = searchParams.get("muddet") || "24";
   const initFaiz = searchParams.get("faiz") || "24";
 
@@ -459,7 +469,7 @@ function KreditYoxlamaContent() {
     gelirNovu: "resmi",
     gelir: "",
     isStaji: "12_plus",
-    yas: "",
+    yas: "30",
     movcudNaqdOdenis: "0",
     movcudKartLimit: "0",
     cariGecikmeGun: "0",
@@ -528,7 +538,7 @@ function KreditYoxlamaContent() {
                 <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
                   <input type="checkbox" checked={bank.emanet} onChange={e => setBank(b => ({ ...b, emanet: e.target.checked }))}
                     className="mt-0.5 accent-blue-600 w-4 h-4" />
-                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu giov kimi istifadə etmək istəyirəm</span>
+                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
                 </label>
 
                 {bank.emanet && (
@@ -676,7 +686,7 @@ function KreditYoxlamaContent() {
                 <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
                   <input type="checkbox" checked={bokt.emanet} onChange={e => setBokt(n => ({ ...n, emanet: e.target.checked }))}
                     className="mt-0.5 accent-blue-600 w-4 h-4" />
-                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu giov kimi istifadə etmək istəyirəm</span>
+                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
                 </label>
 
                 {bokt.emanet && (
