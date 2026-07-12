@@ -1,34 +1,25 @@
+/* Единственная реализация аннуитетной формулы в проекте.
+   Скоринг и все калькуляторы используют её. */
 export function calcAnnuityPayment(
   principal: number,
   annualRate: number,
   months: number
 ): number {
-  if (annualRate === 0) return principal / months;
+  if (months <= 0 || principal <= 0) return 0;
+  if (annualRate <= 0) return principal / months;
   const r = annualRate / 100 / 12;
   return (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
 }
 
-export function buildAmortizationSchedule(
-  principal: number,
-  annualRate: number,
-  months: number
-): Array<{ month: number; payment: number; principal: number; interest: number; balance: number }> {
-  const r = annualRate / 100 / 12;
-  const payment = calcAnnuityPayment(principal, annualRate, months);
-  const schedule = [];
-  let balance = principal;
-
-  for (let i = 1; i <= months; i++) {
-    const interest = balance * r;
-    const principalPart = payment - interest;
-    balance = Math.max(0, balance - principalPart);
-    schedule.push({
-      month: i,
-      payment: Math.round(payment * 100) / 100,
-      principal: Math.round(principalPart * 100) / 100,
-      interest: Math.round(interest * 100) / 100,
-      balance: Math.round(balance * 100) / 100,
-    });
+/* Подбор месячной ставки (IRR) бинарным поиском:
+   при каком r приведённая стоимость аннуитета payment×months равна netPrincipal.
+   Используется калькуляторами для EAR / FİFD. */
+export function solveMonthlyIRR(payment: number, months: number, netPrincipal: number): number {
+  let lo = 0, hi = 10;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    const pv = mid === 0 ? payment * months : (payment * (1 - Math.pow(1 + mid, -months))) / mid;
+    if (pv > netPrincipal) lo = mid; else hi = mid;
   }
-  return schedule;
+  return (lo + hi) / 2;
 }

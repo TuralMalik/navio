@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
-import { calcAnnuityPayment } from "@/lib/calculators/annuity";
+import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
@@ -123,13 +123,8 @@ export default function AutoLoanPage() {
     if (!loanAmount || !months) return null;
     const netPrincipal = loanAmount - commission;
     if (netPrincipal <= 0) return (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100;
-    let lo = 0, hi = 10;
-    for (let i = 0; i < 60; i++) {
-      const mid = (lo + hi) / 2;
-      const pv = mid === 0 ? baseMonthly * months : baseMonthly * (1 - Math.pow(1 + mid, -months)) / mid;
-      if (pv > netPrincipal) lo = mid; else hi = mid;
-    }
-    return (Math.pow(1 + (lo + hi) / 2, 12) - 1) * 100;
+    const irr = solveMonthlyIRR(baseMonthly, months, netPrincipal);
+    return (Math.pow(1 + irr, 12) - 1) * 100;
   }, [loanAmount, months, baseMonthly, commission, rate]);
 
   const carTypes = [
@@ -142,7 +137,7 @@ export default function AutoLoanPage() {
     <main className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
             <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
             <ChevronRight size={14} />
             <Link href="/az/calculators" className="hover:text-blue-600">Kalkulyatorlar</Link>
@@ -233,15 +228,15 @@ export default function AutoLoanPage() {
               <div className={`flex items-center justify-between ${showExtra ? "mb-5" : ""}`}>
                 <div>
                   <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => setShowExtra(false)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showExtra ? "bg-gray-200 text-gray-800" : "text-gray-400 hover:text-gray-600"}`}>
+                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showExtra ? "bg-gray-200 text-gray-800" : "text-gray-500 hover:text-gray-600"}`}>
                     Xeyr
                   </button>
                   <button onClick={() => setShowExtra(true)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showExtra ? "bg-blue-600 text-white" : "text-gray-400 hover:text-gray-600"}`}>
+                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showExtra ? "bg-blue-600 text-white" : "text-gray-500 hover:text-gray-600"}`}>
                     Bəli
                   </button>
                 </div>
@@ -335,7 +330,7 @@ export default function AutoLoanPage() {
                           }`}>
                           <span className="text-lg">{icon}</span>
                           <span className="text-center leading-tight">{label}</span>
-                          <span className="text-xs font-normal text-gray-400">{note}</span>
+                          <span className="text-xs font-normal text-gray-500">{note}</span>
                         </button>
                       ))}
                     </div>
@@ -351,13 +346,13 @@ export default function AutoLoanPage() {
               {/* Result card — dark navy */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 {/* Top accent bar */}
-                <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #1e40af, #3b82f6)" }} />
+                <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #2447F0, #4a66f3)" }} />
 
                 <div className="p-6">
-                  <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
                   <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(baseMonthly)}</p>
                   {commissionPct > 0 && (
-                    <p className="text-xs text-gray-400 mb-4">+ ₼ {formatNumber(Math.round((commissionPct / 100) * loanAmount))} komissiya (birdəfəlik)</p>
+                    <p className="text-xs text-gray-500 mb-4">+ ₼ {formatNumber(Math.round((commissionPct / 100) * loanAmount))} komissiya (birdəfəlik)</p>
                   )}
                   {commissionPct === 0 && <div className="mb-4" />}
 
@@ -370,7 +365,7 @@ export default function AutoLoanPage() {
                       { label: "Toplam faiz", value: formatCurrency(baseMonthly * months - loanAmount) },
                     ].map((m) => (
                       <div key={m.label} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                        <p className="text-xs text-gray-400 mb-0.5">{m.label}</p>
+                        <p className="text-xs text-gray-500 mb-0.5">{m.label}</p>
                         <p className="text-sm font-bold text-gray-900">{m.value}</p>
                       </div>
                     ))}
@@ -386,7 +381,7 @@ export default function AutoLoanPage() {
 
                   <Link href={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=avto`}
                     className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
-                    style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}>
+                    style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}>
                     Kredit yoxlamasına keç →
                   </Link>
                 </div>
@@ -409,35 +404,35 @@ export default function AutoLoanPage() {
               {extraResult && (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-400 mb-1">Toplam faiz</p>
+                        <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
                         <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalInterest)}</p>
                       </div>
                       <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-400 mb-1">Ümumi ödəniş</p>
+                        <p className="text-xs text-gray-500 mb-1">Ümumi ödəniş</p>
                         <p className="text-sm font-bold text-emerald-700">{formatCurrency(baseMonthly * months - extraResult.savings)}</p>
                       </div>
                       <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-400 mb-1">Müddət</p>
+                        <p className="text-xs text-gray-500 mb-1">Müddət</p>
                         <p className="text-sm font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Fərq</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fərq</p>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-400 mb-1">Faiz qənaəti</p>
+                        <p className="text-xs text-gray-500 mb-1">Faiz qənaəti</p>
                         <p className="text-sm font-bold text-blue-700">−{formatCurrency((baseMonthly * months - loanAmount) - extraResult.totalInterest)}</p>
                       </div>
                       <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-400 mb-1">Ümumi qənaət</p>
+                        <p className="text-xs text-gray-500 mb-1">Ümumi qənaət</p>
                         <p className="text-sm font-bold text-blue-700">−{formatCurrency(extraResult.savings)}</p>
                       </div>
                       <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-400 mb-1">Müddət azalması</p>
+                        <p className="text-xs text-gray-500 mb-1">Müddət azalması</p>
                         <p className="text-sm font-bold text-blue-700">−{months - extraResult.finalMonths} ay</p>
                       </div>
                     </div>
@@ -463,7 +458,7 @@ export default function AutoLoanPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-400 border-b border-gray-100">
+                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
                     <th className="pb-3 pr-4 font-medium">Ay</th>
                     <th className="pb-3 pr-4 font-medium">Aylıq ödəniş</th>
                     {hasExtra && <th className="pb-3 pr-4 font-medium">Əlavə ödəniş</th>}
@@ -488,7 +483,7 @@ export default function AutoLoanPage() {
             </div>
             {schedule.length > 10 && (
               <button onClick={() => setShowAllRows(!showAllRows)}
-                className="mt-4 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
+                className="mt-4 flex items-center gap-2 py-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
                 <ChevronDown size={16} className={`transition-transform ${showAllRows ? "rotate-180" : ""}`} />
                 {showAllRows ? "Yığ" : `Bütün cədvəli göstər (${schedule.length} ay)`}
               </button>

@@ -5,368 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, CheckCircle, Info, ArrowRight, Building2, Landmark } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
+import { track } from "@vercel/analytics";
+import {
+  type Mode, type GelirNovu, type KreditNovu, type IsStaji, type BaglanmisTecrube,
+  type BankForm, type BoktForm,
+  calcBankScore, calcBoktScore, explainResult,
+} from "@/lib/scoring";
 
-/* ─── Types ─── */
-type Mode = "bank" | "bokt";
-type GelirNovu = "resmi" | "xarici" | "fs" | "teqaud" | "qeyri_resmi";
-type KreditNovu = "naqd" | "kart" | "ipoteka" | "avto";
-type IsStaji = "0_3" | "4_5" | "6_12" | "12_plus";
-type BaglanmisTecrube = "var" | "yoxdur" | "tecrube_yox";
-
-interface BankForm {
-  kreditNovu: KreditNovu;
-  mebleg: string;
-  muddət: string;
-  faiz: string;
-  gelirNovu: GelirNovu;
-  gelir: string;
-  isStaji: IsStaji;
-  yas: string;
-  movcudNaqdOdenis: string;
-  movcudKartLimit: string;
-  cariGecikmeGun: string;      // текущая активная просрочка, дней
-  kumulyativ6ay: string;       // суммарная просрочка за 6 мес, дней
-  maks12ay: string;            // максимальная единичная просрочка за 12 мес, дней
-  baglanmisTecrube: BaglanmisTecrube;
-  emanet: boolean;
-  emanetMebleg: string;
-}
-
-interface BoktForm {
-  mebleg: string;
-  gelir: string;
-  kreditTarixce: "yox" | "gecikme";
-  emanet: boolean;
-  emanetMebleg: string;
-}
-
-/* ─── Scoring config — значения обновляются со временем (ежегодно) ─── */
-const CONFIG = {
-  subsistenceMinWorking: 317,    // прожиточный минимум, трудоспособные (2026)
-  subsistenceMinPensioner: 245,  // прожиточный минимум, пенсионеры (2026)
-  unofficialIncomeAvg: 600,      // оценка неофициального дохода (v2)
-  cardStressMonths: 24,          // срок для стресс-платежа по кредитке
-  cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
-  // Ставки наличного кредита
-  cashRateUnofficial: 35,        // плоская ставка, НЕОФИЦИАЛЬНЫЙ наличный, всегда
-  cashRateOfficialBase: 10.9,    // база ОФИЦИАЛЬНОГО наличного (лучший случай)
-  cashRateOfficialMax: 29,       // потолок официального наличного (худший случай)
-  bgnRateSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
-  termRateSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
-  // Разовые комиссии (%) — матрица доход × тип кредита; null = тип кредита недоступен
-  commissions: {
-    official:   { cash: 1, card: 0, mortgage: 0.5, auto: 0.5 },
-    unofficial: { cash: 3, card: 3, mortgage: null, auto: null },
-  } as Record<"official" | "unofficial", Record<"cash" | "card" | "mortgage" | "auto", number | null>>,
-  maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
-  maxAgeAtEnd: 73,               // макс. возраст на конец срока
-  maxCardLineToIncomeRatio: 5,   // лимит по кредитным линиям: 5× дохода
-};
-
-/* ─── Annuity formula ─── */
-function annuityPayment(principal: number, months: number, annualRate: number): number {
-  if (months <= 0 || principal <= 0 || annualRate <= 0) return principal / Math.max(months, 1);
-  const r = annualRate / 100 / 12;
-  return (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
-}
-
-/* ─── Доход для скоринга: неофициальный доход зажимается потолком ─── */
-function incomeForScoring(type: GelirNovu, entered: number): number {
-  if (type === "qeyri_resmi") return Math.min(entered, CONFIG.unofficialIncomeAvg);
-  return entered;
-}
-
-/* ─── Прожиточный минимум по типу дохода ─── */
-function subsistenceMin(type: GelirNovu): number {
-  return type === "teqaud" ? CONFIG.subsistenceMinPensioner : CONFIG.subsistenceMinWorking;
-}
-
-/* ─── Разовая комиссия от суммы кредита — матрица доход × тип, НЕ входит в месячный платёж ───
-   null = тип кредита недоступен для этого дохода (гейт срабатывает раньше расчёта). */
-function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number) {
-  const row = CONFIG.commissions[gelirNovu === "qeyri_resmi" ? "unofficial" : "official"];
-  const key = kreditNovu === "naqd" ? "cash" : kreditNovu === "kart" ? "card" : kreditNovu === "ipoteka" ? "mortgage" : "auto";
-  const pct = row[key];
-  if (pct === null) return { pct: 0, amount: 0, unavailable: true };
-  return { pct, amount: Math.round((pct / 100) * amount), unavailable: false };
-}
-
-/* ─── Ставка наличного кредита по сегментам ───
-   Неофициальный доход → плоские 35%.
-   Официальный → плавающая: база 10.9 + надбавкаBGN (главный драйвер) + надбавкаСрок, зажим 10.9–29.
-   Эффект остатка: если денег на руках < прожминимума — надбавкаBGN не ниже уровня «45–60%» (+mid). */
-function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths: number, residual: number): number {
-  if (incomeType === "qeyri_resmi") return CONFIG.cashRateUnofficial; // 35, плоская
-
-  const s = CONFIG.bgnRateSurcharge;
-  let bgnAdd = bgn < 45 ? s.low : bgn < 60 ? s.mid : s.high;
-
-  // Эффект остатка: мало денег на руках → не ниже среднего уровня BGN
-  if (residual < subsistenceMin(incomeType)) bgnAdd = Math.max(bgnAdd, s.mid);
-
-  const t = CONFIG.termRateSurcharge;
-  const termAdd = termMonths <= 12 ? t.m12 : termMonths <= 24 ? t.m24
-    : termMonths <= 36 ? t.m36 : termMonths <= 48 ? t.m48 : t.m59;
-
-  const rate = CONFIG.cashRateOfficialBase + bgnAdd + termAdd;
-  return Math.min(CONFIG.cashRateOfficialMax, Math.max(CONFIG.cashRateOfficialBase, rate));
-}
-
-/* ─── Bank scoring ─── */
-function calcBankScore(f: BankForm) {
-  const nn = (v: string) => Math.max(0, parseFloat(v) || 0); // отрицательные → 0
-  const mebleg = nn(f.mebleg);
-  const muddət = Math.max(0, parseInt(f.muddət) || 0);
-  const gelir = nn(f.gelir);
-  const yas = Math.max(0, parseInt(f.yas) || 0);
-  const movcudNaqdOdenis = nn(f.movcudNaqdOdenis);
-  const movcudKartLimit = nn(f.movcudKartLimit);
-  const cariGecikmeGun = Math.max(0, parseInt(f.cariGecikmeGun) || 0);   // текущая активная просрочка
-  const kumulyativ6ay = Math.max(0, parseInt(f.kumulyativ6ay) || 0);    // суммарная просрочка за 6 мес
-  const maks12ay = Math.max(0, parseInt(f.maks12ay) || 0);              // макс. единичная просрочка за 12 мес
-
-  // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
-  const income = incomeForScoring(f.gelirNovu, gelir);
-
-  // Разовая комиссия от суммы кредита (показывается в общей стоимости)
-  const commission = calcCommission(f.kreditNovu, f.gelirNovu, mebleg);
-
-  // Стресс-платёж по существующей кредитке (лимит под ставку CONFIG на CONFIG месяцев)
-  const kartAyliOdenis = annuityPayment(movcudKartLimit, CONFIG.cardStressMonths, CONFIG.cardStressRate);
-
-  let estimatedRate: number | null = null;
-  let remaining: number | null = null;
-  let highRisk = false;
-
-  let yeniOdenis: number;
-  let bgn: number;
-
-  // ── ШАГ 1: гейт доступности типа кредита (до любых расчётов) ──
-  // Для неофициального дохода ипотека и автокредит не выдаются.
-  if (f.gelirNovu === "qeyri_resmi" && (f.kreditNovu === "ipoteka" || f.kreditNovu === "avto") && !f.emanet) {
-    return {
-      score: 0, stops: ["Bu kredit növü rəsmi gəlir tələb edir"], warnings: [],
-      bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
-      commission: { pct: 0, amount: 0, unavailable: true },
-      blocks: null, isEmanet: false, emanetOk: false,
-    };
-  }
-
-  // Пустой или нулевой доход — расчёт невозможен, просим заполнить (вместо «BGN 999%»)
-  if (!f.emanet && gelir <= 0) {
-    return {
-      score: 0, stops: ["Aylıq gəliri daxil edin — nəticə üçün gəlir məlumatı tələb olunur"], warnings: [],
-      bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
-      commission, blocks: null, isEmanet: false, emanetOk: false,
-    };
-  }
-
-  // Наличный кредит → сегментная ставка (неофиц. 35% плоско / офиц. плавающая).
-  // Карта/ипотека/авто — ставка вводится пользователем вручную.
-  const useCashRate = f.kreditNovu === "naqd" && !f.emanet;
-
-  if (useCashRate) {
-    // Платёж/BGN/остаток зависят от ставки, а ставка — от BGN/остатка → два прохода.
-    const calc = (rate: number) => {
-      const pmt = annuityPayment(mebleg, muddət, rate);
-      const total = movcudNaqdOdenis + kartAyliOdenis + pmt;
-      return { pmt, bgn: income > 0 ? (total / income) * 100 : 999, rem: income - total };
-    };
-    // Проход 1 — при базовой ставке определяем BGN и остаток
-    const p1 = calc(CONFIG.cashRateOfficialBase);
-    estimatedRate = estimateCashRate(f.gelirNovu, p1.bgn, muddət, p1.rem);
-    // Проход 2 — пересчёт платежа по итоговой ставке (для отображения BGN/остатка)
-    const p2 = calc(estimatedRate);
-    yeniOdenis = p2.pmt;
-    bgn = p2.bgn;
-    remaining = p2.rem;
-    highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
-  } else {
-    const faiz = parseFloat(f.faiz) || 24;
-    yeniOdenis = annuityPayment(mebleg, muddət, faiz);
-    // BGN с учётом нового кредита; знаменатель — доход для скоринга
-    bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
-    remaining = income - (movcudNaqdOdenis + kartAyliOdenis + yeniOdenis);
-  }
-
-  const ageAtEnd = yas + Math.ceil(muddət / 12);
-
-  const stops: string[] = [];
-  const warnings: string[] = [];
-
-  if (!f.emanet) {
-    // 1) Возраст < 18 — закон
-    if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır — qanunvericiliyə görə kredit verilə bilməz");
-    // 2) Возраст на конец срока > лимит
-    if (ageAtEnd > CONFIG.maxAgeAtEnd) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit ${CONFIG.maxAgeAtEnd}-dür`);
-    // 3) BGN > 70% — долговая нагрузка
-    if (bgn > 70) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
-    // 4) Срок > лимит (кроме ипотеки)
-    if (f.kreditNovu !== "ipoteka" && muddət > CONFIG.maxTermMonths) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti ${CONFIG.maxTermMonths} aydan çox ola bilməz`);
-    // 5) Kredit kartı: новый + существующие лимиты > 5× дохода — закон о кредитных линиях
-    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${formatNumber(mebleg + movcudKartLimit)}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${formatNumber(income * CONFIG.maxCardLineToIncomeRatio)}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
-  } else {
-    const em = parseFloat(f.emanetMebleg) || 0;
-    if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
-  }
-
-  if (!f.emanet) {
-    if (f.gelirNovu === "qeyri_resmi") {
-      warnings.push(`Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən ${CONFIG.unofficialIncomeAvg} ₼) qiymətləndirilir — bank öz modeli ilə yoxlayır.`);
-    }
-    if (bgn >= 45 && bgn <= 70) {
-      warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
-    }
-    if (highRisk) {
-      warnings.push("Borc yükü və ya gəlirdən sonra qalan məbləğ bank üçün əlavə risk yarada bilər. Buna görə hesablamada daha yüksək faiz ssenarisi istifadə olunub.");
-    }
-    if (cariGecikmeGun > 0) {
-      warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
-    }
-    if (kumulyativ6ay >= 90) {
-      warnings.push(`Son 6 ayda kumulyativ gecikmə ${kumulyativ6ay} gün — bu, ciddi risk faktorudur.`);
-    }
-    if (maks12ay >= 120) {
-      warnings.push(`Son 12 ayda maksimum gecikmə ${maks12ay} gün — banklar bu dövrə xüsusi diqqət yetirir.`);
-    }
-  }
-
-  if (f.emanet) {
-    const em = parseFloat(f.emanetMebleg) || 0;
-    return { score: em >= mebleg ? 92 : 0, stops: [], warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, blocks: null, isEmanet: true, emanetOk: em >= mebleg };
-  }
-
-  if (stops.length > 0) {
-    return { score: 0, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, blocks: null, isEmanet: false, emanetOk: false };
-  }
-
-  // ── Блок BGN (35) — плоские ступени ──
-  const bBgn = bgn <= 45 ? 35 : bgn <= 60 ? 15 : 5;
-
-  // ── Блок «Кредитная история» (35) ──
-  // Положительный опыт (0–15)
-  const positivePts =
-    f.baglanmisTecrube === "var" ? 15 :           // есть успешно закрытые кредиты
-    f.baglanmisTecrube === "tecrube_yox" ? 8 :    // новый заёмщик, нет истории
-    5;                                            // была проблемная история
-  // Текущий статус по активной просрочке (0–12)
-  const cariPts =
-    cariGecikmeGun === 0 ? 12 :
-    cariGecikmeGun <= 5 ? 8 :
-    cariGecikmeGun <= 15 ? 4 : 0;
-  // Недавняя история (кумулятив 6 мес): чистая / незначительные / серьёзные (0–8)
-  const recentPts =
-    kumulyativ6ay === 0 ? 8 :
-    kumulyativ6ay < 30 ? 4 : 0;
-  const bHistory = positivePts + cariPts + recentPts;
-
-  // ── Блок «Надёжность дохода» (15) — тип + бинарный порог стажа ──
-  let bIncome: number;
-  if (f.gelirNovu === "teqaud") {
-    bIncome = 8;                                  // пенсионер: стаж не применяется
-  } else if (f.gelirNovu === "qeyri_resmi") {
-    bIncome = 5;                                  // неофициальный: стаж не участвует
-  } else {
-    const base = f.gelirNovu === "resmi" ? 9 : 7; // resmi выше; xarici/fs — высокий
-    // Порог стажа: rəsmi ≥6 мес, xarici/VÖEN ≥12 мес — бинарно
-    const thresholdMet = f.gelirNovu === "resmi"
-      ? (f.isStaji === "6_12" || f.isStaji === "12_plus")
-      : f.isStaji === "12_plus";
-    const bonus = thresholdMet ? (f.gelirNovu === "resmi" ? 6 : 5) : 0;
-    bIncome = base + bonus;
-  }
-
-  // ── Блок «Доступность» (15) — срок + сумма, ЗАВИСИТ ОТ ТИПА ДОХОДА ──
-  const unofficial = f.gelirNovu === "qeyri_resmi";
-  const termPts = unofficial
-    ? (muddət <= 36 ? 7 : 1)                               // неофиц.: длинные сроки — только повторным
-    : (muddət <= 36 ? 7 : muddət <= 48 ? 4 : 1);
-  const amountPts = unofficial
-    ? (mebleg <= 1000 ? 7 : mebleg <= 1500 ? 5 : mebleg <= 2500 ? 2 : 1)  // неофиц.: потолок доверия ниже
-    : (mebleg <= 10000 ? 8 : mebleg <= 20000 ? 6 : mebleg <= 30000 ? 4 : mebleg <= 40000 ? 2 : 1);
-  const bAccess = termPts + amountPts;
-
-  const rawBlockScore = bBgn + bHistory + bIncome + bAccess;
-
-  // ── Капы балла (потолки) — срабатывает худший ──
-  const caps: number[] = [100];
-  if (bgn > 45 && bgn <= 60) caps.push(79);
-  else if (bgn > 60 && bgn <= 70) caps.push(59);
-  if (cariGecikmeGun >= 6 && cariGecikmeGun <= 15) caps.push(79);
-  else if (cariGecikmeGun > 15) caps.push(59);
-  if (kumulyativ6ay >= 90) caps.push(69);
-  if (maks12ay >= 120) caps.push(69);
-  // Неофициальный доход: потолок доверия. Малая сумма/короткий срок → не выше 79;
-  // всё что больше → не выше 59 (высокий шанс не даём вообще).
-  if (unofficial) caps.push(mebleg <= 1000 && muddət <= 36 ? 79 : 59);
-  // Официальный доход: крупная сумма необеспеченным наличным на практике почти не выдаётся —
-  // даже при отличном профиле высокий шанс не даём.
-  else if (mebleg > 40000) caps.push(59);
-  else if (mebleg > 30000) caps.push(79);
-
-  const score = Math.min(rawBlockScore, ...caps);
-
-  return {
-    score, stops, warnings, bgn, yeniOdenis, remaining, estimatedRate, commission, isEmanet: false, emanetOk: false,
-    blocks: [
-      { label: "Borc yükü (BGN)", score: bBgn, max: 35 },
-      { label: "Kredit tarixçəsi", score: bHistory, max: 35 },
-      { label: "Gəlirin etibarlılığı", score: bIncome, max: 15 },
-      { label: "Əlçatanlıq (məbləğ + müddət)", score: bAccess, max: 15 },
-    ],
-  };
-}
-
-/* ─── BOKT scoring ─── */
-function calcBoktScore(f: BoktForm) {
-  const mebleg = parseFloat(f.mebleg) || 0;
-  const gelir = parseFloat(f.gelir) || 0;
-  const warnings: string[] = [];
-
-  if (f.emanet) {
-    const em = parseFloat(f.emanetMebleg) || 0;
-    if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
-    return { score: em >= mebleg ? 92 : 0, warnings, stops: [] as string[], maxOdenis: mebleg * 2, isEmanet: true, emanetOk: em >= mebleg };
-  }
-
-  if (mebleg > 500) warnings.push("BOKT-larda maksimum məbləğ adətən 500 AZN-dir");
-
-  const gelirPts = gelir > 500 ? 40 : gelir >= 300 ? 25 : 10;
-  const tarixcePts = f.kreditTarixce === "yox" ? 40 : 15;
-  const meblegPts = mebleg <= 500 ? 20 : 0;
-  const score = Math.min(100, gelirPts + tarixcePts + meblegPts);
-
-  return { score, warnings, stops: [] as string[], maxOdenis: mebleg * 2, isEmanet: false, emanetOk: false };
-}
-
-/* ─── Разбор кейса: почему такой балл и как улучшить (только текст) ─── */
-function explainResult(f: BankForm, r: { bgn: number }) {
-  const items: { title: string; text: string }[] = [];
-  const cari = parseInt(f.cariGecikmeGun) || 0;
-  const kum = parseInt(f.kumulyativ6ay) || 0;
-  const maks = parseInt(f.maks12ay) || 0;
-  const mebleg = parseFloat(f.mebleg) || 0;
-  const muddət = parseInt(f.muddət) || 0;
-
-  if (r.bgn > 45)
-    items.push({ title: "Borc yükü yüksəkdir", text: "Mövcud kreditləri azaltmaq və ya daha kiçik məbləğ seçmək şansınızı artırar." });
-  if (cari > 0)
-    items.push({ title: "Aktiv gecikmə", text: "Aktiv gecikməniz var. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
-  if (kum >= 90 || maks >= 120)
-    items.push({ title: "Kredit tarixçəsi", text: "Keçmiş gecikmələr nəticəni məhdudlaşdırır. Ödənişləri vaxtında etmək zamanla profilinizi yaxşılaşdırır." });
-  if (mebleg > 20000 || muddət > 48)
-    items.push({ title: "Məbləğ və müddət", text: "Daha kiçik məbləğ və ya qısa müddət təsdiq şansını artırır." });
-  if (f.gelirNovu === "qeyri_resmi")
-    items.push({ title: "Gəlir növü", text: "Rəsmi gəlir təsdiq şansını əhəmiyyətli artırır." });
-  const stajOk =
-    (f.gelirNovu === "resmi" && (f.isStaji === "6_12" || f.isStaji === "12_plus")) ||
-    ((f.gelirNovu === "fs" || f.gelirNovu === "xarici") && f.isStaji === "12_plus");
-  if ((f.gelirNovu === "resmi" || f.gelirNovu === "fs" || f.gelirNovu === "xarici") && !stajOk)
-    items.push({ title: "İş stajı", text: "Cari iş yerində daha uzun staj (rəsmi üçün 6+ ay, digərləri üçün 12+ ay) şansı artırır." });
-  // Всегда — позитивный совет про зарплатный проект (без названия банка)
-  items.push({ title: "Əmək haqqı layihəsi", text: "Əmək haqqınızı aldığınız banka müraciət etsəniz, şansınız adətən daha yüksək olur." });
-  return items;
-}
 
 /* ─── Gauge SVG ─── */
 function Gauge({ score }: { score: number }) {
@@ -415,7 +60,7 @@ function BgnBar({ bgn }: { bgn: number }) {
         <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-gray-700 shadow"
           style={{ left: `calc(${pct * 100}% - 5px)` }} />
       </div>
-      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+      <div className="flex justify-between text-[10px] text-gray-500 mt-0.5">
         <span>Yaxşı</span><span>Orta</span><span>Yüksək</span><span>Stop</span>
       </div>
     </div>
@@ -441,14 +86,14 @@ function Field({ label, children, note }: { label: string; children: React.React
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-1.5">{label}</label>
       {children}
-      {note && <p className="text-xs text-gray-400 mt-1">{note}</p>}
+      {note && <p className="text-xs text-gray-500 mt-1">{note}</p>}
     </div>
   );
 }
 
 const inputCls = "w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
 const selectCls = inputCls;
-const sectionTitle = "text-xs font-bold text-gray-400 uppercase tracking-wider mb-3";
+const sectionTitle = "text-xs font-bold text-gray-500 uppercase tracking-wider mb-3";
 
 /* ─── Main ─── */
 function KreditYoxlamaContent() {
@@ -538,7 +183,7 @@ function KreditYoxlamaContent() {
                 {/* Əmanət */}
                 <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
                   <input type="checkbox" checked={bank.emanet} onChange={e => setBank(b => ({ ...b, emanet: e.target.checked }))}
-                    className="mt-0.5 accent-blue-600 w-4 h-4" />
+                    className="mt-0.5 accent-blue-600 w-5 h-5" />
                   <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
                 </label>
 
@@ -686,7 +331,7 @@ function KreditYoxlamaContent() {
                 {/* BOKT form */}
                 <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
                   <input type="checkbox" checked={bokt.emanet} onChange={e => setBokt(n => ({ ...n, emanet: e.target.checked }))}
-                    className="mt-0.5 accent-blue-600 w-4 h-4" />
+                    className="mt-0.5 accent-blue-600 w-5 h-5" />
                   <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
                 </label>
 
@@ -725,12 +370,29 @@ function KreditYoxlamaContent() {
             <button
               onClick={() => {
                 setPressed(true);
+                // Анонимная аналитика расчёта: без сумм и личных данных
+                const r = mode === "bank" ? bResult : nResult;
+                // Анонимный лог расчёта для калибровки модели (fire-and-forget)
+                if (mode === "bank") {
+                  fetch("/api/scoring-log", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ input: bank, score: r.score, bgn: Math.round((r as { bgn: number }).bgn) }),
+                    keepalive: true,
+                  }).catch(() => {});
+                }
+                track("scoring_calculated", {
+                  mode,
+                  kreditNovu: mode === "bank" ? bank.kreditNovu : "bokt",
+                  gelirNovu: mode === "bank" ? bank.gelirNovu : "-",
+                  scoreBucket: r.score >= 80 ? "80+" : r.score >= 65 ? "65-79" : r.score >= 45 ? "45-64" : "<45",
+                  hasStops: (r as { stops?: string[] }).stops?.length ? "yes" : "no",
+                });
                 setTimeout(() => { setPressed(false); setSubmitted(true); }, 350);
               }}
               disabled={pressed}
               className={`w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-md
                 ${pressed ? "scale-95 shadow-inner brightness-90" : "hover:shadow-lg hover:brightness-110 active:scale-95"}`}
-              style={{ background: "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)" }}
+              style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}
             >
               {pressed ? (
                 <>
@@ -761,7 +423,7 @@ function KreditYoxlamaContent() {
                     <circle cx="90" cy="90" r="5" fill="#d1d5db" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-400 font-medium">Məlumatları daxil edin<br />və "Hesabla" düyməsinə basın</p>
+                <p className="text-sm text-gray-500 font-medium">Məlumatları daxil edin<br />və "Hesabla" düyməsinə basın</p>
               </div>
             ) : (
               <>
@@ -818,16 +480,16 @@ function KreditYoxlamaContent() {
                       <p className="text-xs text-gray-500 mt-2">
                         Yeni aylıq ödəniş: <strong className="text-gray-700">{bResult.yeniOdenis.toFixed(0)} AZN</strong>
                         {bResult.estimatedRate != null ? (
-                          <span className="text-gray-400"> ({bResult.estimatedRate.toFixed(1)}% illik — təxmini)</span>
+                          <span className="text-gray-500"> ({bResult.estimatedRate.toFixed(1)}% illik — təxmini)</span>
                         ) : (
-                          <span className="text-gray-400"> ({bank.faiz}% illik ilə)</span>
+                          <span className="text-gray-500"> ({bank.faiz}% illik ilə)</span>
                         )}
                       </p>
                     )}
                     {bResult.commission && bResult.commission.amount > 0 && (
                       <p className="text-xs text-gray-500 mt-1">
                         Birdəfəlik komissiya: <strong className="text-gray-700">{formatNumber(bResult.commission.amount)} AZN</strong>
-                        <span className="text-gray-400"> ({bResult.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
+                        <span className="text-gray-500"> ({bResult.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
                       </p>
                     )}
                     {bResult.estimatedRate != null && (
@@ -844,7 +506,7 @@ function KreditYoxlamaContent() {
                 {/* Разбор кейса — почему такой балл и как улучшить */}
                 {mode === "bank" && !hasStops && !bank.emanet && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Kredit şansını artır — nəticənin izahı</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Kredit şansını artır — nəticənin izahı</p>
                     <div className="space-y-2">
                       {explainResult(bank, bResult).map((it) => (
                         <div key={it.title} className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">

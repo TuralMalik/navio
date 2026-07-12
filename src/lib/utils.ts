@@ -1,10 +1,3 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
 // Детерминированные форматтеры (без Intl): сервер и клиент дают одинаковую строку,
 // иначе Next выбрасывает hydration error #418 на калькуляторах.
 export function formatNumber(num: number): string {

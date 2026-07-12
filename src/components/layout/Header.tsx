@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const navLinks = [
   { label: "Kredit yoxlaması", href: "/az/kredit-yoxlama" },
@@ -37,7 +36,7 @@ export function Header() {
               <span className="text-xl font-bold tracking-tight" style={{ color: "#0f1f3d" }}>
                 Navio
               </span>
-              <span className="text-xs text-gray-400 font-medium tracking-wide">
+              <span className="text-xs text-gray-500 font-medium tracking-wide">
                 Sizin maliyyə bələdçiniz
               </span>
             </div>
@@ -58,7 +57,7 @@ export function Header() {
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-400 cursor-default select-none">
+            <span className="text-sm font-medium text-gray-500 cursor-default select-none">
               AZ
             </span>
             <Link
@@ -70,7 +69,7 @@ export function Header() {
             <Link
               href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-2 rounded-lg text-white transition-all"
-              style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}
+              style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}
             >
               İlkin yoxlama
             </Link>
@@ -107,7 +106,7 @@ export function Header() {
             <Link
               href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-3 rounded-lg text-white text-center"
-              style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}
+              style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}
             >
               İlkin yoxlama
             </Link>

@@ -30,7 +30,7 @@ export default function CalculatorsPage() {
     <main className="bg-gray-50 min-h-screen py-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-10">
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
             <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
             <ChevronRight size={14} />
             <span className="text-gray-600">Kredit kalkulyatoru</span>

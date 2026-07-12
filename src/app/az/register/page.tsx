@@ -5,7 +5,7 @@ export default function RegisterPage() {
   return (
     <main className="bg-gray-50 min-h-screen py-10 flex items-center justify-center">
       <div className="max-w-md w-full mx-auto px-4">
-        <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
           <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
           <ChevronRight size={14} />
           <span className="text-gray-600">Qeydiyyat</span>
@@ -24,7 +24,7 @@ export default function RegisterPage() {
           </p>
 
           <div className="text-left space-y-3 mb-8">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Hesabla əlçatan olacaq</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hesabla əlçatan olacaq</p>
             {[
               { icon: <BookmarkCheck size={16} />, label: "Hesablamaları yadda saxlamaq" },
               { icon: <History size={16} />, label: "Müqayisə tarixçəsini görmək" },
@@ -39,7 +39,7 @@ export default function RegisterPage() {
 
           <Link href="/az/kredit-yoxlama"
             className="block w-full py-3 rounded-xl font-semibold text-white text-sm text-center"
-            style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b5fc0 100%)" }}>
+            style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}>
             Sənədsiz ilkin yoxlama
           </Link>
         </div>

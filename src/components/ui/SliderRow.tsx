@@ -57,8 +57,8 @@ export function SliderRow({
         }}
       />
       <div className="flex justify-between mt-1">
-        <span className="text-xs text-gray-400">{format(min)}</span>
-        <span className="text-xs text-gray-400">{format(max)}</span>
+        <span className="text-xs text-gray-500">{format(min)}</span>
+        <span className="text-xs text-gray-500">{format(max)}</span>
       </div>
     </div>
   );

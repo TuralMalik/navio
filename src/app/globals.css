@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Бренд-палитра Navio: переопределяем tailwind blue на фирменный синий,
+   чтобы все страницы использовали один акцентный цвет */
+@theme {
+  --color-blue-500: #4a66f3;
+  --color-blue-600: #2447F0;
+  --color-blue-700: #1B36BE;
+  --color-blue-800: #12306B;
+  --color-blue-900: #0A1F44;
+}
+
 :root {
   --background: #f9fafb;
   --foreground: #0f1f3d;
