@@ -277,6 +277,10 @@ function calcBankScore(f: BankForm) {
   // Неофициальный доход: потолок доверия. Малая сумма/короткий срок → не выше 79;
   // всё что больше → не выше 59 (высокий шанс не даём вообще).
   if (unofficial) caps.push(mebleg <= 1000 && muddət <= 36 ? 79 : 59);
+  // Официальный доход: крупная сумма необеспеченным наличным на практике почти не выдаётся —
+  // даже при отличном профиле высокий шанс не даём.
+  else if (mebleg > 40000) caps.push(59);
+  else if (mebleg > 30000) caps.push(79);
 
   const score = Math.min(rawBlockScore, ...caps);
 
@@ -400,9 +404,9 @@ function BgnBar({ bgn }: { bgn: number }) {
 function scoreLabel(score: number, mode: Mode) {
   if (mode === "bank") {
     if (score >= 80) return { text: "Yüksək şans — Bankların əksəriyyəti təsdiqləyə bilər", color: "text-green-600", bg: "bg-green-50 border-green-200", icon: "🟢" };
-    if (score >= 60) return { text: "Orta şans — Şansınız var, bankdan asılıdır", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", icon: "🟡" };
-    if (score >= 40) return { text: "Aşağı şans — Profili yaxşılaşdırmaq tövsiyə olunur", color: "text-orange-600", bg: "bg-orange-50 border-orange-200", icon: "🟠" };
-    return { text: "Rədd riski — Bank tərəfindən rədd riski yüksəkdir", color: "text-red-600", bg: "bg-red-50 border-red-200", icon: "🔴" };
+    if (score >= 65) return { text: "Yaxşı şans — Bir çox bank təsdiqləyə bilər", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", icon: "🟢" };
+    if (score >= 45) return { text: "Orta şans — Şansınız var, bankdan asılıdır", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", icon: "🟡" };
+    return { text: "Aşağı şans — Profili yaxşılaşdırmaq tövsiyə olunur", color: "text-orange-600", bg: "bg-orange-50 border-orange-200", icon: "🟠" };
   } else {
     if (score >= 80) return { text: "BOKT-dan kredit ala bilərsiniz", color: "text-green-600", bg: "bg-green-50 border-green-200", icon: "🟢" };
     if (score >= 40) return { text: "Bəzi BOKT-lar təklif edə bilər", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", icon: "🟡" };
