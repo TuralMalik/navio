@@ -46,27 +46,18 @@ const CONFIG = {
   unofficialIncomeAvg: 600,      // оценка неофициального дохода (v2)
   cardStressMonths: 24,          // срок для стресс-платежа по кредитке
   cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
-  cashLoanRate: 35,              // действующая ставка наличного/неофиц. кредита (%)
+  // Ставки наличного кредита
+  cashRateUnofficial: 35,        // плоская ставка, НЕОФИЦИАЛЬНЫЙ наличный
+  cashRateOfficialBase: 10.9,    // база ОФИЦИАЛЬНОГО наличного
+  cashRateOfficialMax: 29,       // потолок официального наличного
+  bgnSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
+  termSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
+  // Комиссии
   commissionCash: 3,             // разовая комиссия, наличный/неофиц. (%)
   commissionConsumer: 1,         // разовая комиссия, прочие потреб. (%)
   commissionMortgage: 0.5,       // разовая комиссия, ипотека (%)
-  rateClampMin: 10.9,            // нижний зажим ставки
-  rateClampMax: 32,              // верхний зажим ставки
   maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
-};
-
-/* ─── Rate: база по сроку и надбавки (стартовые заглушки, будут уточнены) ─── */
-const RATE = {
-  baseByTerm: [           // порог месяцев → базовая ставка
-    { maxMonths: 12, rate: 10.9 },
-    { maxMonths: 24, rate: 13.5 },
-    { maxMonths: 36, rate: 16.5 },
-    { maxMonths: 48, rate: 19.5 },
-    { maxMonths: 59, rate: 22.5 },
-  ],
-  bgnAddonMid: 3.5,       // надбавка при BGN 45–60%
-  bgnAddonHigh: 7,        // надбавка при BGN 60–70%
 };
 
 /* ─── Annuity formula ─── */
@@ -96,41 +87,25 @@ function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: nu
   return { pct, amount: Math.round((pct / 100) * amount) };
 }
 
-/* ─── Ставка (two-pass): база по сроку + ступень BGN + эффект остатка, зажим ─── */
-function estimateRate(
-  mebleg: number, muddət: number, income: number,
-  movcudNaqdOdenis: number, kartAyliOdenis: number, incomeType: GelirNovu,
-) {
-  const baseRate = RATE.baseByTerm.find((t) => muddət <= t.maxMonths)?.rate
-    ?? RATE.baseByTerm[RATE.baseByTerm.length - 1].rate;
-  const subsistence = subsistenceMin(incomeType);
+/* ─── Ставка наличного кредита по сегментам ───
+   Неофициальный доход → плоские 35%.
+   Официальный → плавающая: база 10.9 + надбавкаBGN (главный драйвер) + надбавкаСрок, зажим 10.9–29.
+   Эффект остатка: если денег на руках < прожминимума — надбавкаBGN не ниже уровня «45–60%» (+mid). */
+function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths: number, residual: number): number {
+  if (incomeType === "qeyri_resmi") return CONFIG.cashRateUnofficial; // 35, плоская
 
-  function calc(rate: number) {
-    const pmt = annuityPayment(mebleg, muddət, rate);
-    const totalPayments = movcudNaqdOdenis + kartAyliOdenis + pmt;
-    const bgn = income > 0 ? (totalPayments / income) * 100 : 999;
-    const remaining = income - totalPayments;
-    // Надбавка по BGN — плоские ступени
-    const bgnAddon = bgn <= 45 ? 0 : bgn <= 60 ? RATE.bgnAddonMid : RATE.bgnAddonHigh;
-    // Эффект остатка: если после платежей остаётся меньше прожминимума —
-    // усилить ступень на один уровень (минимум как переход 45% BGN → +mid)
-    const residualAddon = remaining < subsistence
-      ? (bgnAddon === 0 ? RATE.bgnAddonMid : RATE.bgnAddonHigh)
-      : 0;
-    return { addon: Math.max(bgnAddon, residualAddon), bgn, remaining, pmt };
-  }
+  const s = CONFIG.bgnSurcharge;
+  let bgnAdd = bgn < 45 ? s.low : bgn < 60 ? s.mid : s.high;
 
-  const pass1 = calc(baseRate);
-  const finalRate = Math.min(CONFIG.rateClampMax, Math.max(CONFIG.rateClampMin, baseRate + pass1.addon));
-  const pass2 = calc(finalRate);
+  // Эффект остатка: мало денег на руках → не ниже среднего уровня BGN
+  if (residual < subsistenceMin(incomeType)) bgnAdd = Math.max(bgnAdd, s.mid);
 
-  return {
-    estimatedRate: finalRate,
-    bgn: pass2.bgn,
-    yeniOdenis: pass2.pmt,
-    remaining: pass2.remaining,
-    highRisk: pass2.bgn > 45 || pass2.remaining < subsistence,
-  };
+  const t = CONFIG.termSurcharge;
+  const termAdd = termMonths <= 12 ? t.m12 : termMonths <= 24 ? t.m24
+    : termMonths <= 36 ? t.m36 : termMonths <= 48 ? t.m48 : t.m59;
+
+  const rate = CONFIG.cashRateOfficialBase + bgnAdd + termAdd;
+  return Math.min(CONFIG.cashRateOfficialMax, Math.max(CONFIG.cashRateOfficialBase, rate));
 }
 
 /* ─── Bank scoring ─── */
@@ -161,14 +136,24 @@ function calcBankScore(f: BankForm) {
   let yeniOdenis: number;
   let bgn: number;
 
-  // Наличный кредит и любой неофициальный доход → действующая ставка наличного (35%, плоская).
+  // Наличный кредит и любой неофициальный доход → сегментная ставка наличного.
   const useCashRate = (f.kreditNovu === "naqd" || f.gelirNovu === "qeyri_resmi") && !f.emanet;
 
   if (useCashRate) {
-    estimatedRate = CONFIG.cashLoanRate;
-    yeniOdenis = annuityPayment(mebleg, muddət, CONFIG.cashLoanRate);
-    bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
-    remaining = income - (movcudNaqdOdenis + kartAyliOdenis + yeniOdenis);
+    // Платёж/BGN/остаток зависят от ставки, а ставка — от BGN/остатка → два прохода.
+    const calc = (rate: number) => {
+      const pmt = annuityPayment(mebleg, muddət, rate);
+      const total = movcudNaqdOdenis + kartAyliOdenis + pmt;
+      return { pmt, bgn: income > 0 ? (total / income) * 100 : 999, rem: income - total };
+    };
+    // Проход 1 — при базовой ставке определяем BGN и остаток
+    const p1 = calc(CONFIG.cashRateOfficialBase);
+    estimatedRate = estimateCashRate(f.gelirNovu, p1.bgn, muddət, p1.rem);
+    // Проход 2 — пересчёт платежа по итоговой ставке (для отображения BGN/остатка)
+    const p2 = calc(estimatedRate);
+    yeniOdenis = p2.pmt;
+    bgn = p2.bgn;
+    remaining = p2.rem;
     highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
   } else {
     const faiz = parseFloat(f.faiz) || 24;
