@@ -387,6 +387,8 @@ function KreditYoxlamaContent() {
                   scoreBucket: r.score >= 80 ? "80+" : r.score >= 65 ? "65-79" : r.score >= 45 ? "45-64" : "<45",
                   hasStops: (r as { stops?: string[] }).stops?.length ? "yes" : "no",
                 });
+                // Вход расчёта для страницы детального анализа
+                try { sessionStorage.setItem("navio_scoring_input", JSON.stringify(bank)); } catch {}
                 setTimeout(() => { setPressed(false); setSubmitted(true); }, 350);
               }}
               disabled={pressed}
@@ -519,6 +521,16 @@ function KreditYoxlamaContent() {
                       ))}
                     </div>
                   </div>
+                )}
+
+                {/* Детальный анализ — отдельная страница (в будущем только для зарегистрированных) */}
+                {mode === "bank" && !bank.emanet && (
+                  <a href="/az/kredit-yoxlama/analiz"
+                    className="group mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:-translate-y-px"
+                    style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)", boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
+                    Ətraflı analiz və tövsiyələr
+                    <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                  </a>
                 )}
               </>
             )}
