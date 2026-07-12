@@ -52,10 +52,12 @@ const CONFIG = {
   cashRateOfficialMax: 29,       // потолок официального наличного
   bgnSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
   termSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
-  // Комиссии
-  commissionCash: 3,             // разовая комиссия, наличный/неофиц. (%)
-  commissionConsumer: 1,         // разовая комиссия, прочие потреб. (%)
-  commissionMortgage: 0.5,       // разовая комиссия, ипотека (%)
+  // Разовые комиссии (%)
+  commissionUnofficial: 3,       // неофициальный доход (любой тип)
+  commissionCashOfficial: 1,     // наличный, официальный доход
+  commissionMortgage: 0.5,       // ипотека
+  commissionAuto: 0.5,           // автокредит
+  commissionCard: 0,             // кредитная карта
   maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
 };
@@ -81,9 +83,11 @@ function subsistenceMin(type: GelirNovu): number {
 /* ─── Разовая комиссия от суммы кредита (v2), НЕ входит в месячный платёж ─── */
 function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number) {
   let pct: number;
-  if (kreditNovu === "naqd" || gelirNovu === "qeyri_resmi") pct = CONFIG.commissionCash;      // 3%
-  else if (kreditNovu === "ipoteka") pct = CONFIG.commissionMortgage;                          // 0.5%
-  else pct = CONFIG.commissionConsumer;                                                        // 1%
+  if (gelirNovu === "qeyri_resmi") pct = CONFIG.commissionUnofficial;      // неофиц. → 3%
+  else if (kreditNovu === "naqd") pct = CONFIG.commissionCashOfficial;     // наличный офиц. → 1%
+  else if (kreditNovu === "ipoteka") pct = CONFIG.commissionMortgage;      // ипотека → 0.5%
+  else if (kreditNovu === "avto") pct = CONFIG.commissionAuto;             // авто → 0.5%
+  else pct = CONFIG.commissionCard;                                        // карта → 0%
   return { pct, amount: Math.round((pct / 100) * amount) };
 }
 
