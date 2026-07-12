@@ -47,19 +47,19 @@ const CONFIG = {
   cardStressMonths: 24,          // срок для стресс-платежа по кредитке
   cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
   // Ставки наличного кредита
-  cashRateUnofficial: 35,        // плоская ставка, НЕОФИЦИАЛЬНЫЙ наличный
-  cashRateOfficialBase: 10.9,    // база ОФИЦИАЛЬНОГО наличного
-  cashRateOfficialMax: 29,       // потолок официального наличного
-  bgnSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
-  termSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
-  // Разовые комиссии (%)
-  commissionUnofficial: 3,       // неофициальный доход (любой тип)
-  commissionCashOfficial: 1,     // наличный, официальный доход
-  commissionMortgage: 0.5,       // ипотека
-  commissionAuto: 0.5,           // автокредит
-  commissionCard: 0,             // кредитная карта
+  cashRateUnofficial: 35,        // плоская ставка, НЕОФИЦИАЛЬНЫЙ наличный, всегда
+  cashRateOfficialBase: 10.9,    // база ОФИЦИАЛЬНОГО наличного (лучший случай)
+  cashRateOfficialMax: 29,       // потолок официального наличного (худший случай)
+  bgnRateSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
+  termRateSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
+  // Разовые комиссии (%) — матрица доход × тип кредита; null = тип кредита недоступен
+  commissions: {
+    official:   { cash: 1, card: 0, mortgage: 0.5, auto: 0.5 },
+    unofficial: { cash: 3, card: 3, mortgage: null, auto: null },
+  } as Record<"official" | "unofficial", Record<"cash" | "card" | "mortgage" | "auto", number | null>>,
   maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
+  maxCardLineToIncomeRatio: 5,   // лимит по кредитным линиям: 5× дохода
 };
 
 /* ─── Annuity formula ─── */
@@ -80,15 +80,14 @@ function subsistenceMin(type: GelirNovu): number {
   return type === "teqaud" ? CONFIG.subsistenceMinPensioner : CONFIG.subsistenceMinWorking;
 }
 
-/* ─── Разовая комиссия от суммы кредита (v2), НЕ входит в месячный платёж ─── */
+/* ─── Разовая комиссия от суммы кредита — матрица доход × тип, НЕ входит в месячный платёж ───
+   null = тип кредита недоступен для этого дохода (гейт срабатывает раньше расчёта). */
 function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number) {
-  let pct: number;
-  if (gelirNovu === "qeyri_resmi") pct = CONFIG.commissionUnofficial;      // неофиц. → 3%
-  else if (kreditNovu === "naqd") pct = CONFIG.commissionCashOfficial;     // наличный офиц. → 1%
-  else if (kreditNovu === "ipoteka") pct = CONFIG.commissionMortgage;      // ипотека → 0.5%
-  else if (kreditNovu === "avto") pct = CONFIG.commissionAuto;             // авто → 0.5%
-  else pct = CONFIG.commissionCard;                                        // карта → 0%
-  return { pct, amount: Math.round((pct / 100) * amount) };
+  const row = CONFIG.commissions[gelirNovu === "qeyri_resmi" ? "unofficial" : "official"];
+  const key = kreditNovu === "naqd" ? "cash" : kreditNovu === "kart" ? "card" : kreditNovu === "ipoteka" ? "mortgage" : "auto";
+  const pct = row[key];
+  if (pct === null) return { pct: 0, amount: 0, unavailable: true };
+  return { pct, amount: Math.round((pct / 100) * amount), unavailable: false };
 }
 
 /* ─── Ставка наличного кредита по сегментам ───
@@ -98,13 +97,13 @@ function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: nu
 function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths: number, residual: number): number {
   if (incomeType === "qeyri_resmi") return CONFIG.cashRateUnofficial; // 35, плоская
 
-  const s = CONFIG.bgnSurcharge;
+  const s = CONFIG.bgnRateSurcharge;
   let bgnAdd = bgn < 45 ? s.low : bgn < 60 ? s.mid : s.high;
 
   // Эффект остатка: мало денег на руках → не ниже среднего уровня BGN
   if (residual < subsistenceMin(incomeType)) bgnAdd = Math.max(bgnAdd, s.mid);
 
-  const t = CONFIG.termSurcharge;
+  const t = CONFIG.termRateSurcharge;
   const termAdd = termMonths <= 12 ? t.m12 : termMonths <= 24 ? t.m24
     : termMonths <= 36 ? t.m36 : termMonths <= 48 ? t.m48 : t.m59;
 
@@ -140,8 +139,20 @@ function calcBankScore(f: BankForm) {
   let yeniOdenis: number;
   let bgn: number;
 
-  // Наличный кредит и любой неофициальный доход → сегментная ставка наличного.
-  const useCashRate = (f.kreditNovu === "naqd" || f.gelirNovu === "qeyri_resmi") && !f.emanet;
+  // ── ШАГ 1: гейт доступности типа кредита (до любых расчётов) ──
+  // Для неофициального дохода ипотека и автокредит не выдаются.
+  if (f.gelirNovu === "qeyri_resmi" && (f.kreditNovu === "ipoteka" || f.kreditNovu === "avto") && !f.emanet) {
+    return {
+      score: 0, stops: ["Bu kredit növü rəsmi gəlir tələb edir"], warnings: [],
+      bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
+      commission: { pct: 0, amount: 0, unavailable: true },
+      blocks: null, isEmanet: false, emanetOk: false,
+    };
+  }
+
+  // Наличный кредит → сегментная ставка (неофиц. 35% плоско / офиц. плавающая).
+  // Карта/ипотека/авто — ставка вводится пользователем вручную.
+  const useCashRate = f.kreditNovu === "naqd" && !f.emanet;
 
   if (useCashRate) {
     // Платёж/BGN/остаток зависят от ставки, а ставка — от BGN/остатка → два прохода.
@@ -182,7 +193,7 @@ function calcBankScore(f: BankForm) {
     // 4) Срок > лимит (кроме ипотеки)
     if (f.kreditNovu !== "ipoteka" && muddət > CONFIG.maxTermMonths) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti ${CONFIG.maxTermMonths} aydan çox ola bilməz`);
     // 5) Kredit kartı: новый + существующие лимиты > 5× дохода — закон о кредитных линиях
-    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * 5) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin 5 mislini (₼ ${(income * 5).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin 5 mislindən çox ola bilməz`);
+    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${(income * CONFIG.maxCardLineToIncomeRatio).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
   } else {
     const em = parseFloat(f.emanetMebleg) || 0;
     if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
@@ -190,7 +201,7 @@ function calcBankScore(f: BankForm) {
 
   if (!f.emanet) {
     if (f.gelirNovu === "qeyri_resmi") {
-      warnings.push("Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən 700 ₼) qiymətləndirilir — bank öz modeli ilə yoxlayır.");
+      warnings.push(`Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən ${CONFIG.unofficialIncomeAvg} ₼) qiymətləndirilir — bank öz modeli ilə yoxlayır.`);
     }
     if (bgn >= 45 && bgn <= 70) {
       warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
@@ -527,42 +538,22 @@ function KreditYoxlamaContent() {
                   </Field>
                 )}
 
-                {/* ── Kredit parametrləri ── */}
-                <div>
-                  <p className={sectionTitle}>Kredit parametrləri</p>
-                  <div className="space-y-4">
-                    <Field label="Kredit növü">
-                      <select value={bank.kreditNovu} onChange={e => setBank(b => ({ ...b, kreditNovu: e.target.value as KreditNovu }))} className={selectCls}>
-                        <option value="naqd">Nağd kredit</option>
-                        <option value="kart">Kredit kartı</option>
-                        <option value="ipoteka">İpoteka</option>
-                        <option value="avto">Avtomobil krediti</option>
-                      </select>
-                    </Field>
-
-                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.mebleg) || 500} min={500}
-                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
-                      format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
-                      onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
-
-                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
-                      format={(v) => `${v} ay`} unit="ay"
-                      onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
-
-                    {bank.kreditNovu !== "naqd" && (
-                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
-                        format={(v) => `${v}%`} unit="%"
-                        onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
-                    )}
-                  </div>
-                </div>
-
                 {/* ── Gəlir məlumatları ── */}
-                <div className="border-t border-gray-100 pt-4">
+                <div>
+                  {/* Тип дохода спрашивается РАНЬШЕ типа кредита (гейт доступности) */}
                   <p className={sectionTitle}>Gəlir məlumatları</p>
                   <div className="space-y-4">
                     <Field label="Gəlir növü">
-                      <select value={bank.gelirNovu} onChange={e => setBank(b => ({ ...b, gelirNovu: e.target.value as GelirNovu }))} className={selectCls}>
+                      <select value={bank.gelirNovu}
+                        onChange={e => {
+                          const nov = e.target.value as GelirNovu;
+                          setBank(b => ({
+                            ...b,
+                            gelirNovu: nov,
+                            // Для неофиц. дохода ипотека/авто недоступны — сброс на наличный
+                            kreditNovu: nov === "qeyri_resmi" && (b.kreditNovu === "ipoteka" || b.kreditNovu === "avto") ? "naqd" : b.kreditNovu,
+                          }));
+                        }} className={selectCls}>
                         <option value="resmi">Rəsmi gəlir</option>
                         <option value="xarici">Xaricdə rəsmi iş (bank çıxarışı ilə)</option>
                         <option value="fs">Fiziki sahibkar (VÖEN)</option>
@@ -586,6 +577,41 @@ function KreditYoxlamaContent() {
                           <option value="12_plus">12 aydan çox</option>
                         </select>
                       </Field>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Kredit parametrləri ── */}
+                <div className="border-t border-gray-100 pt-4">
+                  <p className={sectionTitle}>Kredit parametrləri</p>
+                  <div className="space-y-4">
+                    <Field label="Kredit növü"
+                      note={bank.gelirNovu === "qeyri_resmi" ? "İpoteka və avtokredit rəsmi gəlir tələb edir" : undefined}>
+                      <select value={bank.kreditNovu} onChange={e => setBank(b => ({ ...b, kreditNovu: e.target.value as KreditNovu }))} className={selectCls}>
+                        <option value="naqd">Nağd kredit</option>
+                        <option value="kart">Kredit kartı</option>
+                        <option value="ipoteka" disabled={bank.gelirNovu === "qeyri_resmi"}>
+                          İpoteka{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
+                        </option>
+                        <option value="avto" disabled={bank.gelirNovu === "qeyri_resmi"}>
+                          Avtomobil krediti{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
+                        </option>
+                      </select>
+                    </Field>
+
+                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.mebleg) || 500} min={500}
+                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
+                      format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
+                      onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
+
+                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
+                      format={(v) => `${v} ay`} unit="ay"
+                      onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
+
+                    {bank.kreditNovu !== "naqd" && (
+                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
+                        format={(v) => `${v}%`} unit="%"
+                        onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
                     )}
                   </div>
                 </div>
