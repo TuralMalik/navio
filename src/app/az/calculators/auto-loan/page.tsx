@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
@@ -158,7 +158,7 @@ export default function AutoLoanPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
 
               {/* Car type tabs */}
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {carTypes.map((t) => (
                   <button key={t.key} onClick={() => setCarType(t.key)}
                     className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
@@ -169,7 +169,7 @@ export default function AutoLoanPage() {
                     {t.label}
                   </button>
                 ))}
-                <div className="ml-auto flex gap-2">
+                <div className="sm:ml-auto flex gap-2">
                   {[{ key: "new", label: "Yeni" }, { key: "used", label: "İşlənmiş" }].map((t) => (
                     <button key={t.key} onClick={() => setIsNew(t.key)}
                       className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
@@ -199,7 +199,7 @@ export default function AutoLoanPage() {
               <SliderRow
                 label="İlkin ödəniş"
                 value={downPaymentPct} min={10} max={90} step={5}
-                format={(v) => `${v}%  (₼ ${Math.round((v / 100) * carPrice).toLocaleString()})`}
+                format={(v) => `${v}%  (₼ ${formatNumber(Math.round((v / 100) * carPrice))})`}
                 onChange={setDownPaymentPct}
               />
               <SliderRow
@@ -217,7 +217,7 @@ export default function AutoLoanPage() {
               <SliderRow
                 label="Komissiya"
                 value={commissionPct} min={0} max={5} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * loanAmount).toLocaleString()})`}
+                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${formatNumber(Math.round((v / 100) * loanAmount))})`}
                 onChange={setCommissionPct}
               />
 
@@ -357,7 +357,7 @@ export default function AutoLoanPage() {
                   <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
                   <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(baseMonthly)}</p>
                   {commissionPct > 0 && (
-                    <p className="text-xs text-gray-400 mb-4">+ ₼ {Math.round((commissionPct / 100) * loanAmount).toLocaleString()} komissiya (birdəfəlik)</p>
+                    <p className="text-xs text-gray-400 mb-4">+ ₼ {formatNumber(Math.round((commissionPct / 100) * loanAmount))} komissiya (birdəfəlik)</p>
                   )}
                   {commissionPct === 0 && <div className="mb-4" />}
 

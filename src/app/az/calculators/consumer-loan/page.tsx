@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
@@ -180,16 +180,16 @@ export default function ConsumerLoanPage() {
           <div className="lg:col-span-3 space-y-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
               <SliderRow label="Kredit məbləği" value={principal} min={500} max={100000} step={500}
-                format={(v) => `₼ ${v.toLocaleString()}`} onChange={setPrincipal} unit="₼" />
+                format={(v) => `₼ ${formatNumber(v)}`} onChange={setPrincipal} unit="₼" />
               <SliderRow label="Kredit müddəti" value={months} min={3} max={360} step={1}
                 format={(v) => `${v} ay`} onChange={setMonths} unit="ay" />
               <SliderRow label="İllik faiz dərəcəsi" value={rate} min={5} max={50} step={0.1}
                 format={(v) => `${v}%`} onChange={setRate} unit="%" />
               <SliderRow label="Komissiya" value={commissionPct} min={0} max={10} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
+                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${formatNumber(Math.round((v / 100) * principal))})`}
                 onChange={setCommissionPct} />
               <SliderRow label="Sığorta" value={insurancePct} min={0} max={5} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${Math.round((v / 100) * principal).toLocaleString()})`}
+                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${formatNumber(Math.round((v / 100) * principal))})`}
                 onChange={setInsurancePct} />
               <div className="pt-2 border-t border-gray-100">
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Digər xərclər (₼)</label>
@@ -327,7 +327,7 @@ export default function ConsumerLoanPage() {
                       <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(result.firstPayment)}</p>
                       {(commissionPct > 0 || insurancePct > 0) && (
                         <p className="text-xs text-gray-400 mb-4">
-                          + ₼ {(commission + insurance).toLocaleString()} birdəfəlik xərclər
+                          + ₼ {formatNumber(commission + insurance)} birdəfəlik xərclər
                         </p>
                       )}
                       {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}

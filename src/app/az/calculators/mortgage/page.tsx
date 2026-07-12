@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
 const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
@@ -154,7 +154,7 @@ export default function MortgagePage() {
               <SliderRow
                 label="İlkin ödəniş"
                 value={downPaymentPct} min={5} max={90} step={1}
-                format={(v) => `${v}%  (₼ ${Math.round((v / 100) * propertyValue).toLocaleString()})`}
+                format={(v) => `${v}%  (₼ ${formatNumber(Math.round((v / 100) * propertyValue))})`}
                 onChange={setDownPaymentPct}
               />
               <SliderRow

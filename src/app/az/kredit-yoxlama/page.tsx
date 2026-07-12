@@ -3,6 +3,7 @@
 import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, CheckCircle, Info, ArrowRight, Building2, Landmark } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
 /* ─── Types ─── */
@@ -203,7 +204,7 @@ function calcBankScore(f: BankForm) {
     // 4) Срок > лимит (кроме ипотеки)
     if (f.kreditNovu !== "ipoteka" && muddət > CONFIG.maxTermMonths) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti ${CONFIG.maxTermMonths} aydan çox ola bilməz`);
     // 5) Kredit kartı: новый + существующие лимиты > 5× дохода — закон о кредитных линиях
-    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${(mebleg + movcudKartLimit).toLocaleString()}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${(income * CONFIG.maxCardLineToIncomeRatio).toLocaleString()}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
+    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${formatNumber(mebleg + movcudKartLimit)}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${formatNumber(income * CONFIG.maxCardLineToIncomeRatio)}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
   } else {
     const em = parseFloat(f.emanetMebleg) || 0;
     if (em < mebleg) warnings.push("Əmanət məbləği kredit məbləğini tam örtməlidir");
@@ -611,7 +612,7 @@ function KreditYoxlamaContent() {
 
                     <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.mebleg) || 500} min={500}
                       max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
-                      format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
+                      format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
 
                     <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
@@ -701,7 +702,7 @@ function KreditYoxlamaContent() {
                   onChange={(v) => setBokt(n => ({ ...n, mebleg: String(v) }))} />
 
                 <SliderRow label="Aylıq gəlir" value={parseFloat(bokt.gelir) || 300} min={100} max={5000} step={50}
-                  format={(v) => `₼ ${v.toLocaleString()}`} unit="₼"
+                  format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
                   onChange={(v) => setBokt(n => ({ ...n, gelir: String(v) }))} />
 
                 <Field label="Kredit tarixçəsi">
@@ -825,7 +826,7 @@ function KreditYoxlamaContent() {
                     )}
                     {bResult.commission && bResult.commission.amount > 0 && (
                       <p className="text-xs text-gray-500 mt-1">
-                        Birdəfəlik komissiya: <strong className="text-gray-700">{bResult.commission.amount.toLocaleString()} AZN</strong>
+                        Birdəfəlik komissiya: <strong className="text-gray-700">{formatNumber(bResult.commission.amount)} AZN</strong>
                         <span className="text-gray-400"> ({bResult.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
                       </p>
                     )}

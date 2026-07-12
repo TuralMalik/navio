@@ -407,11 +407,11 @@ export default function HomePage() {
                   <h3 className="text-[19px] font-bold" style={{ color: NAVY }}>{c.title}</h3>
                   <span className="block text-[13.5px] mt-0.5" style={{ color: MUTED }}>{c.tag}</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl px-[18px] py-3 text-sm whitespace-nowrap bg-white col-start-2 md:col-start-auto justify-self-start"
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-3.5 md:px-[18px] py-3 text-sm bg-white col-start-2 md:col-start-auto justify-self-start max-w-full"
                   style={{ border: `1px solid ${LINE}` }}>
-                  <span style={{ color: MUTED }}>{c.inp}</span>
-                  <span style={{ color: LINE }}>→</span>
-                  <span className="font-extrabold text-base" style={{ color: NAVY }}>{c.out} <small className="text-[12.5px] font-semibold" style={{ color: MUTED }}>/ ay</small></span>
+                  <span className="whitespace-nowrap" style={{ color: MUTED }}>{c.inp}</span>
+                  <span className="hidden sm:inline" style={{ color: LINE }}>→</span>
+                  <span className="font-extrabold text-base whitespace-nowrap" style={{ color: NAVY }}>{c.out} <small className="text-[12.5px] font-semibold" style={{ color: MUTED }}>/ ay</small></span>
                 </div>
                 <span className="group inline-flex items-center gap-1.5 font-semibold text-[15px] whitespace-nowrap col-start-2 md:col-start-auto" style={{ color: BLUE }}>
                   Hesabla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
