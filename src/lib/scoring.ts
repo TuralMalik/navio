@@ -45,15 +45,18 @@ export const CONFIG = {
   cardStressRate: 26,            // % годовых для стресс-платежа по кредитке
   // Ставки наличного кредита
   cashRateUnofficial: 35,        // плоская ставка, НЕОФИЦИАЛЬНЫЙ наличный, всегда
-  cashRateOfficialBase: 10.9,    // база ОФИЦИАЛЬНОГО наличного (лучший случай)
-  cashRateOfficialMax: 29,       // потолок официального наличного (худший случай)
-  bgnRateSurcharge: { low: 0, mid: 6, high: 12.5 },              // BGN <45 / 45–60 / 60–70
-  termRateSurcharge: { m12: 0, m24: 1.5, m36: 3, m48: 4.5, m59: 5.5 }, // ≤12/24/36/48/59
+  // Официальный наличный (v3.1): таблица по сроку × 2 уровня BGN (<45% / ≥45%), НЕ формула с надбавками
+  cashRateOfficialTable: {
+    lowRisk:  { m12: 11, m24: 13, m36: 15, m48: 16, m59: 17 },  // BGN < 45%
+    highRisk: { m12: 21, m24: 23, m36: 23, m48: 24, m59: 25 },  // BGN >= 45%
+  },
   // Разовые комиссии (%) — матрица доход × тип кредита; null = тип кредита недоступен
+  // Наличный официальный (v3.1): зависит от BGN — задаётся отдельно в cashCommissionOfficial
   commissions: {
-    official:   { cash: 1, card: 0, mortgage: 0.5, auto: 0.5 },
+    official:   { cash: null, card: 0, mortgage: 0.5, auto: 0.5 }, // cash считается через cashCommissionOfficial
     unofficial: { cash: 3, card: 3, mortgage: null, auto: null },
   } as Record<"official" | "unofficial", Record<"cash" | "card" | "mortgage" | "auto", number | null>>,
+  cashCommissionOfficial: { lowRisk: 1, highRisk: 2 }, // % от суммы, наличный офиц., по BGN <45 / ≥45
   // Пороги BGN (ступени баллов, капов и hard stop)
   bgnHardStopPct: 70,
   bgnTierMidPct: 45,             // граница «хорошо/средне»
@@ -83,34 +86,38 @@ export function subsistenceMin(type: GelirNovu): number {
 }
 
 /* ─── Разовая комиссия от суммы кредита — матрица доход × тип, НЕ входит в месячный платёж ───
-   null = тип кредита недоступен для этого дохода (гейт срабатывает раньше расчёта). */
-export function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number) {
-  const row = CONFIG.commissions[gelirNovu === "qeyri_resmi" ? "unofficial" : "official"];
+   null = тип кредита недоступен для этого дохода (гейт срабатывает раньше расчёта).
+   Наличный официальный (v3.1): зависит от BGN — bgn передаётся отдельно, только формальный BGN,
+   без эффекта остатка (по умолчанию не применяется к комиссии). */
+export function calcCommission(kreditNovu: KreditNovu, gelirNovu: GelirNovu, amount: number, bgn: number = 0) {
+  const isUnofficial = gelirNovu === "qeyri_resmi";
+  if (!isUnofficial && kreditNovu === "naqd") {
+    const pct = bgn >= CONFIG.bgnTierMidPct ? CONFIG.cashCommissionOfficial.highRisk : CONFIG.cashCommissionOfficial.lowRisk;
+    return { pct, amount: Math.round((pct / 100) * amount), unavailable: false };
+  }
+  const row = CONFIG.commissions[isUnofficial ? "unofficial" : "official"];
   const key = kreditNovu === "naqd" ? "cash" : kreditNovu === "kart" ? "card" : kreditNovu === "ipoteka" ? "mortgage" : "auto";
   const pct = row[key];
   if (pct === null) return { pct: 0, amount: 0, unavailable: true };
   return { pct, amount: Math.round((pct / 100) * amount), unavailable: false };
 }
 
-/* ─── Ставка наличного кредита по сегментам ───
+/* ─── Ставка наличного кредита по сегментам (v3.1) ───
    Неофициальный доход → плоские 35%.
-   Официальный → плавающая: база 10.9 + надбавкаBGN (главный драйвер) + надбавкаСрок, зажим 10.9–29.
-   Эффект остатка: если денег на руках < прожминимума — надбавкаBGN не ниже уровня «45–60%» (+mid). */
+   Официальный → ТАБЛИЦА (не формула): срок × 2 уровня BGN (<45% / ≥45%).
+   Эффект остатка: если денег на руках < прожминимума — использовать строку «≥45%»,
+   даже если формальный BGN < 45% (только для СТАВКИ, не для комиссии). */
 export function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths: number, residual: number): number {
   if (incomeType === "qeyri_resmi") return CONFIG.cashRateUnofficial; // 35, плоская
 
-  const s = CONFIG.bgnRateSurcharge;
-  let bgnAdd = bgn < 45 ? s.low : bgn < 60 ? s.mid : s.high;
+  const effectiveHighRisk = bgn >= CONFIG.bgnTierMidPct || residual < subsistenceMin(incomeType);
+  const t = effectiveHighRisk ? CONFIG.cashRateOfficialTable.highRisk : CONFIG.cashRateOfficialTable.lowRisk;
 
-  // Эффект остатка: мало денег на руках → не ниже среднего уровня BGN
-  if (residual < subsistenceMin(incomeType)) bgnAdd = Math.max(bgnAdd, s.mid);
-
-  const t = CONFIG.termRateSurcharge;
-  const termAdd = termMonths <= 12 ? t.m12 : termMonths <= 24 ? t.m24
-    : termMonths <= 36 ? t.m36 : termMonths <= 48 ? t.m48 : t.m59;
-
-  const rate = CONFIG.cashRateOfficialBase + bgnAdd + termAdd;
-  return Math.min(CONFIG.cashRateOfficialMax, Math.max(CONFIG.cashRateOfficialBase, rate));
+  if (termMonths <= 12) return t.m12;
+  if (termMonths <= 24) return t.m24;
+  if (termMonths <= 36) return t.m36;
+  if (termMonths <= 48) return t.m48;
+  return t.m59;
 }
 
 /* ─── Bank scoring ─── */
@@ -128,9 +135,6 @@ export function calcBankScore(f: BankForm) {
 
   // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
   const income = incomeForScoring(f.gelirNovu, gelir);
-
-  // Разовая комиссия от суммы кредита (показывается в общей стоимости)
-  const commission = calcCommission(f.kreditNovu, f.gelirNovu, mebleg);
 
   // Стресс-платёж по существующей кредитке (лимит под ставку CONFIG на CONFIG месяцев)
   const kartAyliOdenis = annuityPayment(movcudKartLimit, CONFIG.cardStressMonths, CONFIG.cardStressRate);
@@ -158,11 +162,11 @@ export function calcBankScore(f: BankForm) {
     return {
       score: 0, stops: ["Aylıq gəliri daxil edin — nəticə üçün gəlir məlumatı tələb olunur"], warnings: [],
       bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
-      commission, blocks: null, isEmanet: false, emanetOk: false,
+      commission: calcCommission(f.kreditNovu, f.gelirNovu, mebleg), blocks: null, isEmanet: false, emanetOk: false,
     };
   }
 
-  // Наличный кредит → сегментная ставка (неофиц. 35% плоско / офиц. плавающая).
+  // Наличный кредит → сегментная ставка (неофиц. 35% плоско / офиц. — таблица по сроку×BGN).
   // Карта/ипотека/авто — ставка вводится пользователем вручную.
   const useCashRate = f.kreditNovu === "naqd" && !f.emanet;
 
@@ -173,8 +177,8 @@ export function calcBankScore(f: BankForm) {
       const total = movcudNaqdOdenis + kartAyliOdenis + pmt;
       return { pmt, bgn: income > 0 ? (total / income) * 100 : 999, rem: income - total };
     };
-    // Проход 1 — при базовой ставке определяем BGN и остаток
-    const p1 = calc(CONFIG.cashRateOfficialBase);
+    // Проход 1 — при нижней ставке таблицы (lowRisk, 12мес) определяем BGN и остаток
+    const p1 = calc(CONFIG.cashRateOfficialTable.lowRisk.m12);
     estimatedRate = estimateCashRate(f.gelirNovu, p1.bgn, muddət, p1.rem);
     // Проход 2 — пересчёт платежа по итоговой ставке (для отображения BGN/остатка)
     const p2 = calc(estimatedRate);
@@ -189,6 +193,9 @@ export function calcBankScore(f: BankForm) {
     bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
     remaining = income - (movcudNaqdOdenis + kartAyliOdenis + yeniOdenis);
   }
+
+  // Разовая комиссия от суммы кредита (наличный официальный — зависит от BGN, v3.1)
+  const commission = calcCommission(f.kreditNovu, f.gelirNovu, mebleg, bgn);
 
   const ageAtEnd = yas + Math.ceil(muddət / 12);
 
