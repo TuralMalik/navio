@@ -65,6 +65,14 @@ function activeCaps(f: BankForm, bgn: number) {
   else if (mebleg > CONFIG.amountCap79Above)
     caps.push({ cap: 79, reason: `Tələb olunan məbləğ ${formatNumber(mebleg)} ₼ (30 000 ₼-dən çox)`, advice: "Məbləği 30 000 ₼-dən aşağı salmaq təsdiq şansını nəzərəçarpacaq artırır." });
 
+  // Кап по сроку (v3.3, только naqd + официальный доход — не ипотека/карта/авто)
+  if (!unofficial && f.kreditNovu === "naqd") {
+    if (muddet > 48)
+      caps.push({ cap: 59, reason: `Kredit müddəti ${muddet} ay (48 aydan çox)`, advice: "Müddəti 48 aya qədər azaltmaq nəticəni əhəmiyyətli yaxşılaşdırar." });
+    else if (muddet > 36)
+      caps.push({ cap: 79, reason: `Kredit müddəti ${muddet} ay (36 aydan çox)`, advice: "Müddəti 36 aya qədər azaltmaq bu məhdudiyyəti tam aradan qaldırır." });
+  }
+
   return caps.sort((a, b) => a.cap - b.cap);
 }
 

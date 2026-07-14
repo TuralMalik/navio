@@ -314,6 +314,14 @@ export function calcBankScore(f: BankForm) {
   // Официальный доход: крупная сумма необеспеченным наличным на практике почти не выдаётся —
   // даже при отличном профиле высокий шанс не даём.
   else if (mebleg > CONFIG.amountCap59Above) caps.push(59);
+  // Кап по сроку (v3.3, только naqd + официальный доход) — ДОПОЛНИТЕЛЬНО к баллам блока «Доступность»,
+  // не вместо них. Не применяется к ипотеке/карте/авто — там срок регулируется другими правилами
+  // (ипотека — длинный срок норма; карта/авто — ставка и условия вводятся вручную).
+  // Для неофициального срок уже жёстко ограничен через bAccess (termPts) — не дублируем.
+  if (!unofficial && f.kreditNovu === "naqd") {
+    if (muddət > 48) caps.push(59);
+    else if (muddət > 36) caps.push(79);
+  }
   else if (mebleg > CONFIG.amountCap79Above) caps.push(79);
 
   const score = Math.min(rawBlockScore, ...caps);
