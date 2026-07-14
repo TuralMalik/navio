@@ -54,9 +54,15 @@ function activeCaps(f: BankForm, bgn: number) {
   if (maks >= 120)
     caps.push({ cap: 69, reason: `Son 12 ayda maksimum gecikmə ${maks} gün`, advice: "Böyük tək gecikmə 12 ay ərzində nəticəni məhdudlaşdırır. Vaxt keçdikcə təsiri azalır." });
 
-  if (unofficial)
+  if (unofficial && muddet > 36)
     caps.push({
-      cap: mebleg <= 1000 && muddet <= 36 ? 79 : 59,
+      cap: 44,
+      reason: `Qeyri-rəsmi gəlir + müddət ${muddet} ay (36 aydan çox)`,
+      advice: "Qeyri-rəsmi gəlirlə 36 aydan uzun müddət praktikada dəstəklənmir. Müddəti 36 aya qədər azaltmaq və ya rəsmi gəlir mənbəyi əldə etmək bu məhdudiyyəti aradan qaldırır.",
+    });
+  else if (unofficial)
+    caps.push({
+      cap: mebleg <= 1000 ? 79 : 59,
       reason: "Qeyri-rəsmi gəlir — etibar limiti",
       advice: "Rəsmi gəlir mənbəyi (əmək müqaviləsi və ya VÖEN) bu məhdudiyyəti tam aradan qaldırır və ən böyük tək təsirli addımdır.",
     });
