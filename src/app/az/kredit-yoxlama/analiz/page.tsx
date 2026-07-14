@@ -42,10 +42,12 @@ function activeCaps(f: BankForm, bgn: number) {
   else if (bgn > CONFIG.bgnTierHighPct && bgn <= CONFIG.bgnHardStopPct)
     caps.push({ cap: 59, reason: `Borc yükü (BGN) ${bgn.toFixed(1)}% — 60–70% aralığındadır`, advice: "Borc yükünüz kritik həddə yaxındır. Mövcud borcları bağlamadan yüksək nəticə mümkün deyil." });
 
-  if (cari >= 6 && cari <= 15)
+  if (cari >= 1 && cari <= 5)
     caps.push({ cap: 79, reason: `Aktiv gecikmə ${cari} gün`, advice: "Gecikməni bağlayın — aktiv gecikmə bağlanan kimi bu məhdudiyyət götürülür." });
+  else if (cari >= 6 && cari <= 15)
+    caps.push({ cap: 59, reason: `Aktiv gecikmə ${cari} gün`, advice: "Hətta qısa aktiv gecikmə bir çox bank üçün ciddi siqnaldır. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
   else if (cari > 15)
-    caps.push({ cap: 59, reason: `Aktiv gecikmə ${cari} gün (15 gündən çox)`, advice: "Uzunmüddətli aktiv gecikmə ən güclü mənfi amildir. İlk addım — onu tam bağlamaq." });
+    caps.push({ cap: 44, reason: `Aktiv gecikmə ${cari} gün (15 gündən çox)`, advice: "Uzunmüddətli aktiv gecikmə ən güclü mənfi amildir. İlk addım — onu tam bağlamaq." });
 
   if (kum >= 90)
     caps.push({ cap: 69, reason: `Son 6 ayda kumulyativ gecikmə ${kum} gün`, advice: "Növbəti aylarda bütün ödənişləri vaxtında edin — 6 aylıq pəncərə təmizləndikcə nəticə yaxşılaşır." });

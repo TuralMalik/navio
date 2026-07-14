@@ -300,8 +300,13 @@ export function calcBankScore(f: BankForm) {
   const caps: number[] = [100];
   if (bgn > CONFIG.bgnTierMidPct && bgn <= CONFIG.bgnTierHighPct) caps.push(79);
   else if (bgn > CONFIG.bgnTierHighPct && bgn <= CONFIG.bgnHardStopPct) caps.push(59);
-  if (cariGecikmeGun >= 6 && cariGecikmeGun <= 15) caps.push(79);
-  else if (cariGecikmeGun > 15) caps.push(59);
+  // Кап по cari gecikmə (v3.2): даже небольшая активная просрочка — серьёзный сигнал.
+  // >15 дней: кап 44, а не 45 — иначе граница совпадает с нижней границей тира «Orta» (score>=45)
+  // и результат не попадает в «Aşağı», как того требует спецификация. При столкновении
+  // порогов берём более консервативный (низкий) результат.
+  if (cariGecikmeGun >= 1 && cariGecikmeGun <= 5) caps.push(79);
+  else if (cariGecikmeGun >= 6 && cariGecikmeGun <= 15) caps.push(59);
+  else if (cariGecikmeGun > 15) caps.push(44);
   if (kumulyativ6ay >= 90) caps.push(69);
   if (maks12ay >= 120) caps.push(69);
   // Неофициальный доход: потолок доверия. Малая сумма/короткий срок → не выше 79;
