@@ -43,9 +43,9 @@ function activeCaps(f: BankForm, bgn: number) {
     caps.push({ cap: 59, reason: `Borc yükü (BGN) ${bgn.toFixed(1)}% — 60–70% aralığındadır`, advice: "Borc yükünüz kritik həddə yaxındır. Mövcud borcları bağlamadan yüksək nəticə mümkün deyil." });
 
   if (cari >= 1 && cari <= 5)
-    caps.push({ cap: 79, reason: `Aktiv gecikmə ${cari} gün`, advice: "Gecikməni bağlayın — aktiv gecikmə bağlanan kimi bu məhdudiyyət götürülür." });
+    caps.push({ cap: 70, reason: `Aktiv gecikmə ${cari} gün`, advice: "Gecikməni bağlayın — aktiv gecikmə bağlanan kimi bu məhdudiyyət götürülür." });
   else if (cari >= 6 && cari <= 15)
-    caps.push({ cap: 59, reason: `Aktiv gecikmə ${cari} gün`, advice: "Hətta qısa aktiv gecikmə bir çox bank üçün ciddi siqnaldır. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
+    caps.push({ cap: 50, reason: `Aktiv gecikmə ${cari} gün`, advice: "Hətta qısa aktiv gecikmə bir çox bank üçün ciddi siqnaldır. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
   else if (cari > 15)
     caps.push({ cap: 44, reason: `Aktiv gecikmə ${cari} gün (15 gündən çox)`, advice: "Uzunmüddətli aktiv gecikmə ən güclü mənfi amildir. İlk addım — onu tam bağlamaq." });
 
