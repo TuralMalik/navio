@@ -37,7 +37,7 @@ export function Header() {
                 Navio
               </span>
               <span className="text-xs text-gray-500 font-medium tracking-wide">
-                Sizin maliyyə bələdçiniz
+                Sizin maliyyə köməkçiniz
               </span>
             </div>
           </Link>

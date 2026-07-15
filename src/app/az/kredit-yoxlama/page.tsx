@@ -191,8 +191,8 @@ function KreditYoxlamaContent() {
         <div className="absolute inset-0 pointer-events-none opacity-10"
           style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
         <div className="relative max-w-4xl mx-auto px-4 py-12 sm:py-16">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2">Kredit Skoring Kalkulyatoru</h1>
-          <p className="text-blue-100 text-base">Bank müraciətindən əvvəl kredit şansınızı qiymətləndirin</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2">Kredit şansınızı yoxlayın</h1>
+          <p className="text-blue-100 text-base">Banka müraciət etməzdən əvvəl nəticənizi öyrənin — sorğusuz və pulsuz</p>
 
           <div className="mt-6 inline-flex rounded-2xl bg-white/15 p-1 border border-white/20">
             <button onClick={() => { setMode("bank"); setSubmitted(false); }}

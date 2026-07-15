@@ -8,7 +8,7 @@ export function Footer() {
           <div className="col-span-1 md:col-span-2">
             <div className="mb-3">
               <span className="text-xl font-bold text-white">Navio</span>
-              <p className="text-xs text-gray-500 mt-0.5">Sizin maliyyə bələdçiniz</p>
+              <p className="text-xs text-gray-500 mt-0.5">Sizin maliyyə köməkçiniz</p>
             </div>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
               Navio kredit profilinizi ilkin qiymətləndirməyə, ödənişləri hesablamağa və maliyyə
