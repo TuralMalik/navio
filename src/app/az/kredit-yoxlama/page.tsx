@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, CheckCircle, Info, ArrowRight, Building2, Landmark } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
@@ -12,6 +12,45 @@ import {
   calcBankScore, calcBoktScore, explainResult,
 } from "@/lib/scoring";
 
+
+/* ─── Тултип-расшифровка BOKT: работает по тапу/клику (мобайл-friendly),
+   закрывается повторным тапом или тапом вне области ─── */
+function BoktTooltip({ dark = false }: { dark?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+
+  return (
+    <span ref={ref} className="relative inline-flex">
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label="BOKT nədir?"
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}
+        className={`inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[11px] font-bold cursor-pointer select-none transition-colors ${
+          dark ? "bg-white/25 text-white hover:bg-white/40" : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+        }`}
+      >
+        i
+      </span>
+      {open && (
+        <span className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 w-max max-w-[230px] px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-medium leading-snug text-center shadow-lg">
+          Banka olmayan kredit təşkilatı
+          <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-gray-900" />
+        </span>
+      )}
+    </span>
+  );
+}
 
 /* ─── Gauge SVG ─── */
 function Gauge({ score }: { score: number }) {
@@ -122,16 +161,12 @@ function KreditYoxlamaContent() {
     kumulyativ6ay: "0",
     maks12ay: "0",
     baglanmisTecrube: "var",
-    emanet: false,
-    emanetMebleg: "",
   });
 
   const [bokt, setBokt] = useState<BoktForm>({
     mebleg: "",
     gelir: "",
     kreditTarixce: "yox",
-    emanet: false,
-    emanetMebleg: "",
   });
 
   const bResult = useMemo(() => calcBankScore(bank), [bank]);
@@ -147,7 +182,7 @@ function KreditYoxlamaContent() {
   }
 
   const bStops = (bResult as any).stops as string[];
-  const hasStops = mode === "bank" && bStops.length > 0 && !bank.emanet;
+  const hasStops = mode === "bank" && bStops.length > 0;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -162,11 +197,11 @@ function KreditYoxlamaContent() {
           <div className="mt-6 inline-flex rounded-2xl bg-white/15 p-1 border border-white/20">
             <button onClick={() => { setMode("bank"); setSubmitted(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${mode === "bank" ? "bg-white text-blue-700 shadow-md" : "text-white/80 hover:text-white"}`}>
-              <Landmark size={16} /> Banklar
+              <Landmark size={16} /> Bank
             </button>
             <button onClick={() => { setMode("bokt"); setSubmitted(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${mode === "bokt" ? "bg-white text-blue-700 shadow-md" : "text-white/80 hover:text-white"}`}>
-              <Building2 size={16} /> BOKT
+              <Building2 size={16} /> BOKT <BoktTooltip dark={mode !== "bokt"} />
             </button>
           </div>
         </div>
@@ -180,19 +215,6 @@ function KreditYoxlamaContent() {
 
             {mode === "bank" ? (
               <>
-                {/* Əmanət */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
-                  <input type="checkbox" checked={bank.emanet} onChange={e => setBank(b => ({ ...b, emanet: e.target.checked }))}
-                    className="mt-0.5 accent-blue-600 w-5 h-5" />
-                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
-                </label>
-
-                {bank.emanet && (
-                  <Field label="Əmanət məbləği (AZN)">
-                    <input type="number" placeholder="5000" value={bank.emanetMebleg}
-                      onChange={e => setBank(b => ({ ...b, emanetMebleg: e.target.value }))} className={inputCls} />
-                  </Field>
-                )}
 
                 {/* ── Gəlir məlumatları ── */}
                 <div>
@@ -211,10 +233,10 @@ function KreditYoxlamaContent() {
                           }));
                         }} className={selectCls}>
                         <option value="resmi">Rəsmi gəlir</option>
-                        <option value="xarici">Xaricdə rəsmi iş (bank çıxarışı ilə)</option>
-                        <option value="fs">Fiziki sahibkar (VÖEN)</option>
-                        <option value="teqaud">Təqaüd</option>
                         <option value="qeyri_resmi">Qeyri-rəsmi gəlir</option>
+                        <option value="teqaud">Təqaüd</option>
+                        <option value="fs">VÖEN / Fərdi sahibkar</option>
+                        <option value="xarici">Xaricdə qazanc</option>
                       </select>
                     </Field>
 
@@ -329,18 +351,6 @@ function KreditYoxlamaContent() {
             ) : (
               <>
                 {/* BOKT form */}
-                <label className="flex items-start gap-3 p-3 rounded-xl border-2 border-blue-100 bg-blue-50 cursor-pointer hover:border-blue-300 transition">
-                  <input type="checkbox" checked={bokt.emanet} onChange={e => setBokt(n => ({ ...n, emanet: e.target.checked }))}
-                    className="mt-0.5 accent-blue-600 w-5 h-5" />
-                  <span className="text-sm text-blue-800 font-medium">Əmanətim var və onu girov kimi istifadə etmək istəyirəm</span>
-                </label>
-
-                {bokt.emanet && (
-                  <Field label="Əmanət məbləği (AZN)">
-                    <input type="number" placeholder="500" value={bokt.emanetMebleg}
-                      onChange={e => setBokt(n => ({ ...n, emanetMebleg: e.target.value }))} className={inputCls} />
-                  </Field>
-                )}
 
                 <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bokt.mebleg) || 100} min={50} max={1000} step={50}
                   format={(v) => `₼ ${v}`} unit="₼"
@@ -359,7 +369,7 @@ function KreditYoxlamaContent() {
 
                 {parseFloat(bokt.mebleg) > 0 && (
                   <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm">
-                    <p className="font-bold text-amber-800 mb-1">💸 BOKT Xərc Hesablaması</p>
+                    <p className="font-bold text-amber-800 mb-1 flex items-center gap-1.5">💸 BOKT <BoktTooltip /> Xərc Hesablaması</p>
                     <p className="text-amber-700">Maksimum ödəniləcək məbləğ: <strong>{(parseFloat(bokt.mebleg) * 2).toFixed(0)} AZN</strong></p>
                     <p className="text-xs text-amber-600 mt-1">Mərkəzi Bank qaydası: ümumi borcun artımı əsas borcun 100%-ni keçə bilməz</p>
                   </div>
@@ -458,13 +468,6 @@ function KreditYoxlamaContent() {
                   </div>
                 )}
 
-                {result.isEmanet && result.emanetOk && (
-                  <div className="mb-4 flex items-start gap-2 p-3 rounded-xl bg-green-50 border border-green-200 text-sm">
-                    <CheckCircle size={16} className="text-green-600 shrink-0 mt-0.5" />
-                    <p className="text-green-700 font-medium">Əmanət kimi istifadə etdikdə təsdiqlənmə ehtimalı çox yüksəkdir.</p>
-                  </div>
-                )}
-
                 <div className="mb-2">
                   <Gauge score={hasStops ? 0 : result.score} />
                 </div>
@@ -475,7 +478,7 @@ function KreditYoxlamaContent() {
                   </div>
                 )}
 
-                {mode === "bank" && bResult.bgn < 999 && !bank.emanet && (
+                {mode === "bank" && bResult.bgn < 999 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <BgnBar bgn={bResult.bgn} />
                     {bResult.yeniOdenis > 0 && (
@@ -506,7 +509,7 @@ function KreditYoxlamaContent() {
                 {/* Bal bölgüsü — внутренняя механика скоринга, клиенту не показываем */}
 
                 {/* Разбор кейса — почему такой балл и как улучшить */}
-                {mode === "bank" && !hasStops && !bank.emanet && (
+                {mode === "bank" && !hasStops && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Kredit şansını artır — nəticənin izahı</p>
                     <div className="space-y-2">
@@ -524,7 +527,7 @@ function KreditYoxlamaContent() {
                 )}
 
                 {/* Детальный анализ — отдельная страница (в будущем только для зарегистрированных) */}
-                {mode === "bank" && !bank.emanet && (
+                {mode === "bank" && (
                   <a href="/az/kredit-yoxlama/analiz"
                     className="group mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:-translate-y-px"
                     style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)", boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>

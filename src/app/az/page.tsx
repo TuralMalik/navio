@@ -268,7 +268,7 @@ export default function HomePage() {
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
               <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: BLUE_SOFT, color: BLUE }}><PieChart size={24} /></span>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit alma şansınızı bilin</h3>
-              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banklara müraciət etmədən əvvəl kredit profilinizi öyrənin və güclü tərəflərinizi görün.</p>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq şansınızı yoxlayın və güclü tərəflərinizi görün.</p>
 
               <div className="rounded-2xl p-4 mb-5" style={{ background: WASH }}>
                 <div className="flex items-center gap-4 mb-4">
