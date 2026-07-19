@@ -6,8 +6,7 @@ import { formatNumber } from "@/lib/utils";
 export type Mode = "bank" | "bokt";
 export type GelirNovu = "resmi" | "xarici" | "fs" | "teqaud" | "qeyri_resmi";
 export type KreditNovu = "naqd" | "kart" | "ipoteka" | "avto";
-export type IsStaji = "0_3" | "4_5" | "6_12" | "12_plus";
-export type BaglanmisTecrube = "var" | "yoxdur" | "tecrube_yox";
+export type IsStaji = "0_2" | "3_5" | "6_11" | "12_plus";
 
 export interface BankForm {
   kreditNovu: KreditNovu;
@@ -21,9 +20,7 @@ export interface BankForm {
   movcudNaqdOdenis: string;
   movcudKartLimit: string;
   cariGecikmeGun: string;      // текущая активная просрочка, дней
-  kumulyativ6ay: string;       // суммарная просрочка за 6 мес, дней
   maks12ay: string;            // максимальная единичная просрочка за 12 мес, дней
-  baglanmisTecrube: BaglanmisTecrube;
 }
 
 export interface BoktForm {
@@ -126,7 +123,6 @@ export function calcBankScore(f: BankForm) {
   const movcudNaqdOdenis = nn(f.movcudNaqdOdenis);
   const movcudKartLimit = nn(f.movcudKartLimit);
   const cariGecikmeGun = Math.max(0, parseInt(f.cariGecikmeGun) || 0);   // текущая активная просрочка
-  const kumulyativ6ay = Math.max(0, parseInt(f.kumulyativ6ay) || 0);    // суммарная просрочка за 6 мес
   const maks12ay = Math.max(0, parseInt(f.maks12ay) || 0);              // макс. единичная просрочка за 12 мес
 
   // Доход для скоринга: неофициальный зажимается потолком (банк оценивает своей моделью)
@@ -224,9 +220,6 @@ export function calcBankScore(f: BankForm) {
     if (cariGecikmeGun > 0) {
       warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
     }
-    if (kumulyativ6ay >= 90) {
-      warnings.push(`Son 6 ayda kumulyativ gecikmə ${kumulyativ6ay} gün — bu, ciddi risk faktorudur.`);
-    }
     if (maks12ay >= 120) {
       warnings.push(`Son 12 ayda maksimum gecikmə ${maks12ay} gün — banklar bu dövrə xüsusi diqqət yetirir.`);
     }
@@ -240,21 +233,17 @@ export function calcBankScore(f: BankForm) {
   const bBgn = bgn <= CONFIG.bgnTierMidPct ? 35 : bgn <= CONFIG.bgnTierHighPct ? 15 : 5;
 
   // ── Блок «Кредитная история» (35) ──
-  // Положительный опыт (0–15)
-  const positivePts =
-    f.baglanmisTecrube === "var" ? 15 :           // есть успешно закрытые кредиты
-    f.baglanmisTecrube === "tecrube_yox" ? 8 :    // новый заёмщик, нет истории
-    5;                                            // была проблемная история
-  // Текущий статус по активной просрочке (0–12)
+  // Текущий статус по активной просрочке (0–20)
   const cariPts =
-    cariGecikmeGun === 0 ? 12 :
-    cariGecikmeGun <= 5 ? 8 :
-    cariGecikmeGun <= 15 ? 4 : 0;
-  // Недавняя история (кумулятив 6 мес): чистая / незначительные / серьёзные (0–8)
-  const recentPts =
-    kumulyativ6ay === 0 ? 8 :
-    kumulyativ6ay < 30 ? 4 : 0;
-  const bHistory = positivePts + cariPts + recentPts;
+    cariGecikmeGun === 0 ? 20 :
+    cariGecikmeGun <= 5 ? 13 :
+    cariGecikmeGun <= 15 ? 6 : 0;
+  // Максимальная единичная просрочка за 12 мес (0–15)
+  const maksPts =
+    maks12ay === 0 ? 15 :
+    maks12ay < 30 ? 10 :
+    maks12ay < 120 ? 5 : 0;
+  const bHistory = cariPts + maksPts;
 
   // ── Блок «Надёжность дохода» (15) — тип + бинарный порог стажа ──
   let bIncome: number;
@@ -266,7 +255,7 @@ export function calcBankScore(f: BankForm) {
     const base = f.gelirNovu === "resmi" ? 9 : 7; // resmi выше; xarici/fs — высокий
     // Порог стажа: rəsmi ≥6 мес, xarici/VÖEN ≥12 мес — бинарно
     const thresholdMet = f.gelirNovu === "resmi"
-      ? (f.isStaji === "6_12" || f.isStaji === "12_plus")
+      ? (f.isStaji === "6_11" || f.isStaji === "12_plus")
       : f.isStaji === "12_plus";
     const bonus = thresholdMet ? (f.gelirNovu === "resmi" ? 6 : 5) : 0;
     bIncome = base + bonus;
@@ -294,7 +283,6 @@ export function calcBankScore(f: BankForm) {
   if (cariGecikmeGun >= 1 && cariGecikmeGun <= 5) caps.push(70);
   else if (cariGecikmeGun >= 6 && cariGecikmeGun <= 15) caps.push(50);
   else if (cariGecikmeGun > 15) caps.push(44);
-  if (kumulyativ6ay >= 90) caps.push(69);
   if (maks12ay >= 120) caps.push(69);
   // Неофициальный доход: потолок доверия.
   // Срок >36 мес — всегда «Aşağı şans» (кап 44, ниже границы тира «Orta»=45), независимо от суммы.
@@ -349,7 +337,6 @@ export function calcBoktScore(f: BoktForm) {
 export function explainResult(f: BankForm, r: { bgn: number }) {
   const items: { title: string; text: string }[] = [];
   const cari = parseInt(f.cariGecikmeGun) || 0;
-  const kum = parseInt(f.kumulyativ6ay) || 0;
   const maks = parseInt(f.maks12ay) || 0;
   const mebleg = parseFloat(f.mebleg) || 0;
   const muddət = parseInt(f.muddət) || 0;
@@ -358,14 +345,14 @@ export function explainResult(f: BankForm, r: { bgn: number }) {
     items.push({ title: "Borc yükü yüksəkdir", text: "Mövcud kreditləri azaltmaq və ya daha kiçik məbləğ seçmək şansınızı artırar." });
   if (cari > 0)
     items.push({ title: "Aktiv gecikmə", text: "Aktiv gecikməniz var. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
-  if (kum >= 90 || maks >= 120)
+  if (maks >= 120)
     items.push({ title: "Kredit tarixçəsi", text: "Keçmiş gecikmələr nəticəni məhdudlaşdırır. Ödənişləri vaxtında etmək zamanla profilinizi yaxşılaşdırır." });
   if (mebleg > 20000 || muddət > 48)
     items.push({ title: "Məbləğ və müddət", text: "Daha kiçik məbləğ və ya qısa müddət təsdiq şansını artırır." });
   if (f.gelirNovu === "qeyri_resmi")
     items.push({ title: "Gəlir növü", text: "Rəsmi gəlir təsdiq şansını əhəmiyyətli artırır." });
   const stajOk =
-    (f.gelirNovu === "resmi" && (f.isStaji === "6_12" || f.isStaji === "12_plus")) ||
+    (f.gelirNovu === "resmi" && (f.isStaji === "6_11" || f.isStaji === "12_plus")) ||
     ((f.gelirNovu === "fs" || f.gelirNovu === "xarici") && f.isStaji === "12_plus");
   if ((f.gelirNovu === "resmi" || f.gelirNovu === "fs" || f.gelirNovu === "xarici") && !stajOk)
     items.push({ title: "İş stajı", text: "Cari iş yerində daha uzun staj (rəsmi üçün 6+ ay, digərləri üçün 12+ ay) şansı artırır." });
