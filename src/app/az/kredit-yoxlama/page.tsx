@@ -7,7 +7,7 @@ import { formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 import { track } from "@vercel/analytics";
 import {
-  type Mode, type GelirNovu, type KreditNovu, type IsStaji, type BaglanmisTecrube,
+  type Mode, type GelirNovu, type KreditNovu, type IsStaji,
   type BankForm, type BoktForm,
   calcBankScore, calcBoktScore, explainResult,
 } from "@/lib/scoring";
@@ -138,7 +138,7 @@ const sectionTitle = "text-xs font-bold text-gray-500 uppercase tracking-wider m
 function KreditYoxlamaContent() {
   const searchParams = useSearchParams();
   const initNov = (searchParams.get("nov") as KreditNovu) || "naqd";
-  const initMebleq = searchParams.get("mebleq") || "500";
+  const initMebleq = searchParams.get("mebleq") || (initNov === "naqd" ? "200" : "500");
   const initMuddet = searchParams.get("muddet") || "24";
   const initFaiz = searchParams.get("faiz") || "24";
 
@@ -158,9 +158,7 @@ function KreditYoxlamaContent() {
     movcudNaqdOdenis: "0",
     movcudKartLimit: "0",
     cariGecikmeGun: "0",
-    kumulyativ6ay: "0",
     maks12ay: "0",
-    baglanmisTecrube: "var",
   });
 
   const [bokt, setBokt] = useState<BoktForm>({
@@ -249,10 +247,10 @@ function KreditYoxlamaContent() {
                     {bank.gelirNovu !== "teqaud" && bank.gelirNovu !== "qeyri_resmi" && (
                       <Field label="Cari iş yerində staj" note={bank.gelirNovu === "resmi" ? "Rəsmi gəlir üçün minimum 6 ay tələb olunur" : "Minimum 12 ay tələb olunur"}>
                         <select value={bank.isStaji} onChange={e => setBank(b => ({ ...b, isStaji: e.target.value as IsStaji }))} className={selectCls}>
-                          <option value="0_3">0 – 3 ay</option>
-                          <option value="4_5">4 – 5 ay</option>
-                          <option value="6_12">6 – 12 ay</option>
-                          <option value="12_plus">12 aydan çox</option>
+                          <option value="0_2">0 – 2 ay</option>
+                          <option value="3_5">3 – 5 ay</option>
+                          <option value="6_11">6 – 11 ay</option>
+                          <option value="12_plus">12 ay və daha çox</option>
                         </select>
                       </Field>
                     )}
@@ -277,12 +275,15 @@ function KreditYoxlamaContent() {
                       </select>
                     </Field>
 
-                    <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bank.mebleg) || 500} min={500}
+                    <SliderRow label="Tələb olunan məbləğ"
+                      value={parseFloat(bank.mebleg) || (bank.kreditNovu === "naqd" ? 200 : 500)}
+                      min={bank.kreditNovu === "naqd" ? 200 : 500}
                       max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
                       format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
 
-                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24} min={1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
+                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24}
+                      min={bank.kreditNovu === "naqd" ? 3 : 1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
                       format={(v) => `${v} ay`} unit="ay"
                       onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
 
@@ -322,27 +323,14 @@ function KreditYoxlamaContent() {
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Kredit tarixçəsi</p>
                   <div className="space-y-4">
-                    <Field label="Cari (aktiv) gecikmə (gün)" note="Hazırda gecikmiş ödənişiniz yoxdursa 0 yazın.">
+                    <Field label="Cari (aktiv) gecikmə (gün)" note="Hazırda gecikmiş ödənişiniz yoxdursa 0 yazın. Bir neçə kreditiniz gecikmədədirsə, ən böyük gecikmə gününü qeyd edin.">
                       <input type="number" placeholder="0" min={0} value={bank.cariGecikmeGun}
                         onChange={e => setBank(b => ({ ...b, cariGecikmeGun: e.target.value }))} className={inputCls} />
-                    </Field>
-
-                    <Field label="Son 6 ayda kumulyativ gecikmə (gün)" note="Son 6 ayda bütün gecikmələrin cəmi. Yoxdursa 0 yazın.">
-                      <input type="number" placeholder="0" min={0} value={bank.kumulyativ6ay}
-                        onChange={e => setBank(b => ({ ...b, kumulyativ6ay: e.target.value }))} className={inputCls} />
                     </Field>
 
                     <Field label="Son 12 ayda maksimum gecikmə (gün)" note="Son 12 ayda ən uzun tək gecikmə. Yoxdursa 0 yazın.">
                       <input type="number" placeholder="0" min={0} value={bank.maks12ay}
                         onChange={e => setBank(b => ({ ...b, maks12ay: e.target.value }))} className={inputCls} />
-                    </Field>
-
-                    <Field label="Bağlanmış kredit təcrübəsi">
-                      <select value={bank.baglanmisTecrube} onChange={e => setBank(b => ({ ...b, baglanmisTecrube: e.target.value as BaglanmisTecrube }))} className={selectCls}>
-                        <option value="var">Var (vaxtında bağlamışam)</option>
-                        <option value="yoxdur">Var, lakin problemli olub</option>
-                        <option value="tecrube_yox">Kredit təcrübəm yoxdur</option>
-                      </select>
                     </Field>
 
                   </div>

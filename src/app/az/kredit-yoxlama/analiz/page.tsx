@@ -32,7 +32,6 @@ function activeCaps(f: BankForm, bgn: number) {
   const mebleg = Math.max(0, parseFloat(f.mebleg) || 0);
   const muddet = Math.max(0, parseInt(f.muddət) || 0);
   const cari = Math.max(0, parseInt(f.cariGecikmeGun) || 0);
-  const kum = Math.max(0, parseInt(f.kumulyativ6ay) || 0);
   const maks = Math.max(0, parseInt(f.maks12ay) || 0);
   const unofficial = f.gelirNovu === "qeyri_resmi";
   const caps: { cap: number; reason: string; advice: string }[] = [];
@@ -49,8 +48,6 @@ function activeCaps(f: BankForm, bgn: number) {
   else if (cari > 15)
     caps.push({ cap: 44, reason: `Aktiv gecikmə ${cari} gün (15 gündən çox)`, advice: "Uzunmüddətli aktiv gecikmə ən güclü mənfi amildir. İlk addım — onu tam bağlamaq." });
 
-  if (kum >= 90)
-    caps.push({ cap: 69, reason: `Son 6 ayda kumulyativ gecikmə ${kum} gün`, advice: "Növbəti aylarda bütün ödənişləri vaxtında edin — 6 aylıq pəncərə təmizləndikcə nəticə yaxşılaşır." });
   if (maks >= 120)
     caps.push({ cap: 69, reason: `Son 12 ayda maksimum gecikmə ${maks} gün`, advice: "Böyük tək gecikmə 12 ay ərzində nəticəni məhdudlaşdırır. Vaxt keçdikcə təsiri azalır." });
 
@@ -92,7 +89,7 @@ function blockAdvice(f: BankForm, blocks: { label: string; score: number; max: n
     "Əlçatanlıq (məbləğ + müddət)": <Package size={18} />,
   };
   const cari = Math.max(0, parseInt(f.cariGecikmeGun) || 0);
-  const kum = Math.max(0, parseInt(f.kumulyativ6ay) || 0);
+  const maks = Math.max(0, parseInt(f.maks12ay) || 0);
   const mebleg = Math.max(0, parseFloat(f.mebleg) || 0);
   const muddet = Math.max(0, parseInt(f.muddət) || 0);
 
@@ -106,9 +103,8 @@ function blockAdvice(f: BankForm, blocks: { label: string; score: number; max: n
           break;
         case "Kredit tarixçəsi":
           text = [
-            f.baglanmisTecrube !== "var" && "Uğurla bağlanmış kredit təcrübəsi ən çox bal verir — kiçik krediti vaxtında bağlamaq tarixçəni gücləndirir.",
             cari > 0 && `Aktiv gecikmə (${cari} gün) bu blokdan bal aparır — onu bağlamaq dərhal təsir edir.`,
-            kum > 0 && "Son 6 ayı təmiz saxlamaq blokun qalan hissəsini bərpa edir.",
+            maks > 0 && `Son 12 ayda maksimum gecikmə (${maks} gün) də bu blokda nəzərə alınır — vaxt keçdikcə təsiri azalır.`,
           ].filter(Boolean).join(" ") || "Ödənişləri vaxtında etməyə davam edin.";
           break;
         case "Gəlirin etibarlılığı":
