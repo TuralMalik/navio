@@ -169,7 +169,7 @@ export default function ConsumerLoanPage() {
           {/* Left — sliders */}
           <div className="lg:col-span-3 space-y-5">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-              <SliderRow label="Kredit məbləği" value={principal} min={500} max={100000} step={500}
+              <SliderRow label="Kredit məbləği" value={principal} min={500} max={100000} step={1}
                 format={(v) => `₼ ${formatNumber(v)}`} onChange={setPrincipal} unit="₼" />
               <SliderRow label="Kredit müddəti" value={months} min={3} max={360} step={1}
                 format={(v) => `${v} ay`} onChange={setMonths} unit="ay" />

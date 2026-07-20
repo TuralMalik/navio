@@ -278,7 +278,7 @@ function KreditYoxlamaContent() {
                     <SliderRow label="Tələb olunan məbləğ"
                       value={parseFloat(bank.mebleg) || (bank.kreditNovu === "naqd" ? 200 : 500)}
                       min={bank.kreditNovu === "naqd" ? 200 : 500}
-                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={500}
+                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={1}
                       format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
 
@@ -298,7 +298,7 @@ function KreditYoxlamaContent() {
                 {/* ── Şəxsi məlumatlar ── */}
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Şəxsi məlumatlar</p>
-                  <SliderRow label="Yaş" value={parseInt(bank.yas) || 30} min={16} max={75} step={1}
+                  <SliderRow label="Yaş" value={parseInt(bank.yas) || 30} min={18} max={75} step={1}
                     format={(v) => `${v} yaş`} unit="yaş"
                     onChange={(v) => setBank(b => ({ ...b, yas: String(v) }))} />
                 </div>
