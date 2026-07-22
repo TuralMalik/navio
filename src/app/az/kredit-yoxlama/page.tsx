@@ -457,12 +457,18 @@ function KreditYoxlamaContent() {
 
                 {result.warnings.length > 0 && (
                   <div className="mb-4 space-y-2">
-                    {result.warnings.map((w, i) => (
+                    {result.warnings.slice(0, 2).map((w, i) => (
                       <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs">
                         <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-amber-700">⚠️ {w}</p>
                       </div>
                     ))}
+                    {mode === "bank" && result.warnings.length > 2 && (
+                      <a href="/az/kredit-yoxlama/analiz"
+                        className="block text-center text-xs font-semibold text-amber-700 underline decoration-amber-300 underline-offset-2 py-1">
+                        +{result.warnings.length - 2} əlavə qeyd — «Ətraflı analiz»də
+                      </a>
+                    )}
                   </div>
                 )}
 
@@ -506,12 +512,12 @@ function KreditYoxlamaContent() {
 
                 {/* Bal bölgüsü — внутренняя механика скоринга, клиенту не показываем */}
 
-                {/* Разбор кейса — почему такой балл и как улучшить */}
+                {/* Главный совет (тезисно) — полный разбор на странице «Ətraflı analiz» */}
                 {mode === "bank" && !hasStops && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Kredit şansını artır — nəticənin izahı</p>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Əsas tövsiyə</p>
                     <div className="space-y-2">
-                      {explainResult(bank, bResult).map((it) => (
+                      {explainResult(bank, bResult).slice(0, 1).map((it) => (
                         <div key={it.title} className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
                           <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
                           <div>
