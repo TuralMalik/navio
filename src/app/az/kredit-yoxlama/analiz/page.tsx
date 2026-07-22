@@ -11,7 +11,7 @@ import {
   Scale, History, BadgeCheck, Package, Lock, Lightbulb, XCircle,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
-import { type BankForm, calcBankScore, CONFIG } from "@/lib/scoring";
+import { type BankForm, calcBankScore, explainResult, CONFIG } from "@/lib/scoring";
 
 const NAVY = "#0A1F44";
 const BLUE = "#2447F0";
@@ -166,6 +166,7 @@ export default function AnalizPage() {
   const rawScore = r.blocks ? r.blocks.reduce((s, b) => s + b.score, 0) : 0;
   const capApplied = r.blocks && r.score < rawScore;
   const advice = r.blocks ? blockAdvice(input, r.blocks, r.bgn) : [];
+  const explains = r.stops.length === 0 ? explainResult(input, r) : [];
 
   return (
     <main className="min-h-screen" style={{ background: WASH }}>
@@ -227,6 +228,26 @@ export default function AnalizPage() {
           )}
         </div>
 
+        {/* ── Все предупреждения (полный список) ── */}
+        {r.warnings.length > 0 && (
+          <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#FEF3E2", color: "#D97706" }}>
+                <AlertTriangle size={16} />
+              </span>
+              <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Diqqət yetiriləsi məqamlar</h2>
+            </div>
+            <div className="space-y-2.5">
+              {r.warnings.map((w, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl p-3" style={{ background: "#FEF9F3", border: "1px solid #FADFA6" }}>
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+                  <p className="text-[13px] leading-relaxed" style={{ color: "#7a5a1e" }}>{w}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {r.blocks && (
           <>
             {/* ── Ограничители ── */}
@@ -283,6 +304,26 @@ export default function AnalizPage() {
                 ))}
               </div>
             </div>
+
+            {/* ── Разбор кейса (explainResult) ── */}
+            {explains.length > 0 && (
+              <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#EBEFFE", color: BLUE }}>
+                    <Lightbulb size={16} />
+                  </span>
+                  <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Nəticənin izahı</h2>
+                </div>
+                <div className="space-y-3">
+                  {explains.map((it) => (
+                    <div key={it.title} className="rounded-xl p-4" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                      <p className="text-[14px] font-semibold mb-1" style={{ color: NAVY }}>{it.title}</p>
+                      <p className="text-[13px] leading-relaxed" style={{ color: MUTED }}>{it.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ── План действий ── */}
             <div className="rounded-2xl p-6 mb-5 text-white relative overflow-hidden"
