@@ -214,9 +214,46 @@ function KreditYoxlamaContent() {
             {mode === "bank" ? (
               <>
 
-                {/* ── Gəlir məlumatları ── */}
+                {/* ── Kredit parametrləri ── */}
                 <div>
-                  {/* Тип дохода спрашивается РАНЬШЕ типа кредита (гейт доступности) */}
+                  <p className={sectionTitle}>Kredit parametrləri</p>
+                  <div className="space-y-4">
+                    <Field label="Kredit növü"
+                      note={bank.gelirNovu === "qeyri_resmi" ? "İpoteka və avtokredit rəsmi gəlir tələb edir" : undefined}>
+                      <select value={bank.kreditNovu} onChange={e => setBank(b => ({ ...b, kreditNovu: e.target.value as KreditNovu }))} className={selectCls}>
+                        <option value="naqd">Nağd kredit</option>
+                        <option value="kart">Kredit kartı</option>
+                        <option value="ipoteka" disabled={bank.gelirNovu === "qeyri_resmi"}>
+                          İpoteka{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
+                        </option>
+                        <option value="avto" disabled={bank.gelirNovu === "qeyri_resmi"}>
+                          Avtomobil krediti{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
+                        </option>
+                      </select>
+                    </Field>
+
+                    <SliderRow label="Tələb olunan məbləğ"
+                      value={parseFloat(bank.mebleg) || (bank.kreditNovu === "naqd" ? 200 : 500)}
+                      min={bank.kreditNovu === "naqd" ? 200 : 500}
+                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={1}
+                      format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
+                      onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
+
+                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24}
+                      min={bank.kreditNovu === "naqd" ? 3 : 1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
+                      format={(v) => `${v} ay`} unit="ay"
+                      onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
+
+                    {bank.kreditNovu !== "naqd" && (
+                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
+                        format={(v) => `${v}%`} unit="%"
+                        onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Gəlir məlumatları ── */}
+                <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Gəlir məlumatları</p>
                   <div className="space-y-4">
                     <Field label="Gəlir növü">
@@ -253,44 +290,6 @@ function KreditYoxlamaContent() {
                           <option value="12_plus">12 ay və daha çox</option>
                         </select>
                       </Field>
-                    )}
-                  </div>
-                </div>
-
-                {/* ── Kredit parametrləri ── */}
-                <div className="border-t border-gray-100 pt-4">
-                  <p className={sectionTitle}>Kredit parametrləri</p>
-                  <div className="space-y-4">
-                    <Field label="Kredit növü"
-                      note={bank.gelirNovu === "qeyri_resmi" ? "İpoteka və avtokredit rəsmi gəlir tələb edir" : undefined}>
-                      <select value={bank.kreditNovu} onChange={e => setBank(b => ({ ...b, kreditNovu: e.target.value as KreditNovu }))} className={selectCls}>
-                        <option value="naqd">Nağd kredit</option>
-                        <option value="kart">Kredit kartı</option>
-                        <option value="ipoteka" disabled={bank.gelirNovu === "qeyri_resmi"}>
-                          İpoteka{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
-                        </option>
-                        <option value="avto" disabled={bank.gelirNovu === "qeyri_resmi"}>
-                          Avtomobil krediti{bank.gelirNovu === "qeyri_resmi" ? " — rəsmi gəlir tələb edir" : ""}
-                        </option>
-                      </select>
-                    </Field>
-
-                    <SliderRow label="Tələb olunan məbləğ"
-                      value={parseFloat(bank.mebleg) || (bank.kreditNovu === "naqd" ? 200 : 500)}
-                      min={bank.kreditNovu === "naqd" ? 200 : 500}
-                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={1}
-                      format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
-                      onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
-
-                    <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24}
-                      min={bank.kreditNovu === "naqd" ? 3 : 1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
-                      format={(v) => `${v} ay`} unit="ay"
-                      onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
-
-                    {bank.kreditNovu !== "naqd" && (
-                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
-                        format={(v) => `${v}%`} unit="%"
-                        onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
                     )}
                   </div>
                 </div>
