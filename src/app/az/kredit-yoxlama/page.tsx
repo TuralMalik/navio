@@ -220,7 +220,18 @@ function KreditYoxlamaContent() {
                   <div className="space-y-4">
                     <Field label="Kredit növü"
                       note={bank.gelirNovu === "qeyri_resmi" ? "İpoteka və avtokredit rəsmi gəlir tələb edir" : undefined}>
-                      <select value={bank.kreditNovu} onChange={e => setBank(b => ({ ...b, kreditNovu: e.target.value as KreditNovu }))} className={selectCls}>
+                      <select value={bank.kreditNovu} onChange={e => setBank(b => {
+                        const nov = e.target.value as KreditNovu;
+                        // Диапазоны зависят от типа кредита — поджимаем сумму/срок под новый диапазон
+                        const meblegMin = nov === "naqd" ? 200 : 500;
+                        const meblegMax = nov === "ipoteka" || nov === "avto" ? 500000 : 100000;
+                        const muddetMin = nov === "naqd" ? 3 : 1;
+                        const muddetMax = nov === "ipoteka" ? 360 : 59;
+                        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+                        const meblegVal = clamp(parseFloat(b.mebleg) || meblegMin, meblegMin, meblegMax);
+                        const muddetVal = clamp(parseInt(b.muddət) || muddetMin, muddetMin, muddetMax);
+                        return { ...b, kreditNovu: nov, mebleg: String(meblegVal), muddət: String(muddetVal) };
+                      })} className={selectCls}>
                         <option value="naqd">Nağd kredit</option>
                         <option value="kart">Kredit kartı</option>
                         <option value="ipoteka" disabled={bank.gelirNovu === "qeyri_resmi"}>
@@ -339,7 +350,7 @@ function KreditYoxlamaContent() {
               <>
                 {/* BOKT form */}
 
-                <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bokt.mebleg) || 100} min={50} max={1000} step={50}
+                <SliderRow label="Tələb olunan məbləğ" value={parseFloat(bokt.mebleg) || 100} min={50} max={1000} step={1}
                   format={(v) => `₼ ${v}`} unit="₼"
                   onChange={(v) => setBokt(n => ({ ...n, mebleg: String(v) }))} />
 
