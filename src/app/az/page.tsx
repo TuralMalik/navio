@@ -114,7 +114,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-[19px] max-w-[460px] mb-9" style={{ color: MUTED }}>
-                Banka müraciət etmədən əvvəl kredit profilinizi öyrənin və imtina riskini azaldın — sadə, sürətli və ödənişsiz.
+                Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı yoxlayın.
               </p>
 
               <div className="flex flex-wrap gap-3.5 mb-10">
@@ -142,9 +142,9 @@ export default function HomePage() {
               {/* Feature row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-6">
                 {[
-                  { icon: <Clock size={20} />, title: "3 dəqiqəlik analiz", sub: "Sadə və sürətli yoxlama prosesi" },
-                  { icon: <ShieldCheck size={20} />, title: "Kredit tarixçəsinə təsir etmir", sub: "Rəsmi sorğu olmadan təxmini nəticə" },
-                  { icon: <Wallet size={20} />, title: "Ödənişsiz", sub: "Tamamilə ödənişsiz, gizli ödəniş yoxdur" },
+                  { icon: <Clock size={20} />, title: "3 dəqiqəlik analiz", sub: "Sadə və sürətli yoxlama" },
+                  { icon: <ShieldCheck size={20} />, title: "Kredit tarixçənizə təsir etmir", sub: "Rəsmi bank sorğusu göndərilmir" },
+                  { icon: <Wallet size={20} />, title: "Pulsuz", sub: "Gizli ödəniş yoxdur" },
                 ].map((f) => (
                   <div key={f.title}>
                     <span className="inline-flex w-10 h-10 rounded-xl items-center justify-center mb-3" style={{ background: BLUE_SOFT, color: BLUE }}>
@@ -187,7 +187,7 @@ export default function HomePage() {
                 {[
                   { label: "Borc yükü", value: "34%", good: true },
                   { label: "Aylıq ödəniş", value: "280 ₼", good: false },
-                  { label: "Risk səviyyəsi", value: "Aşağı", good: true },
+                  { label: "Risk göstəricisi", value: "Aşağı", good: true },
                 ].map((m) => (
                   <div key={m.label} className="rounded-xl px-3 py-3.5 text-center" style={{ background: WASH }}>
                     <small className="block text-xs mb-1" style={{ color: MUTED }}>{m.label}</small>
