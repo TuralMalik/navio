@@ -1,370 +1,461 @@
 "use client";
 
-/* Детальный анализ результата kredit yoxlaması.
-   Данные берутся из sessionStorage (сохраняются при нажатии Hesabla).
-   TODO: когда появится регистрация — открывать эту страницу только авторизованным. */
+/* Детальный отчёт кредит-чека — визуальный слой (не раскрывает внутренний скоринг).
+   Данные берутся из sessionStorage (ключ navioCreditCheckResult), сохраняются при «Hesabla».
+   Логика расчёта НЕ дублируется по существу: базовый результат берём из calcBankScore,
+   для симуляции ставки — те же публичные хелперы (annuityPayment/incomeForScoring). */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronRight, ArrowRight, ArrowLeft, TrendingUp, AlertTriangle, CheckCircle2,
-  Scale, History, BadgeCheck, Package, Lock, Lightbulb, XCircle,
+  ChevronRight, ArrowRight, ArrowLeft, AlertTriangle, CheckCircle2, MinusCircle,
+  XCircle, Scale, History, BadgeCheck, FileText, CalendarClock, Lightbulb,
+  TrendingDown, CreditCard, Clock, CalendarRange, Sparkles, Calculator, BookOpen,
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
-import { type BankForm, calcBankScore, explainResult, CONFIG } from "@/lib/scoring";
+import {
+  type BankForm, calcBankScore, annuityPayment, incomeForScoring, subsistenceMin, CONFIG,
+} from "@/lib/scoring";
+import { SliderRow } from "@/components/ui/SliderRow";
 
 const NAVY = "#0A1F44";
 const BLUE = "#2447F0";
-const MINT = "#0BB07B";
 const MUTED = "#5B6577";
 const LINE = "#E3E8F1";
 const WASH = "#F4F6FB";
 
-function scoreTier(score: number) {
-  if (score >= 80) return { name: "Yüksək şans", color: "#16a34a", soft: "#dcfce7" };
-  if (score >= 65) return { name: "Yaxşı şans", color: "#0BB07B", soft: "#E7F7F1" };
-  if (score >= 45) return { name: "Orta şans", color: "#ca8a04", soft: "#fef9c3" };
-  return { name: "Aşağı şans", color: "#ea580c", soft: "#ffedd5" };
+const STORAGE_KEY = "navioCreditCheckResult";
+
+/* ─── Тоны статусов ─── */
+type Tone = "good" | "normal" | "attention" | "risk" | "high" | "na";
+const TONE: Record<Tone, { fg: string; bg: string }> = {
+  good:      { fg: "#0F9D58", bg: "#E4F6EC" },
+  normal:    { fg: "#0BB07B", bg: "#E7F7F1" },
+  attention: { fg: "#B7791F", bg: "#FCF3DC" },
+  risk:      { fg: "#EA580C", bg: "#FFEDD5" },
+  high:      { fg: "#DC2626", bg: "#FDE7E7" },
+  na:        { fg: "#64748B", bg: "#EEF1F6" },
+};
+
+function Badge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
+  const t = TONE[tone];
+  return (
+    <span className="inline-flex items-center gap-1 text-[12px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap"
+      style={{ color: t.fg, background: t.bg }}>
+      {children}
+    </span>
+  );
 }
 
-/* Сработавшие капы: восстанавливаем причины из входов (та же логика порогов, что в scoring.ts) */
-function activeCaps(f: BankForm, bgn: number) {
-  const mebleg = Math.max(0, parseFloat(f.mebleg) || 0);
-  const muddet = Math.max(0, parseInt(f.muddət) || 0);
-  const cari = Math.max(0, parseInt(f.cariGecikmeGun) || 0);
-  const maks = Math.max(0, parseInt(f.maks12ay) || 0);
-  const unofficial = f.gelirNovu === "qeyri_resmi";
-  const caps: { cap: number; reason: string; advice: string }[] = [];
-
-  if (bgn > CONFIG.bgnTierMidPct && bgn <= CONFIG.bgnTierHighPct)
-    caps.push({ cap: 79, reason: `Borc yükü (BGN) ${bgn.toFixed(1)}% — 45–60% aralığındadır`, advice: "Mövcud kredit ödənişlərini azaldın və ya daha kiçik məbləğ seçin — BGN 45%-dən aşağı düşəndə bu məhdudiyyət aradan qalxır." });
-  else if (bgn > CONFIG.bgnTierHighPct && bgn <= CONFIG.bgnHardStopPct)
-    caps.push({ cap: 59, reason: `Borc yükü (BGN) ${bgn.toFixed(1)}% — 60–70% aralığındadır`, advice: "Borc yükünüz kritik həddə yaxındır. Mövcud borcları bağlamadan yüksək nəticə mümkün deyil." });
-
-  if (cari >= 1 && cari <= 5)
-    caps.push({ cap: 70, reason: `Aktiv gecikmə ${cari} gün`, advice: "Gecikməni bağlayın — aktiv gecikmə bağlanan kimi bu məhdudiyyət götürülür." });
-  else if (cari >= 6 && cari <= 15)
-    caps.push({ cap: 50, reason: `Aktiv gecikmə ${cari} gün`, advice: "Hətta qısa aktiv gecikmə bir çox bank üçün ciddi siqnaldır. Onu bağlamaq nəticəni əhəmiyyətli yaxşılaşdırar." });
-  else if (cari > 15)
-    caps.push({ cap: 44, reason: `Aktiv gecikmə ${cari} gün (15 gündən çox)`, advice: "Uzunmüddətli aktiv gecikmə ən güclü mənfi amildir. İlk addım — onu tam bağlamaq." });
-
-  if (maks >= 120)
-    caps.push({ cap: 69, reason: `Son 12 ayda maksimum gecikmə ${maks} gün`, advice: "Böyük tək gecikmə 12 ay ərzində nəticəni məhdudlaşdırır. Vaxt keçdikcə təsiri azalır." });
-
-  if (unofficial && muddet > 36)
-    caps.push({
-      cap: 44,
-      reason: `Qeyri-rəsmi gəlir + müddət ${muddet} ay (36 aydan çox)`,
-      advice: "Qeyri-rəsmi gəlirlə 36 aydan uzun müddət praktikada dəstəklənmir. Müddəti 36 aya qədər azaltmaq və ya rəsmi gəlir mənbəyi əldə etmək bu məhdudiyyəti aradan qaldırır.",
-    });
-  else if (unofficial)
-    caps.push({
-      cap: mebleg <= 1000 ? 79 : 59,
-      reason: "Qeyri-rəsmi gəlir — etibar limiti",
-      advice: "Rəsmi gəlir mənbəyi (əmək müqaviləsi və ya VÖEN) bu məhdudiyyəti tam aradan qaldırır və ən böyük tək təsirli addımdır.",
-    });
-  else if (mebleg > CONFIG.amountCap59Above)
-    caps.push({ cap: 59, reason: `Tələb olunan məbləğ ${formatNumber(mebleg)} ₼ (40 000 ₼-dən çox)`, advice: "Bu həcmdə girovsuz nağd kredit praktikada çox az verilir. Məbləği bölmək və ya girovlu məhsul düşünmək olar." });
-  else if (mebleg > CONFIG.amountCap79Above)
-    caps.push({ cap: 79, reason: `Tələb olunan məbləğ ${formatNumber(mebleg)} ₼ (30 000 ₼-dən çox)`, advice: "Məbləği 30 000 ₼-dən aşağı salmaq təsdiq şansını nəzərəçarpacaq artırır." });
-
-  // Кап по сроку (v3.3, только naqd + официальный доход — не ипотека/карта/авто)
-  if (!unofficial && f.kreditNovu === "naqd") {
-    if (muddet > 48)
-      caps.push({ cap: 59, reason: `Kredit müddəti ${muddet} ay (48 aydan çox)`, advice: "Müddəti 48 aya qədər azaltmaq nəticəni əhəmiyyətli yaxşılaşdırar." });
-    else if (muddet > 36)
-      caps.push({ cap: 79, reason: `Kredit müddəti ${muddet} ay (36 aydan çox)`, advice: "Müddəti 36 aya qədər azaltmaq bu məhdudiyyəti tam aradan qaldırır." });
-  }
-
-  return caps.sort((a, b) => a.cap - b.cap);
+function SectionCard({ n, title, icon, children }: { n: number; title: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl bg-white p-5 sm:p-6 mb-4" style={{ border: `1px solid ${LINE}`, boxShadow: "0 1px 2px rgba(16,31,68,.04)" }}>
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="w-7 h-7 rounded-full grid place-items-center text-[13px] font-extrabold shrink-0" style={{ background: "#EBEFFE", color: BLUE }}>{n}</span>
+        <span style={{ color: BLUE }}>{icon}</span>
+        <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
 }
 
-/* Потенциал улучшения по блокам: потерянные баллы + конкретный совет */
-function blockAdvice(f: BankForm, blocks: { label: string; score: number; max: number }[], bgn: number) {
-  const out: { icon: React.ReactNode; label: string; got: number; max: number; text: string }[] = [];
-  const icons: Record<string, React.ReactNode> = {
-    "Borc yükü (BGN)": <Scale size={18} />,
-    "Kredit tarixçəsi": <History size={18} />,
-    "Gəlirin etibarlılığı": <BadgeCheck size={18} />,
-    "Əlçatanlıq (məbləğ + müddət)": <Package size={18} />,
-  };
-  const cari = Math.max(0, parseInt(f.cariGecikmeGun) || 0);
-  const maks = Math.max(0, parseInt(f.maks12ay) || 0);
-  const mebleg = Math.max(0, parseFloat(f.mebleg) || 0);
-  const muddet = Math.max(0, parseInt(f.muddət) || 0);
-
-  for (const b of blocks) {
-    const lost = b.max - b.score;
-    let text = "Bu amil üzrə maksimum bal toplamısınız — belə də saxlayın.";
-    if (lost > 0) {
-      switch (b.label) {
-        case "Borc yükü (BGN)":
-          text = `BGN hazırda ${bgn.toFixed(1)}%-dir. 45%-dən aşağı BGN bu blokdan tam ${b.max} bal verir. Mövcud aylıq ödənişləri azaldın, kart limitlərini bağlayın və ya daha kiçik məbləğ seçin.`;
-          break;
-        case "Kredit tarixçəsi":
-          text = [
-            cari > 0 && `Aktiv gecikmə (${cari} gün) bu blokdan bal aparır — onu bağlamaq dərhal təsir edir.`,
-            maks > 0 && `Son 12 ayda maksimum gecikmə (${maks} gün) də bu blokda nəzərə alınır — vaxt keçdikcə təsiri azalır.`,
-          ].filter(Boolean).join(" ") || "Ödənişləri vaxtında etməyə davam edin.";
-          break;
-        case "Gəlirin etibarlılığı":
-          text = f.gelirNovu === "qeyri_resmi"
-            ? "Qeyri-rəsmi gəlir bu blokdan minimal bal verir. Rəsmiləşdirmə (əmək müqaviləsi / VÖEN) ən təsirli addımdır."
-            : f.gelirNovu === "teqaud"
-            ? "Təqaüd gəliri üçün bal sabitdir — bu blokda dəyişiklik mümkün deyil."
-            : "İş stajı tələb olunan həddə çatanda (rəsmi: 6 ay, digər: 12 ay) bu blok tam bal verir.";
-          break;
-        case "Əlçatanlıq (məbləğ + müddət)":
-          text = `${mebleg > 10000 ? `Məbləğ ${formatNumber(mebleg)} ₼ — kiçik məbləğlər daha yüksək bal alır. ` : ""}${muddet > 36 ? `Müddət ${muddet} ay — 36 aya qədər müddət maksimum bal verir.` : ""}`.trim() || "Parametrlər optimala yaxındır.";
-          break;
-      }
-    }
-    out.push({ icon: icons[b.label], label: b.label, got: b.score, max: b.max, text });
-  }
-  return out;
+/* ─── Общий тир результата ─── */
+function overall(r: ReturnType<typeof calcBankScore>) {
+  if (r.stops.length > 0) return { label: "Uyğun deyil", tone: "high" as Tone, note: "Hazırkı parametrlərlə kredit alma ehtimalı çox aşağıdır." };
+  if (r.score >= 65) return { label: "Yaxşı nəticə", tone: "good" as Tone, note: "Borc yükünüz və əsas göstəriciləriniz normal səviyyədədir." };
+  if (r.score >= 45) return { label: "Orta nəticə", tone: "attention" as Tone, note: "Hazırkı göstəriciləriniz kredit müraciəti üçün əlavə diqqət tələb edir." };
+  return { label: "Zəif nəticə", tone: "risk" as Tone, note: "Kredit profilinizin bir neçə göstəricisi müraciət üçün zəifdir." };
 }
 
 export default function AnalizPage() {
   const [input, setInput] = useState<BankForm | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [simRate, setSimRate] = useState<number | null>(null);
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("navio_scoring_input");
+      const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) setInput(JSON.parse(raw));
     } catch {}
     setLoaded(true);
   }, []);
 
+  const r = useMemo(() => (input ? calcBankScore(input) : null), [input]);
+
   if (!loaded) return <main className="min-h-screen" style={{ background: WASH }} />;
 
-  /* Нет данных расчёта — ведём пройти проверку */
-  if (!input) {
+  /* ─── Fallback: нет данных ─── */
+  if (!input || !r) {
     return (
       <main className="min-h-screen flex items-center justify-center px-4" style={{ background: WASH }}>
         <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center" style={{ border: `1px solid ${LINE}` }}>
           <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: "#EBEFFE", color: BLUE }}>
-            <Lock size={24} />
+            <FileText size={24} />
           </div>
-          <h1 className="text-[18px] font-bold mb-2" style={{ color: NAVY }}>Əvvəlcə yoxlamadan keçin</h1>
+          <h1 className="text-[19px] font-bold mb-2" style={{ color: NAVY }}>Nəticə tapılmadı</h1>
           <p className="text-[14px] mb-5" style={{ color: MUTED }}>
-            Ətraflı analiz üçün əvvəlcə kredit şansınızı hesablayın — nəticə buraya avtomatik ötürülür.
+            Ətraflı analiz yalnız kredit yoxlamasını tamamladıqdan sonra göstərilir.
           </p>
           <Link href="/az/kredit-yoxlama"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
             style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
-            Kredit yoxlamasına keç <ArrowRight size={15} />
+            İlkin yoxlamaya qayıt <ArrowRight size={15} />
           </Link>
         </div>
       </main>
     );
   }
 
-  const r = calcBankScore(input);
-  const tier = scoreTier(r.score);
-  const caps = r.blocks ? activeCaps(input, r.bgn) : [];
-  const rawScore = r.blocks ? r.blocks.reduce((s, b) => s + b.score, 0) : 0;
-  const capApplied = r.blocks && r.score < rawScore;
-  const advice = r.blocks ? blockAdvice(input, r.blocks, r.bgn) : [];
-  const explains = r.stops.length === 0 ? explainResult(input, r) : [];
+  /* ─── Производные значения (только для отображения) ─── */
+  const f = input;
+  const num = (s: string) => Math.max(0, parseFloat(s) || 0);
+  const mebleg = num(f.mebleg);
+  const muddet = Math.max(0, parseInt(f.muddət) || 0);
+  const yas = Math.max(0, parseInt(f.yas) || 0);
+  const cari = Math.max(0, parseInt(f.cariGecikmeGun) || 0);
+  const maks = Math.max(0, parseInt(f.maks12ay) || 0);
+  const income = incomeForScoring(f.gelirNovu, num(f.gelir));
+  const kartStress = annuityPayment(num(f.movcudKartLimit), CONFIG.cardStressMonths, CONFIG.cardStressRate);
+  const currentBgn = income > 0 ? ((num(f.movcudNaqdOdenis) + kartStress) / income) * 100 : 0;
+  const afterBgn = r.bgn;
+  const ageAtEnd = yas + Math.ceil(muddet / 12);
+  const limit = CONFIG.bgnHardStopPct;
+  const stajOk =
+    (f.gelirNovu === "resmi" && (f.isStaji === "6_11" || f.isStaji === "12_plus")) ||
+    ((f.gelirNovu === "fs" || f.gelirNovu === "xarici") && f.isStaji === "12_plus");
+  const hasIncome = income > 0;
+
+  const o = overall(r);
+
+  /* ─── 1. Əsas məhdudiyyətlər (hard-checks) ─── */
+  type Check = { label: string; status: "ok" | "fail" | "na" };
+  const checks: Check[] = [
+    { label: "Yaş tələbi", status: yas >= 18 && ageAtEnd <= CONFIG.maxAgeAtEnd ? "ok" : "fail" },
+    { label: "Borc yükü limiti", status: hasIncome && afterBgn <= limit ? "ok" : "fail" },
+    {
+      label: "Cari iş yerində staj",
+      status: f.gelirNovu === "teqaud" || f.gelirNovu === "qeyri_resmi" ? "na" : stajOk ? "ok" : "fail",
+    },
+    {
+      label: "Kredit xətti limiti",
+      status: f.kreditNovu !== "kart" ? "na" : hasIncome && (mebleg + num(f.movcudKartLimit)) <= income * CONFIG.maxCardLineToIncomeRatio ? "ok" : "fail",
+    },
+  ];
+  const checkView = (s: Check["status"]) =>
+    s === "ok" ? { tone: "good" as Tone, icon: <CheckCircle2 size={15} />, text: "Uyğundur" }
+    : s === "fail" ? { tone: "high" as Tone, icon: <XCircle size={15} />, text: "Uyğun deyil" }
+    : { tone: "na" as Tone, icon: <MinusCircle size={15} />, text: "Tətbiq olunmur" };
+
+  /* ─── 2. Borc yükü analizi ─── */
+  const bgnZone: Tone = afterBgn > limit ? "high" : afterBgn > CONFIG.bgnTierHighPct ? "risk" : afterBgn > CONFIG.bgnTierMidPct ? "attention" : "good";
+  const bgnText = afterBgn > limit
+    ? "Yeni kreditdən sonra borc yükünüz 70% limitini keçir. Bu halda bank müraciəti yüksək riskli hesab edə bilər."
+    : "Yeni kreditdən sonra borc yükünüz yüksəlir. Bu göstərici bankın qiymətləndirməsində əsas risk faktorlarından biridir.";
+
+  /* ─── 3. Nəticəyə təsir edən faktorlar (без цифр) ─── */
+  type Factor = { icon: React.ReactNode; label: string; tone: Tone; status: string; text: string };
+  const bgnFactor: Factor = {
+    icon: <Scale size={17} />, label: "Borc yükü",
+    ...(afterBgn > limit ? { tone: "high" as Tone, status: "Çox yüksək risk" }
+      : afterBgn > CONFIG.bgnTierHighPct ? { tone: "risk" as Tone, status: "Yüksək risk" }
+      : afterBgn > CONFIG.bgnTierMidPct ? { tone: "attention" as Tone, status: "Diqqət tələb edir" }
+      : { tone: "good" as Tone, status: "Müsbət göstərici" }),
+    text: "Yeni kreditdən sonra borc yükünüz bank qiymətləndirməsində mühüm rol oynayır.",
+  };
+  const histFactor: Factor = {
+    icon: <History size={17} />, label: "Kredit tarixçəsi və gecikmələr",
+    ...(cari > 15 || maks >= 120 ? { tone: "high" as Tone, status: "Yüksək risk" }
+      : cari > 0 || maks >= 30 ? { tone: "attention" as Tone, status: "Diqqət tələb edir" }
+      : { tone: "good" as Tone, status: "Müsbət göstərici" }),
+    text: "Aktiv gecikmə və son dövrdə gecikmə halları kredit profilinizə mənfi təsir edə bilər.",
+  };
+  const incomeFactor: Factor = {
+    icon: <BadgeCheck size={17} />, label: "Gəlirin təsdiqi",
+    ...(f.gelirNovu === "qeyri_resmi" ? { tone: "attention" as Tone, status: "Diqqət tələb edir" }
+      : (f.gelirNovu === "resmi" && stajOk) ? { tone: "good" as Tone, status: "Müsbət göstərici" }
+      : { tone: "normal" as Tone, status: "Normal" }),
+    text: "Gəlir növü və təsdiq müddəti bankın gəlir sabitliyini qiymətləndirməsində nəzərə alınır.",
+  };
+  const termsFactor: Factor = {
+    icon: <FileText size={17} />, label: "Kredit şərtləri",
+    ...(muddet > 48 || mebleg > CONFIG.amountCap59Above ? { tone: "attention" as Tone, status: "Diqqət tələb edir" }
+      : { tone: "normal" as Tone, status: "Normal" }),
+    text: "Kredit məbləği, müddət və təxmini faiz aylıq ödənişə və borc yükünə təsir edir.",
+  };
+  const factors: Factor[] = [bgnFactor, histFactor, incomeFactor, termsFactor];
+  if (ageAtEnd > 65) {
+    factors.push({
+      icon: <CalendarClock size={17} />, label: "Pensiya yaşı riski",
+      ...(ageAtEnd > CONFIG.maxAgeAtEnd ? { tone: "high" as Tone, status: "Yüksək risk" } : { tone: "attention" as Tone, status: "Diqqət tələb edir" }),
+      text: "Kredit müddətinin bir hissəsi pensiya yaşından sonrakı dövrə düşə bilər.",
+    });
+  }
+
+  /* ─── 4. Risk faktorları ─── */
+  const highRiskPayment = hasIncome && (afterBgn > CONFIG.bgnTierMidPct || r.remaining != null && r.remaining < subsistenceMin(f.gelirNovu));
+  const risks: string[] = [];
+  if (afterBgn > limit) risks.push("Borc yükü 70%-dən yüksəkdir");
+  else if (afterBgn > CONFIG.bgnTierMidPct) risks.push("Borc yükü yüksək səviyyədədir");
+  if (cari > 0) risks.push(`Cari gecikmə var (${cari} gün)`);
+  if (maks >= 30) risks.push("Son 12 ayda gecikmə müşahidə olunub");
+  if (highRiskPayment) risks.push("Yeni aylıq ödəniş gəlirinizə görə yüksəkdir");
+  if (muddet > 48) risks.push("Kredit müddəti uzun olduğuna görə ümumi xərc arta bilər");
+  if (f.gelirNovu === "qeyri_resmi") risks.push("Gəlirin rəsmi təsdiqi yoxdur");
+  if (ageAtEnd > CONFIG.maxAgeAtEnd) risks.push(`Müddətin sonunda yaşınız ${ageAtEnd} olur — limitdən yuxarıdır`);
+
+  /* ─── 5. Tövsiyələr ─── */
+  type Rec = { icon: React.ReactNode; title: string; text: string };
+  const recs: Rec[] = [];
+  if (afterBgn > CONFIG.bgnTierMidPct || mebleg > CONFIG.amountCap79Above)
+    recs.push({ icon: <TrendingDown size={17} />, title: "Kredit məbləğini azaldın", text: "Daha aşağı məbləğ aylıq ödənişi və borc yükünü azalda bilər." });
+  if (num(f.movcudNaqdOdenis) > 0 || num(f.movcudKartLimit) > 0)
+    recs.push({ icon: <CreditCard size={17} />, title: "Mövcud öhdəlikləri azaldın", text: "Cari kredit ödənişlərinin azalması yeni kredit üçün profilinizi yaxşılaşdıra bilər." });
+  if (cari > 0) {
+    recs.push({ icon: <Clock size={17} />, title: "Cari gecikməni bağlayın", text: "Aktiv gecikmə kredit profilinizə mənfi təsir edir." });
+    recs.push({ icon: <CalendarRange size={17} />, title: "Müraciəti gecikmədən sonra edin", text: "Aktiv gecikmə bağlandıqdan sonra nəticəniz daha yaxşı görünə bilər." });
+  }
+  if (muddet <= 48)
+    recs.push({ icon: <CalendarRange size={17} />, title: "Müddəti yenidən yoxlayın", text: "Müddəti artırmaq aylıq ödənişi azalda bilər, amma ümumi faiz xərcini artıra bilər." });
+  if (f.gelirNovu === "qeyri_resmi")
+    recs.push({ icon: <BadgeCheck size={17} />, title: "Gəliri rəsmiləşdirin", text: "Rəsmi gəlir təsdiqi (əmək müqaviləsi / VÖEN) profilinizi əhəmiyyətli gücləndirir." });
+  if (recs.length === 0)
+    recs.push({ icon: <Sparkles size={17} />, title: "Profiliniz yaxşı vəziyyətdədir", text: "Ödənişləri vaxtında etməyə davam edin — bu, kredit profilinizi güclü saxlayır." });
+
+  /* ─── 6. Faiz simulyasiyası ─── */
+  const baseRate = r.estimatedRate != null ? r.estimatedRate : (parseFloat(f.faiz) || 24);
+  const rate = simRate ?? Math.min(35, Math.max(5, baseRate));
+  const simPayment = annuityPayment(mebleg, muddet, rate);
+  const simTotal = num(f.movcudNaqdOdenis) + kartStress + simPayment;
+  const simBgn = hasIncome ? (simTotal / income) * 100 : 999;
+  const simTone: Tone = simBgn > limit ? "high" : simBgn > CONFIG.bgnTierHighPct ? "risk" : simBgn > CONFIG.bgnTierMidPct ? "attention" : "good";
+  const simStatus = simBgn > limit ? "Uyğun deyil" : simBgn > CONFIG.bgnTierMidPct ? "Diqqət tələb edir" : "Normal";
+  const rateTooLow = rate < baseRate - 0.01;
+
+  const metrics = [
+    { label: "BGN", value: hasIncome ? `${afterBgn.toFixed(1)}%` : "—" },
+    { label: "Yeni aylıq ödəniş", value: r.yeniOdenis > 0 ? `${formatNumber(Math.round(r.yeniOdenis))} ₼` : "—" },
+    { label: "Təxmini faiz", value: r.estimatedRate != null ? `${r.estimatedRate.toFixed(1)}%` : `${parseFloat(f.faiz) || 24}%` },
+    { label: "Qalan məbləğ", value: r.remaining != null ? `${formatNumber(Math.round(r.remaining))} ₼` : "—" },
+  ];
 
   return (
     <main className="min-h-screen" style={{ background: WASH }}>
-      <div className="max-w-[880px] mx-auto px-4 sm:px-6 py-8">
-        {/* Breadcrumb + back */}
-        <div className="flex items-center gap-2 text-sm mb-6" style={{ color: MUTED }}>
+      <div className="max-w-[900px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-[13px] mb-5 flex-wrap" style={{ color: MUTED }}>
           <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
           <Link href="/az/kredit-yoxlama" className="hover:text-blue-600">Kredit yoxlaması</Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} />
           <span style={{ color: NAVY }}>Ətraflı analiz</span>
         </div>
 
-        <h1 className="font-extrabold mb-2" style={{ color: NAVY, fontSize: "clamp(26px,3.6vw,34px)", letterSpacing: "-.02em" }}>
-          Nəticənizin ətraflı analizi
+        <h1 className="font-extrabold mb-1.5" style={{ color: NAVY, fontSize: "clamp(24px,3.4vw,32px)", letterSpacing: "-.02em" }}>
+          Kredit yoxlaması nəticəsi
         </h1>
-        <p className="text-[15px] mb-8" style={{ color: MUTED }}>
-          Balınızın necə formalaşdığını görün və onu artırmaq üçün konkret addımları öyrənin.
+        <p className="text-[14.5px] mb-6" style={{ color: MUTED }}>
+          Nəticənizin necə formalaşdığını görün və onu yaxşılaşdırmaq üçün konkret addımları öyrənin.
         </p>
 
-        {/* ── Итог ── */}
-        <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
-          {r.stops.length > 0 ? (
-            <div className="flex items-start gap-3">
-              <span className="w-11 h-11 rounded-xl grid place-items-center shrink-0" style={{ background: "#fee2e2", color: "#dc2626" }}>
-                <XCircle size={22} />
-              </span>
-              <div>
-                <p className="text-[17px] font-bold mb-1" style={{ color: NAVY }}>Hazırda bu parametrlərlə kredit mümkün deyil</p>
-                {r.stops.map((s) => (
-                  <p key={s} className="text-[14px] mb-1" style={{ color: MUTED }}>• {s}</p>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="w-24 h-24 rounded-full grid place-items-center shrink-0"
-                style={{ background: `conic-gradient(${tier.color} ${r.score}%, ${LINE} 0)` }}>
-                <div className="w-[76px] h-[76px] rounded-full bg-white grid place-items-center">
-                  <span className="text-[26px] font-extrabold" style={{ color: NAVY }}>{r.score}</span>
+        {/* ── Hero / summary ── */}
+        <section className="rounded-2xl bg-white p-5 sm:p-6 mb-4" style={{ border: `1px solid ${LINE}`, boxShadow: "0 1px 2px rgba(16,31,68,.04)" }}>
+          <div className="flex flex-col md:flex-row md:items-center gap-5">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="w-12 h-12 rounded-2xl grid place-items-center shrink-0" style={{ background: TONE[o.tone].bg, color: TONE[o.tone].fg }}>
+                  {o.tone === "high" ? <XCircle size={24} /> : o.tone === "good" ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />}
+                </span>
+                <div>
+                  <Badge tone={o.tone}>{o.label}</Badge>
+                  <p className="text-[26px] font-extrabold leading-none mt-1.5" style={{ color: NAVY }}>
+                    {r.score}<span className="text-[15px] font-semibold" style={{ color: MUTED }}> / 100</span>
+                  </p>
                 </div>
               </div>
-              <div className="flex-1 min-w-[220px]">
-                <span className="inline-block text-[13px] font-bold px-3 py-1 rounded-full mb-2" style={{ background: tier.soft, color: tier.color }}>
-                  {tier.name}
-                </span>
-                <p className="text-[14px]" style={{ color: MUTED }}>
-                  Amillər üzrə toplanmış bal: <b style={{ color: NAVY }}>{rawScore} / 100</b>
-                  {capApplied && <> · məhdudlaşdırıcı amillərlə son nəticə: <b style={{ color: NAVY }}>{r.score}</b></>}
-                </p>
-                {r.estimatedRate != null && (
-                  <p className="text-[14px] mt-1" style={{ color: MUTED }}>
-                    Təxmini illik faiz: <b style={{ color: NAVY }}>{r.estimatedRate.toFixed(1)}%</b>
-                    {r.commission.amount > 0 && <> · birdəfəlik komissiya: <b style={{ color: NAVY }}>{formatNumber(r.commission.amount)} ₼</b></>}
-                  </p>
-                )}
-              </div>
+              {r.stops.length > 0 && (
+                <p className="text-[14px] font-semibold mb-1" style={{ color: TONE.high.fg }}>{r.stops[0]}</p>
+              )}
+              <p className="text-[13.5px] leading-relaxed" style={{ color: MUTED }}>{o.note}</p>
             </div>
-          )}
-        </div>
 
-        {/* ── Все предупреждения (полный список) ── */}
-        {r.warnings.length > 0 && (
-          <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#FEF3E2", color: "#D97706" }}>
-                <AlertTriangle size={16} />
-              </span>
-              <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Diqqət yetiriləsi məqamlar</h2>
-            </div>
-            <div className="space-y-2.5">
-              {r.warnings.map((w, i) => (
-                <div key={i} className="flex items-start gap-2 rounded-xl p-3" style={{ background: "#FEF9F3", border: "1px solid #FADFA6" }}>
-                  <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: "#D97706" }} />
-                  <p className="text-[13px] leading-relaxed" style={{ color: "#7a5a1e" }}>{w}</p>
+            {/* Метрики */}
+            <div className="grid grid-cols-2 gap-2.5 md:w-[300px] shrink-0">
+              {metrics.map((m) => (
+                <div key={m.label} className="rounded-xl p-3" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                  <p className="text-[11.5px] font-medium mb-0.5" style={{ color: MUTED }}>{m.label}</p>
+                  <p className="text-[16px] font-extrabold" style={{ color: NAVY }}>{m.value}</p>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </section>
 
-        {r.blocks && (
-          <>
-            {/* ── Ограничители ── */}
-            {caps.length > 0 && (
-              <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#FEF3E2", color: "#D97706" }}>
-                    <AlertTriangle size={16} />
-                  </span>
-                  <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Nəticəni məhdudlaşdıran amillər</h2>
+        {/* ── 1. Əsas məhdudiyyətlər ── */}
+        <SectionCard n={1} title="Əsas məhdudiyyətlər" icon={<BadgeCheck size={17} />}>
+          <div className="divide-y" style={{ borderColor: LINE }}>
+            {checks.map((c) => {
+              const v = checkView(c.status);
+              return (
+                <div key={c.label} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <span className="text-[14px] font-medium" style={{ color: NAVY }}>{c.label}</span>
+                  <Badge tone={v.tone}>{v.icon} {v.text}</Badge>
                 </div>
-                <div className="space-y-3">
-                  {caps.map((c) => (
-                    <div key={c.reason} className="rounded-xl p-4" style={{ background: "#FEF9F3", border: "1px solid #FADFA6" }}>
-                      <div className="flex items-center justify-between gap-3 mb-1">
-                        <p className="text-[14px] font-semibold" style={{ color: "#8A5A00" }}>{c.reason}</p>
-                        <span className="shrink-0 text-[12px] font-bold px-2 py-0.5 rounded-full bg-white" style={{ color: "#D97706", border: "1px solid #FADFA6" }}>
-                          maks. {c.cap} bal
-                        </span>
-                      </div>
-                      <p className="text-[13px] leading-relaxed" style={{ color: "#7a5a1e" }}>{c.advice}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              );
+            })}
+          </div>
+        </SectionCard>
 
-            {/* ── Разбор по блокам ── */}
-            <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#EBEFFE", color: BLUE }}>
-                  <TrendingUp size={16} />
-                </span>
-                <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Balın formalaşması — amillər üzrə</h2>
-              </div>
-              <div className="space-y-5">
-                {advice.map((a) => (
-                  <div key={a.label}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span style={{ color: a.got === a.max ? MINT : MUTED }}>{a.icon}</span>
-                        <span className="text-[14px] font-semibold" style={{ color: NAVY }}>{a.label}</span>
-                      </div>
-                      <span className="text-[13px] font-bold" style={{ color: a.got === a.max ? MINT : NAVY }}>
-                        {a.got} / {a.max}
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full overflow-hidden mb-2" style={{ background: WASH }}>
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${(a.got / a.max) * 100}%`, background: a.got === a.max ? MINT : BLUE }} />
-                    </div>
-                    <p className="text-[13px] leading-relaxed" style={{ color: MUTED }}>{a.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Разбор кейса (explainResult) ── */}
-            {explains.length > 0 && (
-              <div className="rounded-2xl bg-white p-6 mb-5" style={{ border: `1px solid ${LINE}` }}>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "#EBEFFE", color: BLUE }}>
-                    <Lightbulb size={16} />
-                  </span>
-                  <h2 className="text-[16px] font-bold" style={{ color: NAVY }}>Nəticənin izahı</h2>
-                </div>
-                <div className="space-y-3">
-                  {explains.map((it) => (
-                    <div key={it.title} className="rounded-xl p-4" style={{ background: WASH, border: `1px solid ${LINE}` }}>
-                      <p className="text-[14px] font-semibold mb-1" style={{ color: NAVY }}>{it.title}</p>
-                      <p className="text-[13px] leading-relaxed" style={{ color: MUTED }}>{it.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── План действий ── */}
-            <div className="rounded-2xl p-6 mb-5 text-white relative overflow-hidden"
-              style={{ background: `linear-gradient(155deg, ${NAVY} 0%, #12306B 100%)` }}>
-              <div className="flex items-center gap-2 mb-4 relative">
-                <span className="w-8 h-8 rounded-lg grid place-items-center" style={{ background: "rgba(255,255,255,.12)" }}>
-                  <Lightbulb size={16} />
-                </span>
-                <h2 className="text-[16px] font-bold">Şansı artırmaq üçün addımlar</h2>
-              </div>
-              <div className="space-y-2.5 relative">
+        {/* ── 2. Borc yükü analizi ── */}
+        {hasIncome && (
+          <SectionCard n={2} title="Borc yükü analizi" icon={<Scale size={17} />}>
+            <div className="grid md:grid-cols-2 gap-5 items-center">
+              <div className="space-y-2 text-[13.5px]">
                 {[
-                  ...caps.map((c) => c.advice),
-                  "Əmək haqqınızı aldığınız banka müraciət etsəniz, şansınız adətən daha yüksək olur.",
-                ].filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 5).map((t, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <CheckCircle2 size={16} className="shrink-0 mt-0.5" style={{ color: "#8FB0FF" }} />
-                    <p className="text-[13.5px] leading-relaxed" style={{ color: "#D6DEF5" }}>{t}</p>
+                  ["Cari borc yükü", `${currentBgn.toFixed(1)}%`],
+                  ["Yeni kreditdən sonra", `${afterBgn.toFixed(1)}%`],
+                  ["Limit", `${limit}%`],
+                  ["Yeni aylıq ödəniş", `${formatNumber(Math.round(r.yeniOdenis))} ₼`],
+                  ["Gəlirdən sonra qalan məbləğ", r.remaining != null ? `${formatNumber(Math.round(r.remaining))} ₼` : "—"],
+                  ["Hesablamada istifadə olunan faiz", r.estimatedRate != null ? `${r.estimatedRate.toFixed(1)}%` : `${parseFloat(f.faiz) || 24}%`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between gap-3">
+                    <span style={{ color: MUTED }}>{k}</span>
+                    <span className="font-bold" style={{ color: NAVY }}>{v}</span>
                   </div>
                 ))}
               </div>
+
+              {/* Range bar */}
+              <div>
+                <div className="relative h-3 rounded-full overflow-hidden" style={{ background: "linear-gradient(to right, #DCFCE7 0%, #DCFCE7 45%, #FEF3C7 45%, #FEF3C7 70%, #FEE2E2 70%, #FEE2E2 100%)" }}>
+                  {/* limit tick */}
+                  <div className="absolute top-0 bottom-0" style={{ left: `${limit}%`, width: 2, background: "#B7791F" }} />
+                </div>
+                {/* markers */}
+                <div className="relative mt-1 h-5 text-[11px]">
+                  <div className="absolute -translate-x-1/2" style={{ left: `${Math.min(100, Math.max(0, currentBgn))}%` }}>
+                    <span className="block w-2 h-2 rounded-full mx-auto" style={{ background: BLUE }} />
+                  </div>
+                  <div className="absolute -translate-x-1/2 font-bold" style={{ left: `${Math.min(100, Math.max(0, afterBgn))}%`, color: TONE[bgnZone].fg }}>
+                    <span className="block w-2.5 h-2.5 rounded-full mx-auto mb-0.5" style={{ background: TONE[bgnZone].fg }} />
+                  </div>
+                </div>
+                <div className="flex justify-between text-[11px] mt-0.5" style={{ color: MUTED }}>
+                  <span>0%</span><span>Limit {limit}%</span><span>100%</span>
+                </div>
+                <div className="flex items-center gap-4 text-[11.5px] mt-2" style={{ color: MUTED }}>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: BLUE }} /> Cari</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: TONE[bgnZone].fg }} /> Yeni kreditdən sonra</span>
+                </div>
+              </div>
             </div>
-          </>
+            <div className="mt-4 rounded-xl p-3 flex items-start gap-2 text-[13px] leading-relaxed"
+              style={{ background: bgnZone === "high" ? TONE.high.bg : WASH, color: bgnZone === "high" ? "#8A2020" : MUTED }}>
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: bgnZone === "high" ? TONE.high.fg : "#B7791F" }} />
+              <p>{bgnText}</p>
+            </div>
+          </SectionCard>
         )}
 
-        {/* ── Навигация ── */}
-        <div className="flex flex-wrap gap-3">
+        {/* ── 3. Nəticəyə təsir edən faktorlar ── */}
+        <SectionCard n={3} title="Nəticəyə təsir edən faktorlar" icon={<Sparkles size={17} />}>
+          <div className="space-y-2.5">
+            {factors.map((ft) => (
+              <div key={ft.label} className="rounded-xl p-3.5" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <span className="flex items-center gap-2 text-[14px] font-semibold" style={{ color: NAVY }}>
+                    <span style={{ color: TONE[ft.tone].fg }}>{ft.icon}</span> {ft.label}
+                  </span>
+                  <Badge tone={ft.tone}>{ft.status}</Badge>
+                </div>
+                <p className="text-[13px] leading-relaxed" style={{ color: MUTED }}>{ft.text}</p>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* ── 4. Risk faktorları ── */}
+        {risks.length > 0 && (
+          <SectionCard n={4} title="Risk faktorları" icon={<AlertTriangle size={17} />}>
+            <div className="grid sm:grid-cols-2 gap-2.5">
+              {risks.map((rk, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-xl p-3 text-[13px]" style={{ background: TONE.high.bg, color: "#8A2020" }}>
+                  <XCircle size={15} className="shrink-0 mt-0.5" style={{ color: TONE.high.fg }} />
+                  <p>{rk}</p>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* ── 5. Tövsiyələr ── */}
+        <SectionCard n={5} title="Kredit profilinizi yaxşılaşdırmaq üçün addımlar" icon={<Lightbulb size={17} />}>
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {recs.map((rc) => (
+              <div key={rc.title} className="rounded-xl p-3.5 flex items-start gap-3" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                <span className="w-8 h-8 rounded-lg grid place-items-center shrink-0" style={{ background: "#EBEFFE", color: BLUE }}>{rc.icon}</span>
+                <div>
+                  <p className="text-[13.5px] font-bold mb-0.5" style={{ color: NAVY }}>{rc.title}</p>
+                  <p className="text-[12.5px] leading-relaxed" style={{ color: MUTED }}>{rc.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        {/* ── 6. Faiz simulyasiyası ── */}
+        {hasIncome && mebleg > 0 && muddet > 0 && (
+          <SectionCard n={6} title="Faiz dəyişsə, nəticə necə dəyişər?" icon={<Calculator size={17} />}>
+            <p className="text-[13px] leading-relaxed mb-4" style={{ color: MUTED }}>
+              Navio hesablamada təxmini faiz istifadə edir. Faizi dəyişərək aylıq ödənişin və borc yükünün necə dəyişdiyini görə bilərsiniz. Bu, əsas nəticəni əvəz etmir.
+            </p>
+            <SliderRow label="Seçilmiş faiz" value={Number(rate.toFixed(1))} min={5} max={35} step={0.5}
+              format={(v) => `${v}%`} unit="%" onChange={(v) => setSimRate(v)} />
+            <div className="grid grid-cols-3 gap-2.5 mt-4">
+              <div className="rounded-xl p-3" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                <p className="text-[11.5px] font-medium mb-0.5" style={{ color: MUTED }}>Aylıq ödəniş</p>
+                <p className="text-[15px] font-extrabold" style={{ color: NAVY }}>{formatNumber(Math.round(simPayment))} ₼</p>
+              </div>
+              <div className="rounded-xl p-3" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                <p className="text-[11.5px] font-medium mb-0.5" style={{ color: MUTED }}>BGN</p>
+                <p className="text-[15px] font-extrabold" style={{ color: TONE[simTone].fg }}>{simBgn.toFixed(1)}%</p>
+              </div>
+              <div className="rounded-xl p-3" style={{ background: WASH, border: `1px solid ${LINE}` }}>
+                <p className="text-[11.5px] font-medium mb-0.5" style={{ color: MUTED }}>Nəticə</p>
+                <p className="text-[13px] font-extrabold mt-1" style={{ color: TONE[simTone].fg }}>{simStatus}</p>
+              </div>
+            </div>
+            {rateTooLow && (
+              <div className="mt-3 rounded-xl p-3 flex items-start gap-2 text-[12.5px] leading-relaxed" style={{ background: TONE.attention.bg, color: "#7a5a1e" }}>
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" style={{ color: "#B7791F" }} />
+                <p>Bu faiz seçilmiş kredit növü və müddət üçün real bank təklifindən aşağı ola bilər. Bu nəticəyə yalnız simulyasiya kimi baxın.</p>
+              </div>
+            )}
+          </SectionCard>
+        )}
+
+        {/* ── CTA ── */}
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-2">
           <Link href="/az/kredit-yoxlama"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-sm bg-white transition-colors"
-            style={{ border: `1px solid ${LINE}`, color: NAVY }}>
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
+            style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
             <ArrowLeft size={15} /> Yenidən hesabla
           </Link>
           <Link href="/az/calculators"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
-            style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
-            Ödənişi kalkulyatorda hesabla <ArrowRight size={15} />
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-sm bg-white"
+            style={{ border: `1px solid ${LINE}`, color: NAVY }}>
+            <Calculator size={15} /> Ödənişi kalkulyatorda hesabla
+          </Link>
+          <Link href="/az/financial-assistant"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-sm"
+            style={{ color: BLUE }}>
+            <BookOpen size={15} /> Maliyyə köməkçisində oxu
           </Link>
         </div>
 
-        <p className="text-[12px] mt-6" style={{ color: MUTED }}>
-          Nəticələr ilkin qiymətləndirmə xarakteri daşıyır. Yekun qərarı bank verir. Navio heç bir kredit vermir.
+        <p className="text-[12px] mt-6 leading-relaxed" style={{ color: MUTED }}>
+          Bu nəticə ilkin qiymətləndirmədir. Yekun qərarı bank/BOKT verir. Navio heç bir kredit vermir və kredit təsdiqinə zəmanət vermir.
         </p>
       </div>
     </main>
