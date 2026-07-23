@@ -211,7 +211,7 @@ export default function HomePage() {
           <div className="max-w-[640px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
             <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>3 sadə addım</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Necə işləyir?</h2>
-            <p className="text-[17px]" style={{ color: MUTED }}>Cəmi bir neçə dəqiqəyə kredit almaq şansınızı öyrənin və fərdi tövsiyələr alın.</p>
+            <p className="text-[17px]" style={{ color: MUTED }}>Bir neçə dəqiqə ərzində ilkin nəticəni görün və profilinizi yaxşılaşdırmaq üçün tövsiyələr alın.</p>
           </div>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Пунктирная база линии */}
@@ -223,13 +223,13 @@ export default function HomePage() {
             </div>
             {[
               { num: 1, icon: <ClipboardList size={26} />, color: "#2447F0", soft: "#EBEFFE", glow: "rgba(36,71,240,.6)", delay: 0,
-                title: "Məlumatlarınızı daxil edin", desc: "Sadə formu doldurun: əməkhaqqınız, mövcud borclarınız və istədiyiniz kredit məbləği.",
+                title: "Məlumatlarınızı daxil edin", desc: "Gəliriniz, mövcud öhdəlikləriniz və istədiyiniz kredit məbləği haqqında əsas məlumatları qeyd edin.",
                 pillIcon: <Clock size={14} />, pill: "Təxminən 2–3 dəqiqə" },
               { num: 2, icon: <BarChart3 size={26} />, color: "#0BB07B", soft: "#E7F7F1", glow: "rgba(11,176,123,.6)", delay: 1.35,
-                title: "Kredit profilinizi qiymətləndiririk", desc: "Sistem məlumatlarınızı analiz edir, bank qaydaları əsasında kredit şansınızı hesablayır.",
+                title: "Kredit profiliniz hesablanır", desc: "Məlumatlarınız borc yükü, gəlir və kredit risk faktorları üzrə qiymətləndirilir.",
                 pillIcon: <ShieldCheck size={14} />, pill: "Banklara sorğu göndərilmir" },
               { num: 3, icon: <Target size={26} />, color: "#7C3AED", soft: "#F1EBFE", glow: "rgba(124,58,237,.6)", delay: 2.7,
-                title: "Nəticənizi alın", desc: "Kredit şansınızı, əsas amilləri və şansınızı artırmaq üçün tövsiyələri görün.",
+                title: "Nəticə və tövsiyələri görün", desc: "İlkin nəticəni, əsas təsir edən faktorları və praktik tövsiyələri əldə edin.",
                 pillIcon: <FileText size={14} />, pill: "Fərdi nəticə və tövsiyələr" },
             ].map((s) => (
               <div key={s.num} className="flex flex-col items-center text-center relative">
@@ -259,7 +259,7 @@ export default function HomePage() {
           <div className="max-w-[680px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
             <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>Bütün ehtiyaclarınız bir yerdə</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Navio sizə necə kömək edir?</h2>
-            <p className="text-[17px]" style={{ color: MUTED }}>Kredit almazdan əvvəl hazır olun, daha ağıllı qərarlar verin və maliyyənizi idarə edin.</p>
+            <p className="text-[17px]" style={{ color: MUTED }}>Kredit almadan əvvəl hazır olun, ödənişləri planlaşdırın və qərarınızı daha aydın verin.</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
@@ -267,8 +267,8 @@ export default function HomePage() {
             {/* Card 1 — Kredit şansı */}
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
               <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: BLUE_SOFT, color: BLUE }}><PieChart size={24} /></span>
-              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit alma şansınızı bilin</h3>
-              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq şansınızı yoxlayın və güclü tərəflərinizi görün.</p>
+              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit profilinizi yoxlayın</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı və əsas risk faktorlarını görün.</p>
 
               <div className="rounded-2xl p-4 mb-5" style={{ background: WASH }}>
                 <div className="flex items-center gap-4 mb-4">
@@ -278,12 +278,12 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm font-bold" style={{ color: NAVY }}>Kredit şansı balı</p>
+                    <p className="text-sm font-bold" style={{ color: NAVY }}>Kredit profili</p>
                     <p className="text-[13px] font-semibold" style={{ color: MINT }}>Yaxşı nəticə</p>
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  {["Bankların dəyərləndirdiyi amillər", "Risk səviyyəsi və tövsiyələr", "Kredit tarixçəsinə təsir etmir"].map((t) => (
+                  {["Bankların dəyərləndirdiyi amillər", "Risk səviyyəsi və tövsiyələr", "Banklara sorğu göndərilmir"].map((t) => (
                     <div key={t} className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
                       <CheckCircle2 size={15} style={{ color: MINT }} className="shrink-0" /> {t}
                     </div>
@@ -297,7 +297,7 @@ export default function HomePage() {
                   style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.30)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}>
-                  Kredit şansımı yoxla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+                  İlkin yoxlamaya başla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </Link>
                 <span className="text-[12.5px]" style={{ color: MUTED }}>3 dəqiqə • Pulsuz</span>
               </div>
@@ -307,7 +307,7 @@ export default function HomePage() {
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
               <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: MINT_SOFT, color: MINT }}><Calculator size={24} /></span>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
-              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və sizin üçün ən sərfəli variantı seçin.</p>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
               <div className="rounded-2xl p-4 mb-4" style={{ background: WASH }}>
                 <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
@@ -350,8 +350,8 @@ export default function HomePage() {
             {/* Card 3 — Bilik bazası */}
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
               <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: "#F1EBFE", color: "#7C3AED" }}><BookOpen size={24} /></span>
-              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Doğru məlumatla qərar verin</h3>
-              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Maliyyə ilə bağlı suallarınıza sadə və aydın cavablar tapın.</p>
+              <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit suallarına sadə cavablar alın</h3>
+              <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Borc yükü, kredit tarixçəsi, gecikmə və bank tələbləri haqqında aydın izahlar tapın.</p>
 
               <div className="space-y-2 mb-5">
                 {[
