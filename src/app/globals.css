@@ -61,3 +61,61 @@ body {
   .step-charge { width: 100%; opacity: 1; animation: none; }
   .step-icon { animation: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Home service-card mini-scenes (decorative, CSS-only, ~3.5–4s loops)
+   Base state = final/visible; keyframes add the intro/outro.
+   Compositor-friendly (opacity/transform) → no layout shift.
+   ───────────────────────────────────────────────────────────── */
+
+/* 1 · Kredit profili */
+.nv-cc-arc { stroke-dashoffset: 45.8; animation: nvCcArc 3.5s ease-in-out infinite; }
+@keyframes nvCcArc { 0% { stroke-dashoffset: 163.4; } 26%, 88% { stroke-dashoffset: 45.8; } 100% { stroke-dashoffset: 163.4; } }
+.nv-cc-num { opacity: 0; animation: nvCcNum 3.5s ease-in-out infinite; }
+@keyframes nvCcNum { 0% { opacity: 0; transform: scale(.7); } 24% { opacity: 1; transform: scale(1); } 90% { opacity: 1; } 100% { opacity: 0; } }
+.nv-fade-up { opacity: 0; animation: nvFadeUp 3.5s ease-in-out infinite; }
+@keyframes nvFadeUp { 0%, 18% { opacity: 0; transform: translateY(5px); } 34%, 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; } }
+.nv-cc-row { opacity: 0; animation: nvCcRow 3.5s ease-in-out infinite; }
+@keyframes nvCcRow { 0% { opacity: 0; transform: translateX(-5px); } 22% { opacity: 1; transform: translateX(0); } 92% { opacity: 1; } 100% { opacity: 0; } }
+
+/* 2 · Kalkulyator */
+.nv-calc-optA { animation: nvHiA 4s ease-in-out infinite; }
+.nv-calc-optB { animation: nvHiB 4s ease-in-out infinite; }
+@keyframes nvHiA { 0%, 42% { border-color: #2447F0; background: #EBEFFE; } 52%, 100% { border-color: #E3E8F1; background: #fff; } }
+@keyframes nvHiB { 0%, 42% { border-color: #E3E8F1; background: #fff; } 52%, 100% { border-color: #2447F0; background: #EBEFFE; } }
+.nv-calc-dot { left: 78%; animation: nvSlide 4s ease-in-out infinite; }
+@keyframes nvSlide { 0%, 100% { left: 12%; } 50% { left: 78%; } }
+.nv-val { opacity: 0; animation: nvVal 4s linear infinite; }
+@keyframes nvVal { 0% { opacity: 0; } 4% { opacity: 1; } 28% { opacity: 1; } 33% { opacity: 0; } 100% { opacity: 0; } }
+.nv-calc-refresh { animation: nvPulse 2s ease-in-out infinite; }
+@keyframes nvPulse { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.05); } }
+
+/* 3 · Maliyyə köməkçisi */
+.nv-q { opacity: 0; animation: nvQ 4s ease-in-out infinite; }
+@keyframes nvQ { 0% { opacity: 0; transform: translateY(6px); } 12%, 100% { opacity: 1; transform: translateY(0); } }
+.nv-typing { opacity: 0; animation: nvTyping 4s ease-in-out infinite; }
+@keyframes nvTyping { 0%, 15% { opacity: 0; } 20%, 40% { opacity: 1; } 46%, 100% { opacity: 0; } }
+.nv-a { opacity: 0; animation: nvA 4s ease-in-out infinite; }
+@keyframes nvA { 0%, 42% { opacity: 0; transform: translateY(6px); } 56%, 100% { opacity: 1; transform: translateY(0); } }
+.nv-spark { opacity: 0; animation: nvSpark 4s ease-in-out infinite; }
+@keyframes nvSpark { 0%, 64% { opacity: 0; transform: scale(.5); } 80%, 100% { opacity: 1; transform: scale(1); } }
+.nv-dot1 { animation: nvBounce 1s ease-in-out infinite; }
+.nv-dot2 { animation: nvBounce 1s ease-in-out .15s infinite; }
+.nv-dot3 { animation: nvBounce 1s ease-in-out .3s infinite; }
+@keyframes nvBounce { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(-3px); opacity: 1; } }
+
+/* Reduced motion: freeze every mini-scene at a readable static state */
+@media (prefers-reduced-motion: reduce) {
+  .nv-cc-arc { stroke-dashoffset: 45.8; animation: none; }
+  .nv-cc-num, .nv-fade-up, .nv-cc-row { opacity: 1; transform: none; animation: none; }
+  .nv-calc-optA { border-color: #2447F0; background: #EBEFFE; animation: none; }
+  .nv-calc-optB { border-color: #E3E8F1; background: #fff; animation: none; }
+  .nv-calc-dot { left: 78%; animation: none; }
+  .nv-val { animation: none; }
+  .nv-val-first { opacity: 1; }
+  .nv-calc-refresh { opacity: 1; transform: none; animation: none; }
+  .nv-q, .nv-a { opacity: 1; transform: none; animation: none; }
+  .nv-spark { opacity: 1; transform: none; animation: none; }
+  .nv-typing { display: none; animation: none; }
+  .nv-dot1, .nv-dot2, .nv-dot3 { animation: none; }
+}
