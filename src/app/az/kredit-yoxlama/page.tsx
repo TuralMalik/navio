@@ -396,7 +396,7 @@ function KreditYoxlamaContent() {
                   hasStops: (r as { stops?: string[] }).stops?.length ? "yes" : "no",
                 });
                 // Вход расчёта для страницы детального анализа
-                try { sessionStorage.setItem("navio_scoring_input", JSON.stringify(bank)); } catch {}
+                try { sessionStorage.setItem("navioCreditCheckResult", JSON.stringify(bank)); } catch {}
                 setTimeout(() => { setPressed(false); setSubmitted(true); }, 350);
               }}
               disabled={pressed}
