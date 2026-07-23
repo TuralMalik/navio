@@ -18,10 +18,10 @@ import {
   FileText,
   PieChart,
   BookOpen,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
 } from "lucide-react";
+import { AnimatedCreditCheckIcon } from "@/components/home/animated-icons/AnimatedCreditCheckIcon";
+import { AnimatedCalculatorIcon } from "@/components/home/animated-icons/AnimatedCalculatorIcon";
+import { AnimatedAssistantIcon } from "@/components/home/animated-icons/AnimatedAssistantIcon";
 
 const faqs = [
   { q: "Navio kredit verir?", a: "Xeyr. Biz sadəcə məlumat platformasıyıq. Kredit qərarını yalnız bank qəbul edir." },
@@ -270,25 +270,8 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit profilinizi yoxlayın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı və əsas risk faktorlarını görün.</p>
 
-              <div className="rounded-2xl p-4 mb-5" style={{ background: WASH }}>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-full grid place-items-center shrink-0" style={{ background: `conic-gradient(${BLUE} 72%, ${LINE} 0)` }}>
-                    <div className="w-[52px] h-[52px] rounded-full bg-white grid place-items-center">
-                      <span className="text-[18px] font-extrabold" style={{ color: NAVY }}>72</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: NAVY }}>Kredit profili</p>
-                    <p className="text-[13px] font-semibold" style={{ color: MINT }}>Yaxşı nəticə</p>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  {["Bankların dəyərləndirdiyi amillər", "Risk səviyyəsi və tövsiyələr", "Banklara sorğu göndərilmir"].map((t) => (
-                    <div key={t} className="flex items-center gap-2 text-[13px]" style={{ color: MUTED }}>
-                      <CheckCircle2 size={15} style={{ color: MINT }} className="shrink-0" /> {t}
-                    </div>
-                  ))}
-                </div>
+              <div className="mb-5">
+                <AnimatedCreditCheckIcon />
               </div>
 
               <div className="mt-auto flex items-center gap-3">
@@ -309,33 +292,21 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
-              <div className="rounded-2xl p-4 mb-4" style={{ background: WASH }}>
-                <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-                  <div className="rounded-xl bg-white p-3" style={{ border: `1px solid ${LINE}` }}>
-                    <Clock size={16} style={{ color: MINT }} className="mb-1.5" />
-                    <p className="text-[12.5px] font-bold" style={{ color: NAVY }}>Aylıq ödənişi azaldın</p>
-                    <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>Aylıq yükünüzü azaldın</p>
-                  </div>
-                  <span className="self-center text-[11px] font-bold" style={{ color: MUTED }}>vs</span>
-                  <div className="rounded-xl bg-white p-3" style={{ border: `1px solid ${LINE}` }}>
-                    <CalendarDays size={16} style={{ color: BLUE }} className="mb-1.5" />
-                    <p className="text-[12.5px] font-bold" style={{ color: NAVY }}>Müddəti azaldın</p>
-                    <p className="text-[11.5px] mt-0.5" style={{ color: MUTED }}>Daha az müddətdə bitirin</p>
-                  </div>
-                </div>
-                <p className="text-[12px] font-semibold mt-4 mb-2" style={{ color: MUTED }}>Populyar kalkulyatorlar</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { icon: <House size={13} />, label: "İpoteka", href: "/az/calculators/mortgage" },
-                    { icon: <Car size={13} />, label: "Avtokredit", href: "/az/calculators/auto-loan" },
-                    { icon: <Banknote size={13} />, label: "İstehlak krediti", href: "/az/calculators/consumer-loan" },
-                  ].map((c) => (
-                    <Link key={c.label} href={c.href} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white text-[12px] font-medium transition-colors hover:border-blue-300"
-                      style={{ border: `1px solid ${LINE}`, color: NAVY }}>
-                      {c.icon} {c.label}
-                    </Link>
-                  ))}
-                </div>
+              <div className="mb-4">
+                <AnimatedCalculatorIcon />
+              </div>
+              <p className="text-[12px] font-semibold mb-2" style={{ color: MUTED }}>Populyar kalkulyatorlar</p>
+              <div className="flex flex-wrap gap-1.5 mb-5">
+                {[
+                  { icon: <House size={13} />, label: "İpoteka", href: "/az/calculators/mortgage" },
+                  { icon: <Car size={13} />, label: "Avtokredit", href: "/az/calculators/auto-loan" },
+                  { icon: <Banknote size={13} />, label: "İstehlak krediti", href: "/az/calculators/consumer-loan" },
+                ].map((c) => (
+                  <Link key={c.label} href={c.href} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white text-[12px] font-medium transition-colors hover:border-blue-300"
+                    style={{ border: `1px solid ${LINE}`, color: NAVY }}>
+                    {c.icon} {c.label}
+                  </Link>
+                ))}
               </div>
 
               <Link href="/az/calculators"
@@ -353,22 +324,8 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit suallarına sadə cavablar alın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Borc yükü, kredit tarixçəsi, gecikmə və bank tələbləri haqqında aydın izahlar tapın.</p>
 
-              <div className="space-y-2 mb-5">
-                {[
-                  "Gecikməm varsa, bank mənə nə edə bilər?",
-                  "Kredit tarixçəsi necə yaranır?",
-                  "Kredit reytinqimi necə artıra bilərəm?",
-                  "İmtina səbəbləri nələrdir?",
-                ].map((q) => (
-                  <Link key={q} href="/az/financial-assistant"
-                    className="group flex items-center justify-between gap-3 rounded-xl px-3.5 py-3 bg-white transition-colors"
-                    style={{ border: `1px solid ${LINE}` }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7C3AED")}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
-                    <span className="text-[13px] font-medium" style={{ color: NAVY }}>{q}</span>
-                    <ChevronRight size={15} className="shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: MUTED }} />
-                  </Link>
-                ))}
+              <div className="mb-5">
+                <AnimatedAssistantIcon />
               </div>
 
               <Link href="/az/financial-assistant"
