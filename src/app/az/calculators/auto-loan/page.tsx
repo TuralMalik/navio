@@ -456,7 +456,7 @@ export default function AutoLoanPage() {
           <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-4">Ödəniş cədvəli</h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm whitespace-nowrap">
                 <thead>
                   <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
                     <th className="pb-3 pr-4 font-medium">Ay</th>
