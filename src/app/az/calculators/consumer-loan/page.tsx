@@ -322,7 +322,7 @@ export default function ConsumerLoanPage() {
                       )}
                       {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}
 
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
                           <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
@@ -341,7 +341,7 @@ export default function ConsumerLoanPage() {
                         <>
                           <div className="mt-4 border-t border-gray-100 pt-4">
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                                 <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
                                 <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.interestCost)}</p>
@@ -358,7 +358,7 @@ export default function ConsumerLoanPage() {
                           </div>
                           <div className="mt-3">
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fərq</p>
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
                                 <p className="text-xs text-gray-500 mb-1">Faiz qənaəti</p>
                                 <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
