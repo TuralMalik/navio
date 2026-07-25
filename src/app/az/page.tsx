@@ -292,21 +292,8 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
-              <div className="mb-4">
+              <div className="mb-5">
                 <AnimatedCalculatorIcon />
-              </div>
-              <p className="text-[12px] font-semibold mb-2" style={{ color: MUTED }}>Populyar kalkulyatorlar</p>
-              <div className="flex flex-wrap gap-1.5 mb-5">
-                {[
-                  { icon: <House size={13} />, label: "İpoteka", href: "/az/calculators/mortgage" },
-                  { icon: <Car size={13} />, label: "Avtokredit", href: "/az/calculators/auto-loan" },
-                  { icon: <Banknote size={13} />, label: "İstehlak krediti", href: "/az/calculators/consumer-loan" },
-                ].map((c) => (
-                  <Link key={c.label} href={c.href} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white text-[12px] font-medium transition-colors hover:border-blue-300"
-                    style={{ border: `1px solid ${LINE}`, color: NAVY }}>
-                    {c.icon} {c.label}
-                  </Link>
-                ))}
               </div>
 
               <Link href="/az/calculators"
