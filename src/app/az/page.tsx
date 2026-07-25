@@ -5,7 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import {
   ArrowRight,
   ChevronDown,
-  Calculator,
   Banknote,
   House,
   Car,
@@ -16,8 +15,6 @@ import {
   Wallet,
   Target,
   FileText,
-  PieChart,
-  BookOpen,
 } from "lucide-react";
 import { AnimatedCreditCheckIcon } from "@/components/home/animated-icons/AnimatedCreditCheckIcon";
 import { AnimatedCalculatorIcon } from "@/components/home/animated-icons/AnimatedCalculatorIcon";
@@ -266,7 +263,6 @@ export default function HomePage() {
 
             {/* Card 1 — Kredit şansı */}
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
-              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: BLUE_SOFT, color: BLUE }}><PieChart size={24} /></span>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit profilinizi yoxlayın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı və əsas risk faktorlarını görün.</p>
 
@@ -274,21 +270,17 @@ export default function HomePage() {
                 <AnimatedCreditCheckIcon />
               </div>
 
-              <div className="mt-auto flex items-center gap-3">
-                <Link href="/az/kredit-yoxlama"
-                  className="group inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm transition-all hover:-translate-y-px"
-                  style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.30)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = BLUE_DARK)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = BLUE)}>
-                  İlkin yoxlamaya başla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-                <span className="text-[12.5px]" style={{ color: MUTED }}>3 dəqiqə • Pulsuz</span>
-              </div>
+              <Link href="/az/kredit-yoxlama"
+                className="group mt-auto inline-flex items-center justify-center gap-2 w-full py-3 rounded-[10px] font-semibold text-sm transition-colors"
+                style={{ border: `1px solid ${LINE}`, color: BLUE }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = BLUE)}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = LINE)}>
+                İlkin yoxlamaya başla <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
 
             {/* Card 2 — Kalkulyatorlar */}
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
-              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: MINT_SOFT, color: MINT }}><Calculator size={24} /></span>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
@@ -307,7 +299,6 @@ export default function HomePage() {
 
             {/* Card 3 — Bilik bazası */}
             <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
-              <span className="w-[52px] h-[52px] rounded-[14px] grid place-items-center mb-5" style={{ background: "#F1EBFE", color: "#7C3AED" }}><BookOpen size={24} /></span>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit suallarına sadə cavablar alın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Borc yükü, kredit tarixçəsi, gecikmə və bank tələbləri haqqında aydın izahlar tapın.</p>
 
