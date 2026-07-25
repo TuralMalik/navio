@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 export function AnimatedCreditCheckIcon() {
   const rows = ["Borc yükü", "Risk göstəricisi", "Banklara sorğu göndərilmir"];
   return (
-    <div aria-hidden="true" className="rounded-2xl p-4" style={{ background: "#F8FAFF", border: "1px solid #E6ECF8" }}>
+    <div aria-hidden="true" className="h-full rounded-2xl p-4 flex flex-col justify-center" style={{ background: "#F8FAFF", border: "1px solid #E6ECF8" }}>
       <div className="flex items-center gap-3 mb-3">
         <div className="relative w-16 h-16 shrink-0">
           <svg viewBox="0 0 64 64" width="64" height="64">
@@ -22,9 +22,9 @@ export function AnimatedCreditCheckIcon() {
         </div>
       </div>
       <div className="space-y-1.5">
-        {rows.map((r, i) => (
-          <div key={r} className="nv-cc-row flex items-center gap-2 text-[12.5px]"
-            style={{ color: "#5B6577", animationDelay: `${0.9 + i * 0.28}s` }}>
+        {rows.map((r) => (
+          <div key={r} className="flex items-center gap-2 text-[12.5px]"
+            style={{ color: "#5B6577" }}>
             <span className="grid place-items-center w-4 h-4 rounded-full shrink-0" style={{ background: "#E7F7F1", color: "#0BB07B" }}>
               <Check size={11} strokeWidth={3} />
             </span>

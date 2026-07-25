@@ -266,7 +266,7 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit profilinizi yoxlayın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı və əsas risk faktorlarını görün.</p>
 
-              <div className="mb-5">
+              <div className="mb-5 h-[190px]">
                 <AnimatedCreditCheckIcon />
               </div>
 
@@ -284,7 +284,7 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
-              <div className="mb-5">
+              <div className="mb-5 h-[190px]">
                 <AnimatedCalculatorIcon />
               </div>
 
@@ -302,7 +302,7 @@ export default function HomePage() {
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit suallarına sadə cavablar alın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Borc yükü, kredit tarixçəsi, gecikmə və bank tələbləri haqqında aydın izahlar tapın.</p>
 
-              <div className="mb-5">
+              <div className="mb-5 h-[190px]">
                 <AnimatedAssistantIcon />
               </div>
 

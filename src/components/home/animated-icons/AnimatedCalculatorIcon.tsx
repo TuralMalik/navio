@@ -5,7 +5,7 @@ import { RefreshCw } from "lucide-react";
 export function AnimatedCalculatorIcon() {
   const values = ["280 ₼", "245 ₼", "310 ₼"];
   return (
-    <div aria-hidden="true" className="rounded-2xl p-4" style={{ background: "#F8FAFF", border: "1px solid #E6ECF8" }}>
+    <div aria-hidden="true" className="h-full rounded-2xl p-4 flex flex-col justify-center" style={{ background: "#F8FAFF", border: "1px solid #E6ECF8" }}>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="nv-calc-optA rounded-xl p-2.5 text-center" style={{ border: "1px solid #E3E8F1" }}>
           <p className="text-[11.5px] font-bold leading-snug" style={{ color: "#0A1F44" }}>Aylıq ödənişi azalt</p>
