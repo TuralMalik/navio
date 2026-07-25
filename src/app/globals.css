@@ -119,3 +119,39 @@ body {
   .nv-typing { display: none; animation: none; }
   .nv-dot1, .nv-dot2, .nv-dot3 { animation: none; }
 }
+
+/* ─── Scroll/entrance reveal (Reveal component toggles .nv-in when in view) ─── */
+.nv-reveal { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+.nv-reveal.nv-in { opacity: 1; transform: none; }
+/* Staggered children (metric cards, etc.) */
+.nv-stagger > * { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+.nv-stagger.nv-in > * { opacity: 1; transform: none; }
+.nv-stagger.nv-in > *:nth-child(1) { transition-delay: .05s; }
+.nv-stagger.nv-in > *:nth-child(2) { transition-delay: .16s; }
+.nv-stagger.nv-in > *:nth-child(3) { transition-delay: .27s; }
+
+/* Hero score card: "Yaxşı nəticə" appears after the score finishes counting */
+.nv-hero-badge { opacity: 0; animation: nvFadeUp .5s ease-out 1s both; }
+
+/* Steps: step-3 "target" soft pulse; step-2 gentle breathing */
+.nv-step-pulse::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(124,58,237,.45); animation: nvSoftPulse 2.6s ease-out infinite;
+}
+@keyframes nvSoftPulse { 0% { box-shadow: 0 0 0 0 rgba(124,58,237,.35); } 70%, 100% { box-shadow: 0 0 0 14px rgba(124,58,237,0); } }
+.nv-step-breathe { animation: nvBreathe 3s ease-in-out infinite; }
+@keyframes nvBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* Credit-check analysis loading dots */
+.nv-load-dot { animation: nvBounce 1s ease-in-out infinite; }
+.nv-load-check { opacity: 0; animation: nvFadeUp .35s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-reveal { opacity: 1; transform: none; transition: none; }
+  .nv-stagger > * { opacity: 1; transform: none; transition: none; }
+  .nv-hero-badge { opacity: 1; animation: none; }
+  .nv-step-pulse::after { animation: none; box-shadow: none; }
+  .nv-step-breathe { animation: none; }
+  .nv-load-dot { animation: none; }
+  .nv-load-check { opacity: 1; animation: none; }
+}
