@@ -19,6 +19,7 @@ import {
 import { AnimatedCreditCheckIcon } from "@/components/home/animated-icons/AnimatedCreditCheckIcon";
 import { AnimatedCalculatorIcon } from "@/components/home/animated-icons/AnimatedCalculatorIcon";
 import { AnimatedAssistantIcon } from "@/components/home/animated-icons/AnimatedAssistantIcon";
+import { Reveal } from "@/components/home/Reveal";
 
 const faqs = [
   { q: "Navio kredit verir?", a: "Xeyr. Biz sadəcə məlumat platformasıyıq. Kredit qərarını yalnız bank qəbul edir." },
@@ -178,9 +179,9 @@ export default function HomePage() {
               </div>
 
               <AnimatedGauge target={72} />
-              <div className="text-center font-bold text-[15px] mb-6" style={{ color: MINT }}>Yaxşı nəticə</div>
+              <div className="nv-hero-badge text-center font-bold text-[15px] mb-6" style={{ color: MINT }}>Yaxşı nəticə</div>
 
-              <div className="grid grid-cols-3 gap-2.5">
+              <Reveal className="grid grid-cols-3 gap-2.5 nv-stagger">
                 {[
                   { label: "Borc yükü", value: "34%", good: true },
                   { label: "Aylıq ödəniş", value: "280 ₼", good: false },
@@ -191,7 +192,7 @@ export default function HomePage() {
                     <b className="text-[15px] font-bold" style={{ color: m.good ? MINT : NAVY }}>{m.value}</b>
                   </div>
                 ))}
-              </div>
+              </Reveal>
 
               <p className="mt-[18px] text-[12.5px] text-center" style={{ color: MUTED }}>
                 Nəticələr ilkin qiymətləndirmə xarakteri daşıyır.
@@ -205,11 +206,11 @@ export default function HomePage() {
       {/* ── STEPS: numbered timeline ── */}
       <section className="py-24" style={{ background: WASH }}>
         <div className="max-w-[1120px] mx-auto px-6">
-          <div className="max-w-[640px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
+          <Reveal className="max-w-[640px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
             <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>3 sadə addım</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Necə işləyir?</h2>
             <p className="text-[17px]" style={{ color: MUTED }}>Bir neçə dəqiqə ərzində ilkin nəticəni görün və profilinizi yaxşılaşdırmaq üçün tövsiyələr alın.</p>
-          </div>
+          </Reveal>
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Пунктирная база линии */}
             <div className="hidden md:block absolute top-[34px] left-[17%] right-[17%] h-0.5"
@@ -230,7 +231,7 @@ export default function HomePage() {
                 pillIcon: <FileText size={14} />, pill: "Fərdi nəticə və tövsiyələr" },
             ].map((s) => (
               <div key={s.num} className="flex flex-col items-center text-center relative">
-                <span className="step-icon relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px]"
+                <span className={`step-icon relative z-10 w-[68px] h-[68px] rounded-[18px] grid place-items-center mb-[22px]${s.num === 3 ? " nv-step-pulse" : ""}`}
                   style={{ background: s.soft, color: s.color, boxShadow: `0 0 0 10px ${WASH}`, animationDelay: `${s.delay}s`, ["--glow" as string]: s.glow } as React.CSSProperties}>
                   {s.icon}
                   <span className="absolute -top-2 -right-2 w-[25px] h-[25px] rounded-full grid place-items-center text-[12.5px] font-bold text-white"
@@ -253,16 +254,19 @@ export default function HomePage() {
       {/* ── HELP: three rich cards ── */}
       <section className="py-24 bg-white">
         <div className="max-w-[1120px] mx-auto px-6">
-          <div className="max-w-[680px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
+          <Reveal className="max-w-[680px] mx-auto text-center mb-13" style={{ marginBottom: 52 }}>
             <span className="inline-block text-xs font-bold px-3.5 py-1.5 rounded-full mb-4" style={{ color: BLUE, background: BLUE_SOFT }}>Bütün ehtiyaclarınız bir yerdə</span>
             <h2 className="font-extrabold mb-3" style={{ color: NAVY, fontSize: "clamp(28px,3.4vw,38px)", letterSpacing: "-.02em" }}>Navio sizə necə kömək edir?</h2>
             <p className="text-[17px]" style={{ color: MUTED }}>Kredit almadan əvvəl hazır olun, ödənişləri planlaşdırın və qərarınızı daha aydın verin.</p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
 
             {/* Card 1 — Kredit şansı */}
-            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+            <div className="flex flex-col rounded-[20px] p-7 bg-white transition-all duration-200"
+              style={{ border: `1px solid ${LINE}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "#B9C6FA"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(10,31,68,.10)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; }}>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit profilinizi yoxlayın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Banka müraciət etməzdən əvvəl kredit almaq ehtimalınızı və əsas risk faktorlarını görün.</p>
 
@@ -280,7 +284,10 @@ export default function HomePage() {
             </div>
 
             {/* Card 2 — Kalkulyatorlar */}
-            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+            <div className="flex flex-col rounded-[20px] p-7 bg-white transition-all duration-200"
+              style={{ border: `1px solid ${LINE}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "#B9C6FA"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(10,31,68,.10)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; }}>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kreditinizi ağıllı planlaşdırın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Fərqli ssenariləri müqayisə edin və aylıq ödənişə təsirini görün.</p>
 
@@ -298,7 +305,10 @@ export default function HomePage() {
             </div>
 
             {/* Card 3 — Bilik bazası */}
-            <div className="flex flex-col rounded-[20px] p-7 bg-white" style={{ border: `1px solid ${LINE}` }}>
+            <div className="flex flex-col rounded-[20px] p-7 bg-white transition-all duration-200"
+              style={{ border: `1px solid ${LINE}` }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.borderColor = "#B9C6FA"; e.currentTarget.style.boxShadow = "0 14px 32px rgba(10,31,68,.10)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.borderColor = LINE; e.currentTarget.style.boxShadow = "none"; }}>
               <h3 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>Kredit suallarına sadə cavablar alın</h3>
               <p className="text-[14.5px] mb-5" style={{ color: MUTED }}>Borc yükü, kredit tarixçəsi, gecikmə və bank tələbləri haqqında aydın izahlar tapın.</p>
 

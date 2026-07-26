@@ -134,6 +134,14 @@ const inputCls = "w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 
 const selectCls = inputCls;
 const sectionTitle = "text-xs font-bold text-gray-500 uppercase tracking-wider mb-3";
 
+// Короткая «анализ»-анимация перед показом результата (~1.3с)
+const ANALYZE_STEPS = [
+  "Məlumatlar yoxlanılır...",
+  "Borc yükü hesablanır...",
+  "Risk faktorları qiymətləndirilir...",
+  "Nəticə hazırlanır...",
+];
+
 /* ─── Main ─── */
 function KreditYoxlamaContent() {
   const searchParams = useSearchParams();
@@ -145,6 +153,8 @@ function KreditYoxlamaContent() {
   const [mode, setMode] = useState<Mode>("bank");
   const [submitted, setSubmitted] = useState(false);
   const [pressed, setPressed] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeStep, setAnalyzeStep] = useState(0);
 
   const [bank, setBank] = useState<BankForm>({
     kreditNovu: initNov,
@@ -378,6 +388,7 @@ function KreditYoxlamaContent() {
             <button
               onClick={() => {
                 setPressed(true);
+                setTimeout(() => setPressed(false), 250);
                 // Анонимная аналитика расчёта: без сумм и личных данных
                 const r = mode === "bank" ? bResult : nResult;
                 // Анонимный лог расчёта для калибровки модели (fire-and-forget)
@@ -397,14 +408,22 @@ function KreditYoxlamaContent() {
                 });
                 // Вход расчёта для страницы детального анализа
                 try { sessionStorage.setItem("navioCreditCheckResult", JSON.stringify(bank)); } catch {}
-                setTimeout(() => { setPressed(false); setSubmitted(true); }, 350);
+                // Короткая «анализ»-анимация; при prefers-reduced-motion — сразу результат
+                const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                if (reduced) { setSubmitted(true); return; }
+                setSubmitted(false);
+                setAnalyzeStep(0);
+                setAnalyzing(true);
+                const per = 320;
+                ANALYZE_STEPS.forEach((_, i) => { if (i > 0) setTimeout(() => setAnalyzeStep(i), per * i); });
+                setTimeout(() => { setAnalyzing(false); setSubmitted(true); }, per * ANALYZE_STEPS.length);
               }}
-              disabled={pressed}
+              disabled={analyzing}
               className={`w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-md
-                ${pressed ? "scale-95 shadow-inner brightness-90" : "hover:shadow-lg hover:brightness-110 active:scale-95"}`}
+                ${pressed || analyzing ? "scale-95 shadow-inner brightness-90" : "hover:shadow-lg hover:brightness-110 active:scale-95"}`}
               style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}
             >
-              {pressed ? (
+              {analyzing ? (
                 <>
                   <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3" strokeOpacity="0.3" />
@@ -424,7 +443,33 @@ function KreditYoxlamaContent() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="font-bold text-gray-800 mb-4 text-center text-sm uppercase tracking-wider">Nəticə</h2>
 
-            {!submitted ? (
+            {analyzing ? (
+              <div className="py-6 space-y-3.5" role="status" aria-live="polite">
+                {ANALYZE_STEPS.map((s, i) => {
+                  const done = i < analyzeStep;
+                  const active = i === analyzeStep;
+                  return (
+                    <div key={s} className="flex items-center gap-3 text-sm transition-opacity duration-300"
+                      style={{ opacity: i <= analyzeStep ? 1 : 0.38 }}>
+                      <span className="w-5 h-5 rounded-full grid place-items-center shrink-0"
+                        style={{ background: done ? "#E7F7F1" : active ? "#EBEFFE" : "#F1F5F9" }}>
+                        {done ? (
+                          <CheckCircle size={14} className="text-emerald-600" />
+                        ) : active ? (
+                          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="#2447F0" strokeWidth="3" strokeOpacity="0.25" />
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke="#2447F0" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                        )}
+                      </span>
+                      <span className={done || active ? "text-gray-800 font-medium" : "text-gray-400"}>{s}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : !submitted ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                   <svg viewBox="0 0 180 100" className="w-12">
