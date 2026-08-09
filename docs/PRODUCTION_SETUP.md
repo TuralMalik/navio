@@ -42,20 +42,38 @@ if you invite real users before the domain is ready.
 
 # Stage 1 — now
 
-## 1. 👤 Find your production address
+## 1. 👤 Confirm the address Google already knows
 
-Open the project in the Vercel dashboard. At the top it shows the production domain,
-something like:
+The Google OAuth client is **already configured** — callback and origin URLs are
+registered for both local development and the Vercel address. No work needed in
+Google Cloud Console.
+
+What matters is that the app agrees with it. In Google Cloud Console →
+**APIs & Services → Credentials** → the Navio OAuth client, look at
+**Authorised redirect URIs**. You will see entries like:
 
 ```
-navio.vercel.app
+http://localhost:3000/api/auth/callback/google
+https://navio.vercel.app/api/auth/callback/google
 ```
 
-Copy it. It is used in steps 2 and 3 and must be identical in both. Use the stable
-production address, **not** a long preview URL with random characters in it.
+Take the **https** one and drop the `/api/auth/callback/google` ending. What remains
+is your site address:
 
-> Preview deployments get a different URL each time, so Google sign-in only works on
-> the production address unless each preview URL is registered with Google too.
+```
+https://navio.vercel.app
+```
+
+That exact value goes into `BETTER_AUTH_URL` and `NEXT_PUBLIC_SITE_URL` in step 3.
+If they differ by even a character, Google refuses the sign-in with
+`redirect_uri_mismatch`.
+
+> Preview deployments get a fresh URL each time, so Google sign-in only works on the
+> registered address. That is expected, not a fault.
+
+> Whatever address you registered must also be connected to the project under
+> **Settings → Domains** in Vercel. If you registered a custom domain that is not
+> live yet, sign-in will bounce to an address that does not answer.
 
 ## 2. 👤 Create the database (Neon)
 
@@ -99,30 +117,17 @@ values. You never need to remember them.
 > ⚠️ Changing `BETTER_AUTH_SECRET` later signs everyone out.
 > Changing `SCORING_IP_SALT` only resets rate-limit counters, which is harmless.
 
-## 4. 👤 Point Google at that address
+## 4. 👤 Add anyone who needs to sign in (Testing mode only)
 
-In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), in the
-project holding the Navio sign-in credentials:
+Skip this if the consent screen is already published.
 
-1. **APIs & Services → Credentials** → open the Navio OAuth 2.0 Client ID
-2. Under **Authorised redirect URIs**, add exactly (your address + this exact path):
-   ```
-   https://navio.vercel.app/api/auth/callback/google
-   ```
-   Character for character, no trailing slash.
-3. **Save**, then copy the **Client ID** and **Client secret** into the two Vercel
-   variables from step 3
+Open **APIs & Services → OAuth consent screen**. If the publishing status says
+**Testing**, only accounts listed under **Test users** can sign in — everyone else
+gets "access blocked". Add the Google accounts that should have access.
 
-### Consent screen — leave it in Testing for now
-
-Open **APIs & Services → OAuth consent screen**. Keep the publishing status as
-**Testing** while the site is on a `.vercel.app` address, and add the Google accounts
-that should be able to sign in under **Test users**.
-
-Reason: Google will not accept `vercel.app` as an authorised domain (it is a shared
-domain, like `github.io`), which makes publishing awkward. Publishing properly belongs
-in Stage 2, once navio.az is in use. Testing mode is fully functional for the accounts
-you list.
+Leaving it in Testing is the sensible choice while the site is on a `.vercel.app`
+address, because Google does not accept `vercel.app` as an authorised domain (it is a
+shared domain, like `github.io`). Publish it in Stage 2, once a custom domain is live.
 
 ## 5. 👤 Redeploy
 
@@ -174,11 +179,11 @@ open the site, press F12 → **Sources**, and search the JavaScript for
 ## A. 👤 Switch to the real domain
 
 1. Vercel → **Settings → Domains** → add `navio.az` and follow the DNS instructions
-2. **Settings → Environment Variables** → change `BETTER_AUTH_URL` and
+2. Google Cloud Console → **Credentials** → add the new redirect URI alongside the
+   existing ones: `https://navio.az/api/auth/callback/google`
+   (keep the localhost and `.vercel.app` entries so both keep working)
+3. Vercel → **Settings → Environment Variables** → change `BETTER_AUTH_URL` and
    `NEXT_PUBLIC_SITE_URL` to `https://navio.az`
-3. Google Cloud Console → add the new redirect URI:
-   `https://navio.az/api/auth/callback/google`
-   (keep the old `.vercel.app` one if you still test there)
 4. Redeploy
 
 ## B. 👤 Turn on email
