@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 const navLinks = [
   { label: "Kredit yoxlaması", href: "/az/kredit-yoxlama" },
@@ -13,6 +14,13 @@ const navLinks = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    window.location.assign("/az");
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -60,12 +68,28 @@ export function Header() {
             <span className="text-sm font-medium text-gray-500 cursor-default select-none">
               AZ
             </span>
-            <Link
-              href="/az/login"
-              className="text-sm font-medium text-gray-600 hover:text-blue-700 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-300 transition-colors"
-            >
-              Giriş / Qeydiyyat
-            </Link>
+            {isPending ? (
+              <span className="w-28 h-8 rounded-lg bg-gray-100 animate-pulse" aria-hidden />
+            ) : user ? (
+              <div className="flex items-center gap-2">
+                <Link href="/az/hesabim"
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-blue-700 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-300 transition-colors max-w-[180px]">
+                  <UserIcon size={14} className="shrink-0" />
+                  <span className="truncate">{user.name || user.email}</span>
+                </Link>
+                <button onClick={handleSignOut} aria-label="Çıxış"
+                  className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors">
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/az/login"
+                className="text-sm font-medium text-gray-600 hover:text-blue-700 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-blue-300 transition-colors"
+              >
+                Giriş / Qeydiyyat
+              </Link>
+            )}
             <Link
               href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-2 rounded-lg text-white transition-all"
@@ -100,9 +124,22 @@ export function Header() {
             </Link>
           ))}
           <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-            <Link href="/az/login" className="text-sm font-medium text-gray-600 py-2">
-              Giriş / Qeydiyyat
-            </Link>
+            {user ? (
+              <>
+                <Link href="/az/hesabim" onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 py-2">
+                  <UserIcon size={15} /> {user.name || user.email}
+                </Link>
+                <button onClick={handleSignOut}
+                  className="flex items-center gap-2 text-sm font-medium text-red-600 py-2 text-left">
+                  <LogOut size={15} /> Çıxış
+                </button>
+              </>
+            ) : (
+              <Link href="/az/login" onClick={() => setOpen(false)} className="text-sm font-medium text-gray-600 py-2">
+                Giriş / Qeydiyyat
+              </Link>
+            )}
             <Link
               href="/az/kredit-yoxlama"
               className="text-sm font-semibold px-4 py-3 rounded-lg text-white text-center"

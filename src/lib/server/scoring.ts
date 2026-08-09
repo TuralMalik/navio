@@ -1,33 +1,14 @@
 /* Скоринг Navio v3 FINAL — единственный источник логики расчёта.
-   Спецификация закрыта; правки только по реальным данным пользователей. */
+   Спецификация закрыта; правки только по реальным данным пользователей.
+
+   SERVER-ONLY. Этот модуль никогда не попадает в браузерный бандл: CONFIG,
+   веса блоков, капы и таблицы ставок — внутренняя механика, её не показываем.
+   Клиент получает только публичный payload из src/lib/score-contract.ts. */
+import "server-only";
 import { formatNumber } from "@/lib/utils";
+import type { GelirNovu, KreditNovu, BankForm, BoktForm } from "@/lib/scoring-types";
 
-/* ─── Types ─── */
-export type Mode = "bank" | "bokt";
-export type GelirNovu = "resmi" | "xarici" | "fs" | "teqaud" | "qeyri_resmi";
-export type KreditNovu = "naqd" | "kart" | "ipoteka" | "avto";
-export type IsStaji = "0_2" | "3_5" | "6_11" | "12_plus";
-
-export interface BankForm {
-  kreditNovu: KreditNovu;
-  mebleg: string;
-  muddət: string;
-  faiz: string;
-  gelirNovu: GelirNovu;
-  gelir: string;
-  isStaji: IsStaji;
-  yas: string;
-  movcudNaqdOdenis: string;
-  movcudKartLimit: string;
-  cariGecikmeGun: string;      // текущая активная просрочка, дней
-  maks12ay: string;            // максимальная единичная просрочка за 12 мес, дней
-}
-
-export interface BoktForm {
-  mebleg: string;
-  gelir: string;
-  kreditTarixce: "yox" | "gecikme";
-}
+export type { Mode, GelirNovu, KreditNovu, IsStaji, BankForm, BoktForm } from "@/lib/scoring-types";
 
 /* ─── Scoring config — значения обновляются со временем (ежегодно) ─── */
 export const CONFIG = {
@@ -63,7 +44,7 @@ export const CONFIG = {
 };
 
 /* ─── Annuity: единая реализация в lib/calculators/annuity ─── */
-import { calcAnnuityPayment } from "./calculators/annuity";
+import { calcAnnuityPayment } from "@/lib/calculators/annuity";
 export const annuityPayment = (principal: number, months: number, annualRate: number) =>
   calcAnnuityPayment(principal, annualRate, months);
 
