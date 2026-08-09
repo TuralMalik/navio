@@ -15,7 +15,7 @@ function safeNext(raw: string | null): string {
   return raw;
 }
 
-export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function LoginForm({ googleEnabled, emailEnabled }: { googleEnabled: boolean; emailEnabled: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
 
@@ -94,11 +94,15 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
                 onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
             </Field>
 
-            <div className="flex justify-end">
-              <button type="button" onClick={onReset} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
-                Şifrəni unutmusunuz?
-              </button>
-            </div>
+            {/* Пока почта не подключена, восстановление пароля недоступно — не показываем ссылку,
+                которая обещала бы письмо, которое никогда не придёт. */}
+            {emailEnabled && (
+              <div className="flex justify-end">
+                <button type="button" onClick={onReset} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                  Şifrəni unutmusunuz?
+                </button>
+              </div>
+            )}
 
             <SubmitButton loading={loading}>Daxil ol</SubmitButton>
           </form>

@@ -1,160 +1,206 @@
 # Production setup: accounts and server-side scoring
 
-This describes everything needed to switch on user accounts (Google + email/password)
-on the production deployment of navio.az.
+How to switch on user accounts (Google + email/password) for the deployed site.
 
-**Who this is for.** Steps marked 👤 must be done by a human in a browser: they need
-you to be logged into Vercel, Google, or your domain registrar. Steps marked 🤖 can be
-done by an AI agent with access to this repository. Nothing here needs a terminal.
+**Who does what.** Steps marked 👤 need a human in a browser, logged into Vercel or
+Google. Steps marked 🤖 can be done by an AI agent with access to this repository.
+Nothing here needs a terminal.
 
-There is **no database migration step**. The schema applies itself during deployment
-(`vercel-build` runs `scripts/migrate.mjs` before `next build`), so the tables are
-created on the first deploy after these variables are set.
-
----
-
-## Order of operations
-
-Do these in order. The site will not sign anyone in until step 5 is complete, and a
-deploy before then is safe but will show errors on the login page.
+**No database step.** The schema applies itself during deployment: `vercel-build`
+runs `scripts/migrate.mjs` before `next build`, so tables are created on the first
+deploy after the database is connected.
 
 ---
 
-## 1. 👤 Create the database (Neon)
+## Two stages
 
-In the Vercel dashboard, in the **navio** project:
+**Stage 1 (below) — what to do now.** Runs on the Vercel-provided `.vercel.app`
+address, with **email switched off**. Google sign-in and email/password sign-up both
+work. This is enough to use and test the whole product.
 
-1. Open the **Storage** tab
-2. Click **Create Database** → choose **Neon** (Serverless Postgres)
-3. Accept the terms, keep the free plan, choose the region closest to Azerbaijan
-   (usually `Frankfurt / eu-central-1`)
-4. When asked which project to connect it to, choose **navio**, and connect it to
-   **all environments** (Production, Preview, Development)
+**Stage 2 ([further down](#stage-2--when-navioaz-and-email-are-ready))** — moving to
+navio.az and turning email on. Do this later; nothing in Stage 1 needs redoing except
+two settings.
 
-This automatically creates `DATABASE_URL` and `DATABASE_URL_UNPOOLED` in the project.
-You do not need to copy them anywhere.
+### What "email off" means
 
-## 2. 👤 Create the email sender (Resend)
+While no email service is configured, the app deliberately sends nothing and hides
+anything that would promise a message:
 
-Still in the **navio** project:
+| | Stage 1 (no email) | Stage 2 (email on) |
+|---|---|---|
+| Sign up with email + password | ✅ works | ✅ works |
+| Sign in with Google | ✅ works | ✅ works |
+| Confirmation email | not sent, not mentioned | sent, optional to confirm |
+| "Forgot password?" link | hidden | shown |
 
-1. Open the **Integrations** tab (or **Storage → Marketplace**)
-2. Find **Resend**, click **Add**, accept the terms
-3. Connect it to the **navio** project, all environments
+**The one consequence:** a user who forgets their password cannot reset it until
+Stage 2. Google users are unaffected — they have no password. Worth keeping in mind
+if you invite real users before the domain is ready.
 
-This creates `RESEND_API_KEY` automatically.
+---
 
-### 2a. 👤 Verify the navio.az domain in Resend
+# Stage 1 — now
 
-Until this is done, Resend can only send test mail to your own address, so verification
-and password-reset emails will not reach real users.
+## 1. 👤 Find your production address
 
-1. Open the Resend dashboard (from the Vercel integration, click **Manage**)
-2. Go to **Domains** → **Add Domain** → enter `navio.az`
-3. Resend shows a list of DNS records (SPF, DKIM, and usually DMARC)
-4. Add those records wherever navio.az DNS is managed, then click **Verify**
+Open the project in the Vercel dashboard. At the top it shows the production domain,
+something like:
 
-DNS changes can take a few hours to apply. Everything else works while you wait; only
-outgoing email is affected.
+```
+navio.vercel.app
+```
 
-## 3. 👤 Add the remaining environment variables
+Copy it. It is used in steps 2 and 3 and must be identical in both. Use the stable
+production address, **not** a long preview URL with random characters in it.
 
-In the **navio** project: **Settings → Environment Variables**. For each one below,
-set **Environment** to **Production** (also tick Preview and Development if you want
-sign-in to work on preview deployments).
+> Preview deployments get a different URL each time, so Google sign-in only works on
+> the production address unless each preview URL is registered with Google too.
+
+## 2. 👤 Create the database (Neon)
+
+In the Vercel project:
+
+1. **Storage** tab → **Create Database** → **Neon** (Serverless Postgres)
+2. Accept the terms, keep the free plan, region **Frankfurt / eu-central-1**
+3. Connect it to this project, **all environments** (Production, Preview, Development)
+
+This creates `DATABASE_URL` and `DATABASE_URL_UNPOOLED` automatically. Nothing to copy.
+
+## 3. 👤 Add environment variables
+
+**Settings → Environment Variables**, environment **Production** (tick Preview and
+Development too if you want sign-in on preview deployments).
+
+Replace `navio.vercel.app` with your actual address from step 1.
 
 | Name | Value |
 |---|---|
-| `BETTER_AUTH_URL` | `https://navio.az` |
-| `NEXT_PUBLIC_SITE_URL` | `https://navio.az` |
-| `EMAIL_FROM` | `Navio <noreply@navio.az>` |
-| `GOOGLE_CLIENT_ID` | from Google Cloud Console (see step 4) |
-| `GOOGLE_CLIENT_SECRET` | from Google Cloud Console (see step 4) |
-| `BETTER_AUTH_SECRET` | a long random value — see below |
+| `BETTER_AUTH_URL` | `https://navio.vercel.app` |
+| `NEXT_PUBLIC_SITE_URL` | `https://navio.vercel.app` |
+| `GOOGLE_CLIENT_ID` | from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | from Google Cloud Console |
+| `BETTER_AUTH_SECRET` | long random value — see below |
 | `SCORING_IP_SALT` | a different long random value — see below |
 
-### Generating the two random values
+Do **not** set `RESEND_API_KEY` or `EMAIL_FROM` yet. Leaving them unset is what keeps
+email cleanly switched off.
 
-`BETTER_AUTH_SECRET` signs login sessions and `SCORING_IP_SALT` protects visitors'
-IP addresses. Both must be long and random. **Do not invent them by hand** — a
-guessable auth secret lets an attacker forge logins.
+### The two random values
 
-Use a password generator set to **40+ characters, letters and numbers**
-(1Password, Bitwarden, or https://1password.com/password-generator). Generate two
-separate values. You never need to remember them; once saved in Vercel they are used
-automatically.
+`BETTER_AUTH_SECRET` signs login sessions; `SCORING_IP_SALT` protects visitors' IP
+addresses. Both must be long and random. **Do not invent them by hand** — a guessable
+auth secret lets someone forge logins.
+
+Use a password generator at **40+ characters, letters and numbers** (1Password,
+Bitwarden, or https://1password.com/password-generator). Generate two different
+values. You never need to remember them.
 
 > ⚠️ Changing `BETTER_AUTH_SECRET` later signs everyone out.
 > Changing `SCORING_IP_SALT` only resets rate-limit counters, which is harmless.
 
-## 4. 👤 Configure Google sign-in
+## 4. 👤 Point Google at that address
 
 In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), in the
-project where the Navio sign-in credentials were created:
+project holding the Navio sign-in credentials:
 
-1. Open **APIs & Services → Credentials**
-2. Click the OAuth 2.0 Client ID used for Navio
-3. Under **Authorised redirect URIs**, add exactly:
+1. **APIs & Services → Credentials** → open the Navio OAuth 2.0 Client ID
+2. Under **Authorised redirect URIs**, add exactly (your address + this exact path):
    ```
-   https://navio.az/api/auth/callback/google
+   https://navio.vercel.app/api/auth/callback/google
    ```
-   The path must match character for character. No trailing slash.
-4. Click **Save**, then copy the **Client ID** and **Client secret** into the Vercel
+   Character for character, no trailing slash.
+3. **Save**, then copy the **Client ID** and **Client secret** into the two Vercel
    variables from step 3
 
-### 4a. Publish the consent screen
+### Consent screen — leave it in Testing for now
 
-Open **APIs & Services → OAuth consent screen**. If the publishing status says
-**Testing**, only a short list of test accounts can sign in — everyone else gets
-"access blocked". Click **Publish app** to move it to **In production**.
+Open **APIs & Services → OAuth consent screen**. Keep the publishing status as
+**Testing** while the site is on a `.vercel.app` address, and add the Google accounts
+that should be able to sign in under **Test users**.
 
-Google may ask for a privacy policy URL and a terms URL. Use:
-
-- Privacy policy: `https://navio.az/az/privacy`
-- Terms / disclaimer: `https://navio.az/az/disclaimer`
+Reason: Google will not accept `vercel.app` as an authorised domain (it is a shared
+domain, like `github.io`), which makes publishing awkward. Publishing properly belongs
+in Stage 2, once navio.az is in use. Testing mode is fully functional for the accounts
+you list.
 
 ## 5. 👤 Redeploy
 
-Environment variables only take effect on a new deployment.
+Environment variables only apply to new deployments.
 
-**Deployments** tab → most recent deployment → **⋯** menu → **Redeploy**.
+**Deployments** → newest one → **⋯** → **Redeploy**.
 
-The build log should contain `[migrate] miqrasiyalar tətbiq olundu`, which means the
+The build log should contain `[migrate] miqrasiyalar tətbiq olundu`, meaning the
 database tables were created.
 
----
+## 6. 🤖 Verify
 
-## 6. 🤖 Verify it worked
-
-An AI agent with repo access can confirm the deployment is healthy by checking the
-live site. None of this needs credentials.
+Checks an agent can run against the live site. Replace the address with yours.
 
 ```bash
-# The Google button should be present on the login page
-curl -s https://navio.az/az/login | grep -c "Google ilə davam et"     # expect 1 or more
+SITE=https://navio.vercel.app
 
-# Starting a Google sign-in should return an accounts.google.com URL
-curl -s -X POST https://navio.az/api/auth/sign-in/social \
+# Google button present on the login page
+curl -s $SITE/az/login | grep -c "Google ilə davam et"          # expect 1+
+
+# Forgot-password link correctly hidden while email is off
+curl -s $SITE/az/login | grep -c "Şifrəni unutmusunuz"          # expect 0
+
+# Google sign-in starts and returns a Google URL
+curl -s -X POST $SITE/api/auth/sign-in/social \
   -H 'Content-Type: application/json' \
   -d '{"provider":"google","callbackURL":"/az"}'
-# expect JSON containing "accounts.google.com" — NOT {"code":"PROVIDER_NOT_FOUND"}
+# expect JSON containing accounts.google.com — NOT {"code":"PROVIDER_NOT_FOUND"}
 
-# Scoring should return a result and a calculationId
-curl -s -X POST https://navio.az/api/score \
-  -H 'Content-Type: application/json' \
+# Scoring works and the database is reachable
+curl -s -X POST $SITE/api/score -H 'Content-Type: application/json' \
   -d '{"mode":"bank","input":{"kreditNovu":"naqd","mebleg":"10000","muddət":"24","faiz":"24","gelirNovu":"resmi","gelir":"1500","isStaji":"12_plus","yas":"30","movcudNaqdOdenis":"0","movcudKartLimit":"0","cariGecikmeGun":"0","maks12ay":"0"}}'
 # expect "score":100 and a non-null "calculationId"
 ```
 
-If `calculationId` comes back `null`, the database is not reachable: re-check step 1
-and that the deploy ran after Neon was connected.
+A `calculationId` of `null` means the database is unreachable — recheck step 2 and
+that the deploy happened after Neon was connected.
 
-### Confirm the scoring logic is not exposed
+### Confirm scoring internals are not exposed
 
-The whole point of this change is that scoring internals stay on the server. To
-confirm on the live site, load `https://navio.az/az/kredit-yoxlama` in a browser,
-open developer tools → **Sources**, and search the JavaScript files for
+The point of this change is that the scoring rules stay on the server. In a browser,
+open the site, press F12 → **Sources**, and search the JavaScript for
 `cashRateOfficialTable` or `bgnTierMidPct`. There should be **no matches**.
+
+---
+
+# Stage 2 — when navio.az and email are ready
+
+## A. 👤 Switch to the real domain
+
+1. Vercel → **Settings → Domains** → add `navio.az` and follow the DNS instructions
+2. **Settings → Environment Variables** → change `BETTER_AUTH_URL` and
+   `NEXT_PUBLIC_SITE_URL` to `https://navio.az`
+3. Google Cloud Console → add the new redirect URI:
+   `https://navio.az/api/auth/callback/google`
+   (keep the old `.vercel.app` one if you still test there)
+4. Redeploy
+
+## B. 👤 Turn on email
+
+1. Vercel → **Integrations** → **Resend** → Add → connect to this project.
+   This creates `RESEND_API_KEY` automatically.
+2. In the Resend dashboard → **Domains** → **Add Domain** → `navio.az`.
+   Add the DNS records it shows (SPF, DKIM, DMARC) to the navio.az DNS, then
+   **Verify**. Until this is done Resend only sends to your own address.
+3. Vercel → add `EMAIL_FROM` = `Navio <noreply@navio.az>`
+4. Redeploy
+
+Confirmation emails and password reset switch on automatically once
+`RESEND_API_KEY` is present. No code change needed.
+
+## C. 👤 Publish the Google consent screen
+
+With a real domain, **APIs & Services → OAuth consent screen** → **Publish app**, so
+anyone can sign in rather than only listed test users. If it asks for links:
+
+- Privacy policy: `https://navio.az/az/privacy`
+- Terms: `https://navio.az/az/disclaimer`
 
 ---
 
@@ -162,23 +208,21 @@ open developer tools → **Sources**, and search the JavaScript files for
 
 | Symptom | Cause |
 |---|---|
-| Login page has no Google button | `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` missing, or no redeploy since adding them |
+| No Google button on the login page | `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` missing, or no redeploy since adding them |
 | `PROVIDER_NOT_FOUND` from the social endpoint | Same as above |
-| Google shows "Error 400: redirect_uri_mismatch" | The URI in step 4 does not match `BETTER_AUTH_URL` exactly |
-| Google shows "Access blocked" for most people | Consent screen still in **Testing** — see step 4a |
-| Sign-in works but no confirmation email arrives | Resend domain not verified — see step 2a |
-| `calculationId` is `null` | Database not connected, or deploy predates step 1 |
-| Everyone gets signed out after a deploy | `BETTER_AUTH_SECRET` changed between deployments |
+| Google: "Error 400: redirect_uri_mismatch" | Redirect URI does not exactly match `BETTER_AUTH_URL` |
+| Google: "Access blocked" for some people | Consent screen in Testing and that account is not in **Test users** |
+| `calculationId` is `null` | Database not connected, or deploy predates it |
+| Everyone signed out after a deploy | `BETTER_AUTH_SECRET` changed between deployments |
+| Sign-in works on production but not on a preview URL | That preview URL is not registered with Google — expected |
 
 ## Notes
 
-- **Email verification is currently optional.** New users receive a confirmation mail
-  but are not blocked from using the site. To make it mandatory, set
-  `requireEmailVerification: true` in `src/lib/auth.ts`.
-- **Google users skip verification entirely**, because Google already confirms the
-  address.
-- Anonymous calculations are deleted automatically after 7 days. Calculations
-  belonging to a registered account are kept until the user deletes them.
-- Visitor IP addresses are never stored in readable form, only as a salted hash used
-  for rate limiting.
-- `.env.example` in the repository root lists every variable with a short explanation.
+- Email verification is optional by design. To make it mandatory once email is on,
+  set `requireEmailVerification: true` in `src/lib/auth.ts`.
+- Google users never need verification — Google already confirms the address.
+- Anonymous calculations are deleted after 7 days; calculations belonging to an
+  account are kept until the user deletes them.
+- Visitor IPs are never stored in readable form, only as a salted hash for rate
+  limiting.
+- `.env.example` lists every variable with a short explanation.

@@ -37,7 +37,8 @@ export default async function AccountPage() {
           <h1 className="text-2xl font-bold mb-1" style={{ color: NAVY }}>{user.name || "Hesabım"}</h1>
           <p className="text-sm" style={{ color: MUTED }}>{user.email}</p>
 
-          {!user.emailVerified && (
+          {/* Нет смысла просить подтвердить почту, если письма не отправляются */}
+          {!user.emailVerified && Boolean(process.env.RESEND_API_KEY) && (
             <div className="mt-5 flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-sm">
               <MailCheck size={16} className="shrink-0 mt-0.5 text-amber-500" />
               <p className="text-amber-800">

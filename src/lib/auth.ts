@@ -3,7 +3,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { getDb, schema } from "@/db";
-import { sendVerificationEmail, sendResetPasswordEmail } from "./server/mailer";
+import { sendVerificationEmail, sendResetPasswordEmail, emailEnabled } from "./server/mailer";
+
+export { emailEnabled };
 
 export const APP_URL =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -35,7 +37,8 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
-    sendOnSignUp: true,
+    // Без настроенной почты не пытаемся отправлять вовсе
+    sendOnSignUp: emailEnabled,
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendVerificationEmail(user.email, url);

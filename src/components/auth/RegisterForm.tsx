@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookmarkCheck, History, Star, MailCheck } from "lucide-react";
+import { BookmarkCheck, History, Star, MailCheck, CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputCls } from "./AuthShell";
 
@@ -15,7 +15,7 @@ function safeNext(raw: string | null): string {
   return raw;
 }
 
-export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function RegisterForm({ googleEnabled, emailEnabled }: { googleEnabled: boolean; emailEnabled: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
 
@@ -46,7 +46,7 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
       setLoading(false);
       return;
     }
-    // Подтверждение почты не обязательно — вход уже активен, письмо ушло фоном
+    // Подтверждение почты не обязательно; письмо уходит только если почта подключена
     setDone(true);
     setTimeout(() => window.location.assign(next), 1200);
   }
@@ -65,11 +65,20 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
     return (
       <AuthShell crumb="Qeydiyyat" title="Hesabınız hazırdır" subtitle="Sizi nəticəyə yönləndiririk...">
         <div className="flex items-start gap-2.5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
-          <MailCheck size={17} className="shrink-0 mt-0.5 text-emerald-600" />
-          <p>
-            <strong>{email}</strong> ünvanına təsdiq məktubu göndərdik. Təsdiq etmək məcburi deyil —
-            hesabınızdan indi də istifadə edə bilərsiniz.
-          </p>
+          {emailEnabled ? (
+            <>
+              <MailCheck size={17} className="shrink-0 mt-0.5 text-emerald-600" />
+              <p>
+                <strong>{email}</strong> ünvanına təsdiq məktubu göndərdik. Təsdiq etmək məcburi deyil —
+                hesabınızdan indi də istifadə edə bilərsiniz.
+              </p>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={17} className="shrink-0 mt-0.5 text-emerald-600" />
+              <p>Hesabınız yaradıldı. İndi ətraflı analizə çıxışınız var.</p>
+            </>
+          )}
         </div>
       </AuthShell>
     );

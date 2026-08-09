@@ -1,10 +1,14 @@
 import "server-only";
 import { Resend } from "resend";
 
-/* Если RESEND_API_KEY ещё не выдан — не роняем регистрацию, а пишем письмо в лог.
-   Это позволяет разрабатывать до подключения Resend; в проде ключ обязателен. */
+/* Почта включается только когда есть RESEND_API_KEY. Пока ключа нет, письма
+   не отправляются вообще, и UI не обещает того, чего не будет: скрывается
+   восстановление пароля, при регистрации не пишем «мы отправили письмо».
+   В dev письмо пишется в лог, чтобы можно было пройти сценарий по ссылке. */
 const apiKey = process.env.RESEND_API_KEY;
-const from = process.env.EMAIL_FROM || "Navio <noreply@navio.az>";
+const from = process.env.EMAIL_FROM || "Navio <onboarding@resend.dev>";
+
+export const emailEnabled = Boolean(apiKey);
 
 const resend = apiKey ? new Resend(apiKey) : null;
 
