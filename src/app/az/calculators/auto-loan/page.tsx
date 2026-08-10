@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
-import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
-import { SliderRow } from "@/components/ui/SliderRow";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
-import { Field, inputClasses } from "@/components/ui/Field";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { NumberField } from "@/components/ui/Field";
 import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
 import { LoanResult } from "@/components/calculators/LoanResult";
 import { ScheduleTable } from "@/components/calculators/ScheduleTable";
@@ -26,27 +24,29 @@ const azn = (v: number) => `${formatNumber(v)} ₼`;
    ограничения банков по возрасту авто. */
 
 export default function AutoLoanPage() {
-  const [carPriceStr, setCarPriceStr] = useState("");
-  const [priceTouched, setPriceTouched] = useState(false);
+  const [carPrice, setCarPrice] = useState("");
   const [isNew, setIsNew] = useState<"new" | "used">("new");
-  const [downPaymentPct, setDownPaymentPct] = useState(20);
-  const [months, setMonths] = useState(60);
-  const [rate, setRate] = useState(15);
-  const [commissionPct, setCommissionPct] = useState(0);
+  const [downPct, setDownPct] = useState("20");
+  const [months, setMonths] = useState("60");
+  const [rate, setRate] = useState("15");
+  const [commissionPct, setCommissionPct] = useState("0");
   const [extra, setExtra] = useState(initialExtraConfig);
 
-  const carPrice = parseFloat(carPriceStr) || 0;
-  const downPayment = Math.round((downPaymentPct / 100) * carPrice);
-  const loanAmount = Math.max(0, carPrice - downPayment);
-  const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
-  const commission = Math.round((commissionPct / 100) * loanAmount);
+  const n = (s: string) => Math.max(0, parseFloat(s) || 0);
+  const price = n(carPrice);
+  const m = Math.round(n(months));
+  const r = n(rate);
 
-  const result = useMemo(() => {
-    if (!loanAmount || !months || !rate) return null;
+  const downPayment = Math.round((n(downPct) / 100) * price);
+  const loanAmount = Math.max(0, price - downPayment);
+  const baseMonthly = calcAnnuityPayment(loanAmount, r, m);
+  const commission = Math.round((n(commissionPct) / 100) * loanAmount);
 
-    // Базовый сценарий считаем всегда, чтобы сравнение «до/после» было настоящим
-    const base = simulateLoan(loanAmount, rate, months);
-    const plan = toPlan(extra, months);
+  const result = (() => {
+    if (!loanAmount || !m || !r) return null;
+
+    const base = simulateLoan(loanAmount, r, m);
+    const plan = toPlan(extra, m);
 
     if (!plan) {
       return {
@@ -60,7 +60,7 @@ export default function AutoLoanPage() {
       };
     }
 
-    const withExtra = simulateLoan(loanAmount, rate, months, plan);
+    const withExtra = simulateLoan(loanAmount, r, m, plan);
     return {
       firstPayment: withExtra.monthlyPayment,
       current: {
@@ -74,177 +74,116 @@ export default function AutoLoanPage() {
       penaltyCost: withExtra.totalPenalty,
       schedule: withExtra.rows,
     };
-  }, [loanAmount, rate, months, commission, extra]);
+  })();
 
-  const ear = useMemo(() => {
-    if (!loanAmount || !months) return null;
-    const netPrincipal = loanAmount - commission;
-    if (netPrincipal <= 0) return (Math.pow(1 + rate / 100 / 12, 12) - 1) * 100;
-    const irr = solveMonthlyIRR(baseMonthly, months, netPrincipal);
-    return (Math.pow(1 + irr, 12) - 1) * 100;
-  }, [loanAmount, months, baseMonthly, commission, rate]);
+  const ear = (() => {
+    if (!loanAmount || !m) return null;
+    const net = loanAmount - commission;
+    if (net <= 0) return (Math.pow(1 + r / 100 / 12, 12) - 1) * 100;
+    return (Math.pow(1 + solveMonthlyIRR(baseMonthly, m, net), 12) - 1) * 100;
+  })();
 
-  const fifd = useMemo(() => {
-    if (!result || !loanAmount || !months) return null;
-    const netPrincipal = loanAmount - commission;
-    if (netPrincipal <= 0) return null;
-    return solveMonthlyIRR(result.firstPayment, months, netPrincipal) * 12 * 100;
-  }, [result, loanAmount, months, commission]);
-
-  // Ошибка показывается только после того, как поле трогали: краснеть при
-  // первом появлении страницы, когда человек ещё ничего не сделал, незачем.
-  const priceError = priceTouched && carPrice <= 0 ? "Avtomobilin dəyərini daxil edin." : null;
+  const fifd = (() => {
+    if (!result || !loanAmount || !m) return null;
+    const net = loanAmount - commission;
+    if (net <= 0) return null;
+    return solveMonthlyIRR(result.firstPayment, m, net) * 12 * 100;
+  })();
 
   return (
-    <main className="min-h-screen bg-gray-50 py-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <Breadcrumbs
-          trail={[
-            { href: "/az", label: "Ana səhifə" },
-            { href: "/az/calculators", label: "Kalkulyatorlar" },
-          ]}
-          current="Avtokredit"
-        />
-        <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Avtokredit kalkulyatoru</h1>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-4 lg:col-span-3">
-            <Card className="space-y-5">
-              <div role="group" aria-label="Avtomobilin vəziyyəti" className="flex gap-2">
-                {([
-                  { key: "new", label: "Yeni" },
-                  { key: "used", label: "İşlənmiş" },
-                ] as const).map((t) => (
-                  <button
-                    key={t.key}
-                    type="button"
-                    aria-pressed={isNew === t.key}
-                    onClick={() => setIsNew(t.key)}
-                    className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
-                      isNew === t.key
-                        ? "border-brand-600 bg-brand-50 text-brand-700"
-                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              <Field
-                label="Avtomobilin qiyməti"
-                htmlFor="car-price"
-                error={priceError}
-                hint="Manatla"
-                className="border-t border-gray-200 pt-5"
-              >
-                <input
-                  id="car-price"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  value={carPriceStr}
-                  onChange={(e) => setCarPriceStr(e.target.value)}
-                  onBlur={() => setPriceTouched(true)}
-                  placeholder="30 000"
-                  className={inputClasses(priceError)}
-                />
-              </Field>
-
-              <SliderRow
-                label="İlkin ödəniş"
-                value={downPaymentPct}
-                min={10}
-                max={90}
-                step={5}
-                format={(v) => formatPercent(v, 0)}
-                unit="%"
-                onChange={setDownPaymentPct}
-              />
-              <SliderRow
-                label="Kredit müddəti"
-                value={months}
-                min={6}
-                max={59}
-                step={1}
-                format={(v) => `${v} ay`}
-                unit="ay"
-                onChange={setMonths}
-              />
-              <SliderRow
-                label="İllik faiz dərəcəsi"
-                value={rate}
-                min={5}
-                max={35}
-                step={0.1}
-                format={(v) => formatPercent(v)}
-                unit="%"
-                onChange={setRate}
-              />
-              <SliderRow
-                label="Komissiya"
-                value={commissionPct}
-                min={0}
-                max={5}
-                step={0.25}
-                format={(v) => (v === 0 ? "yoxdur" : formatPercent(v, 2))}
-                unit="%"
-                onChange={setCommissionPct}
-              />
-
-              {/* Сумма кредита выводится из цены и первого взноса, поэтому
-                  показывается рядом с ними, а не только в результате. */}
-              <dl className="flex items-baseline justify-between gap-3 border-t border-gray-200 pt-4">
-                <dt className="text-sm font-semibold text-gray-700">İlkin ödəniş</dt>
-                <dd className="text-sm font-bold tabular-nums text-ink">{azn(downPayment)}</dd>
-              </dl>
-              <dl className="flex items-baseline justify-between gap-3">
-                <dt className="text-sm font-semibold text-gray-700">Kredit məbləği</dt>
-                <dd className="text-base font-extrabold tabular-nums text-ink">{formatCurrency(loanAmount)}</dd>
-              </dl>
-            </Card>
-
-            <ExtraPayments months={months} value={extra} onChange={setExtra} />
-          </div>
-
-          <div className="lg:col-span-2">
-            <div className="space-y-4 lg:sticky lg:top-20">
-              {result ? (
-                <LoanResult
-                  monthly={result.firstPayment}
-                  oneOffNote={commission > 0 ? `Əlavə olaraq ${azn(commission)} komissiya` : undefined}
-                  base={result.base}
-                  current={result.current}
-                  comparison={result.comparison}
-                  extraPaid={result.extraPaid}
-                  costs={[
-                    { label: "Komissiya", amount: commission },
-                    { label: "Erkən ödəniş kompensasiyası", amount: result.penaltyCost },
-                  ]}
-                  checkUrl={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=avto`}
-                  ear={ear}
-                  fifd={fifd}
-                />
-              ) : (
-                <Card>
-                  <p className="text-sm font-medium text-gray-600">Avtomobilin qiymətini daxil edin.</p>
-                  <p className="mt-1 text-xs text-gray-500">Aylıq ödəniş dərhal burada hesablanacaq.</p>
-                </Card>
-              )}
-
-              {isNew === "used" && (
-                <Card>
-                  <p className="text-xs leading-relaxed text-gray-600">
-                    İşlənmiş avtomobillər üçün yaş məhdudiyyəti bankdan banka dəyişir. Banklar fərqli şərtlər qoya bilər.
-                  </p>
-                </Card>
-              )}
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+        <div className="space-y-4 lg:col-span-3">
+          <Card>
+            <div role="group" aria-label="Avtomobilin vəziyyəti" className="mb-4 flex gap-2">
+              {([
+                { key: "new", label: "Yeni" },
+                { key: "used", label: "İşlənmiş" },
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  aria-pressed={isNew === t.key}
+                  onClick={() => setIsNew(t.key)}
+                  className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                    isNew === t.key
+                      ? "border-brand-600 bg-brand-50 text-brand-700"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-          </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                label="Avtomobilin qiyməti"
+                unit="₼"
+                value={carPrice}
+                onChange={setCarPrice}
+                min={0}
+                placeholder="30000"
+                autoFocus
+              />
+              <NumberField label="İlkin ödəniş" unit="%" value={downPct} onChange={setDownPct} min={10} max={90} />
+              <NumberField label="Müddət" unit="ay" value={months} onChange={setMonths} min={6} max={59} />
+              <NumberField label="İllik faiz" unit="%" value={rate} onChange={setRate} min={5} max={35} step={0.1} />
+              <NumberField label="Komissiya" unit="%" value={commissionPct} onChange={setCommissionPct} min={0} max={5} step={0.25} />
+            </div>
+
+            {price > 0 && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <dl className="flex items-baseline justify-between gap-3">
+                  <dt className="text-sm text-gray-600">İlkin ödəniş</dt>
+                  <dd className="text-sm font-bold tabular-nums text-ink">{azn(downPayment)}</dd>
+                </dl>
+                <dl className="mt-2 flex items-baseline justify-between gap-3">
+                  <dt className="text-sm font-semibold text-gray-700">Kredit məbləği</dt>
+                  <dd className="text-base font-extrabold tabular-nums text-ink">{formatCurrency(loanAmount)}</dd>
+                </dl>
+              </div>
+            )}
+
+            {isNew === "used" && (
+              <p className="mt-3 text-[11px] leading-relaxed text-gray-500">
+                İşlənmiş avtomobillər üçün yaş məhdudiyyəti bankdan banka dəyişir.
+              </p>
+            )}
+          </Card>
+
+          <ExtraPayments months={m} value={extra} onChange={setExtra} />
         </div>
 
-        {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} />}
+        <div className="lg:col-span-2">
+          <div className="lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pb-2">
+            {result ? (
+              <LoanResult
+                monthly={result.firstPayment}
+                oneOffNote={commission > 0 ? `Üstəlik ${azn(commission)} komissiya` : undefined}
+                base={result.base}
+                current={result.current}
+                comparison={result.comparison}
+                extraPaid={result.extraPaid}
+                costs={[
+                  { label: "Komissiya", amount: commission },
+                  { label: "Erkən ödəniş kompensasiyası", amount: result.penaltyCost },
+                ]}
+                checkUrl={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${m}&faiz=${r}&nov=avto`}
+                ear={ear}
+                fifd={fifd}
+              />
+            ) : (
+              <Card>
+                <p className="text-sm font-medium text-gray-600">Avtomobilin qiymətini yazın.</p>
+                <p className="mt-1 text-xs text-gray-500">Aylıq ödəniş dərhal burada hesablanacaq.</p>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
-    </main>
+
+      {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} />}
+    </div>
   );
 }
