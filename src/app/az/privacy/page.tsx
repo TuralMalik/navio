@@ -29,11 +29,21 @@ Bu məlumatlar hesablama məqsədi ilə istifadə edilir.`,
             },
             {
               title: "Şəxsiyyət sənədi tələb edilirmi?",
-              content: `Xeyr. Navio-nun əsas MVP (ilkin versiya) funksionallığı FIN kodu, pasport nömrəsi, ünvan və ya telefon nömrəsi tələb etmir. Siz tamamilə anonim şəkildə hesablama apara bilərsiniz.`,
+              content: `Xeyr. Navio FIN kodu, pasport nömrəsi, ünvan və ya telefon nömrəsi tələb etmir. Hesablamanı qeydiyyatdan keçmədən apara bilərsiniz.`,
             },
             {
               title: "Məlumatlar necə istifadə edilir?",
-              content: `Daxil etdiyiniz məlumatlar yalnız brauzerdə (client-side) hesablama aparmaq üçün istifadə edilir. Hazırkı mərhələdə bu məlumatlar serverimizə göndərilmir və saxlanılmır.`,
+              content: `Hesablama Navio serverində aparılır: daxil etdiyiniz məlumatlar nəticəni hesablamaq üçün serverə göndərilir və hesablama nəticəsi ilə birlikdə saxlanılır. Bu, «Ətraflı analiz» səhifəsini açmağa və hesabınızda hesablama tarixçəsini görməyə imkan verir.
+
+• Qeydiyyatsız aparılan hesablamalar 7 gün saxlanılır və sonra avtomatik silinir.
+• Hesabınız varsa, hesablamalar siz onları silənə qədər tarixçənizdə qalır.
+• IP ünvanınız açıq şəkildə saxlanılmır — yalnız sui-istifadədən qorunmaq (sorğu limiti) üçün geri qaytarıla bilməyən şəkildə şifrələnmiş formada istifadə olunur.`,
+            },
+            {
+              title: "Hesab yaratdıqda hansı məlumatlar saxlanılır?",
+              content: `Qeydiyyatdan keçsəniz: adınız, e-poçt ünvanınız və şifrənizin geri qaytarıla bilməyən formada şifrələnmiş (hash) variantı. Google ilə daxil olsanız, Google-un bizə ötürdüyü ad, e-poçt və profil şəkli. Şifrənizi heç vaxt açıq şəkildə saxlamırıq.
+
+Hesabınızı və bütün əlaqəli hesablamaları silmək üçün info@navio.az ünvanına yaza bilərsiniz.`,
             },
             {
               title: "Məlumatlar üçüncü tərəflərə verilirmi?",

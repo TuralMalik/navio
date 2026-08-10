@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, CheckCircle, Info, ArrowRight, Building2, Landmark } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
@@ -9,8 +9,10 @@ import { track } from "@vercel/analytics";
 import {
   type Mode, type GelirNovu, type KreditNovu, type IsStaji,
   type BankForm, type BoktForm,
-  calcBankScore, calcBoktScore, explainResult,
-} from "@/lib/scoring";
+  FORM_RANGES, clampToRange,
+} from "@/lib/scoring-types";
+import type { PublicScoreResult, Tone } from "@/lib/score-contract";
+import { useDebouncedCallback, useLatestRequest } from "@/lib/useDebouncedCallback";
 
 
 /* ─── Тултип-расшифровка BOKT: работает по тапу/клику (мобайл-friendly),
@@ -86,13 +88,13 @@ function Gauge({ score }: { score: number }) {
 }
 
 /* ─── BGN Bar ─── */
-function BgnBar({ bgn }: { bgn: number }) {
+function BgnBar({ bgn, limit }: { bgn: number; limit: number }) {
   const pct = Math.min(bgn / 100, 1);
   return (
     <div className="mt-2">
       <div className="flex justify-between text-xs text-gray-500 mb-1">
         <span>BGN: <strong className="text-gray-800">{bgn.toFixed(1)}%</strong></span>
-        <span>Limit: 70%</span>
+        <span>Limit: {limit}%</span>
       </div>
       <div className="relative h-3 rounded-full overflow-hidden bg-gradient-to-r from-green-400 via-yellow-400 via-orange-400 to-red-500">
         <div className="absolute top-0 bottom-0 right-0 bg-gray-100/60" style={{ left: `${pct * 100}%` }} />
@@ -106,19 +108,16 @@ function BgnBar({ bgn }: { bgn: number }) {
   );
 }
 
-/* ─── Score label ─── */
-function scoreLabel(score: number, mode: Mode) {
-  if (mode === "bank") {
-    if (score >= 80) return { text: "Yüksək şans — Bankların əksəriyyəti təsdiqləyə bilər", color: "text-green-600", bg: "bg-green-50 border-green-200", icon: "🟢" };
-    if (score >= 65) return { text: "Yaxşı şans — Bir çox bank təsdiqləyə bilər", color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", icon: "🟢" };
-    if (score >= 45) return { text: "Orta şans — Şansınız var, bankdan asılıdır", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", icon: "🟡" };
-    return { text: "Aşağı şans — Profili yaxşılaşdırmaq tövsiyə olunur", color: "text-orange-600", bg: "bg-orange-50 border-orange-200", icon: "🟠" };
-  } else {
-    if (score >= 80) return { text: "BOKT-dan kredit ala bilərsiniz", color: "text-green-600", bg: "bg-green-50 border-green-200", icon: "🟢" };
-    if (score >= 40) return { text: "Bəzi BOKT-lar təklif edə bilər", color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200", icon: "🟡" };
-    return { text: "BOKT-dan da çətin olacaq", color: "text-red-600", bg: "bg-red-50 border-red-200", icon: "🔴" };
-  }
-}
+/* ─── Оформление тона результата.
+   Сам уровень («Yüksək şans» и т.д.) считает сервер — здесь только цвета. ─── */
+const TONE_CLASS: Record<Tone, { color: string; bg: string }> = {
+  good:      { color: "text-green-600",   bg: "bg-green-50 border-green-200" },
+  normal:    { color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200" },
+  attention: { color: "text-yellow-600",  bg: "bg-yellow-50 border-yellow-200" },
+  risk:      { color: "text-orange-600",  bg: "bg-orange-50 border-orange-200" },
+  high:      { color: "text-red-600",     bg: "bg-red-50 border-red-200" },
+  na:        { color: "text-gray-600",    bg: "bg-gray-50 border-gray-200" },
+};
 
 function Field({ label, children, note }: { label: string; children: React.ReactNode; note?: string }) {
   return (
@@ -155,6 +154,8 @@ function KreditYoxlamaContent() {
   const [pressed, setPressed] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeStep, setAnalyzeStep] = useState(0);
+  const [result, setResult] = useState<PublicScoreResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [bank, setBank] = useState<BankForm>({
     kreditNovu: initNov,
@@ -177,20 +178,57 @@ function KreditYoxlamaContent() {
     kreditTarixce: "yox",
   });
 
-  const bResult = useMemo(() => calcBankScore(bank), [bank]);
-  const nResult = useMemo(() => calcBoktScore(bokt), [bokt]);
+  const { next: nextRequest, isLatest } = useLatestRequest();
 
-  const result = mode === "bank" ? bResult : nResult;
+  /* Расчёт живёт на сервере: форма уходит в /api/score, обратно приходит только
+     то, что можно показать. Пороги, веса и таблицы ставок в браузер не попадают. */
+  const runScoring = useCallback(async () => {
+    const reqId = nextRequest();
+    setError(null);
+    try {
+      const res = await fetch("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode, input: mode === "bank" ? bank : bokt }),
+      });
+      if (!isLatest(reqId)) return; // пришёл ответ на устаревший запрос — игнорируем
+      if (!res.ok) {
+        const msg = res.status === 429
+          ? "Çox sayda sorğu göndərildi. Bir az sonra yenidən cəhd edin."
+          : "Hesablama alınmadı. Bir az sonra yenidən cəhd edin.";
+        setError(msg);
+        setResult(null);
+        return;
+      }
+      const data: PublicScoreResult = await res.json();
+      if (!isLatest(reqId)) return;
+      setResult(data);
+      track("scoring_calculated", {
+        mode,
+        kreditNovu: mode === "bank" ? bank.kreditNovu : "bokt",
+        gelirNovu: mode === "bank" ? bank.gelirNovu : "-",
+        scoreBucket: data.score >= 80 ? "80+" : data.score >= 65 ? "65-79" : data.score >= 45 ? "45-64" : "<45",
+        hasStops: data.stops.length ? "yes" : "no",
+      });
+    } catch {
+      if (!isLatest(reqId)) return;
+      setError("Şəbəkə xətası. İnternet bağlantınızı yoxlayın.");
+      setResult(null);
+    }
+  }, [mode, bank, bokt, nextRequest, isLatest]);
+
+  // Дебаунс: гасит двойные нажатия и быстрые повторные отправки
+  const debouncedScoring = useDebouncedCallback(() => { void runScoring(); }, 300);
 
   function switchToBokt() {
     setBokt(n => ({ ...n, mebleg: bank.mebleg, gelir: bank.gelir }));
     setMode("bokt");
     setSubmitted(false);
+    setResult(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const bStops = (bResult as any).stops as string[];
-  const hasStops = mode === "bank" && bStops.length > 0;
+  const hasStops = Boolean(result?.blocked);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -233,13 +271,10 @@ function KreditYoxlamaContent() {
                       <select value={bank.kreditNovu} onChange={e => setBank(b => {
                         const nov = e.target.value as KreditNovu;
                         // Диапазоны зависят от типа кредита — поджимаем сумму/срок под новый диапазон
-                        const meblegMin = nov === "naqd" ? 200 : 500;
-                        const meblegMax = nov === "ipoteka" || nov === "avto" ? 500000 : 100000;
-                        const muddetMin = nov === "naqd" ? 3 : 1;
-                        const muddetMax = nov === "ipoteka" ? 360 : 59;
-                        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-                        const meblegVal = clamp(parseFloat(b.mebleg) || meblegMin, meblegMin, meblegMax);
-                        const muddetVal = clamp(parseInt(b.muddət) || muddetMin, muddetMin, muddetMax);
+                        const m = FORM_RANGES.mebleg(nov);
+                        const d = FORM_RANGES.muddet(nov);
+                        const meblegVal = clampToRange(parseFloat(b.mebleg) || m.min, m.min, m.max);
+                        const muddetVal = clampToRange(parseInt(b.muddət) || d.min, d.min, d.max);
                         return { ...b, kreditNovu: nov, mebleg: String(meblegVal), muddət: String(muddetVal) };
                       })} className={selectCls}>
                         <option value="naqd">Nağd kredit</option>
@@ -254,19 +289,21 @@ function KreditYoxlamaContent() {
                     </Field>
 
                     <SliderRow label="Tələb olunan məbləğ"
-                      value={parseFloat(bank.mebleg) || (bank.kreditNovu === "naqd" ? 200 : 500)}
-                      min={bank.kreditNovu === "naqd" ? 200 : 500}
-                      max={bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto" ? 500000 : 100000} step={1}
+                      value={parseFloat(bank.mebleg) || FORM_RANGES.mebleg(bank.kreditNovu).min}
+                      min={FORM_RANGES.mebleg(bank.kreditNovu).min}
+                      max={FORM_RANGES.mebleg(bank.kreditNovu).max} step={1}
                       format={(v) => `₼ ${formatNumber(v)}`} unit="₼"
                       onChange={(v) => setBank(b => ({ ...b, mebleg: String(v) }))} />
 
                     <SliderRow label="Kredit müddəti" value={parseInt(bank.muddət) || 24}
-                      min={bank.kreditNovu === "naqd" ? 3 : 1} max={bank.kreditNovu === "ipoteka" ? 360 : 59} step={1}
+                      min={FORM_RANGES.muddet(bank.kreditNovu).min}
+                      max={FORM_RANGES.muddet(bank.kreditNovu).max} step={1}
                       format={(v) => `${v} ay`} unit="ay"
                       onChange={(v) => setBank(b => ({ ...b, muddət: String(v) }))} />
 
                     {bank.kreditNovu !== "naqd" && (
-                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24} min={0} max={100} step={0.5}
+                      <SliderRow label="İllik faiz dərəcəsi" value={parseFloat(bank.faiz) || 24}
+                        min={FORM_RANGES.faiz.min} max={FORM_RANGES.faiz.max} step={0.5}
                         format={(v) => `${v}%`} unit="%"
                         onChange={(v) => setBank(b => ({ ...b, faiz: String(v) }))} />
                     )}
@@ -318,7 +355,8 @@ function KreditYoxlamaContent() {
                 {/* ── Şəxsi məlumatlar ── */}
                 <div className="border-t border-gray-100 pt-4">
                   <p className={sectionTitle}>Şəxsi məlumatlar</p>
-                  <SliderRow label="Yaş" value={parseInt(bank.yas) || 30} min={18} max={75} step={1}
+                  <SliderRow label="Yaş" value={parseInt(bank.yas) || 30}
+                    min={FORM_RANGES.yas.min} max={FORM_RANGES.yas.max} step={1}
                     format={(v) => `${v} yaş`} unit="yaş"
                     onChange={(v) => setBank(b => ({ ...b, yas: String(v) }))} />
                 </div>
@@ -389,34 +427,22 @@ function KreditYoxlamaContent() {
               onClick={() => {
                 setPressed(true);
                 setTimeout(() => setPressed(false), 250);
-                // Анонимная аналитика расчёта: без сумм и личных данных
-                const r = mode === "bank" ? bResult : nResult;
-                // Анонимный лог расчёта для калибровки модели (fire-and-forget)
-                if (mode === "bank") {
-                  fetch("/api/scoring-log", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ input: bank, score: r.score, bgn: Math.round((r as { bgn: number }).bgn) }),
-                    keepalive: true,
-                  }).catch(() => {});
-                }
-                track("scoring_calculated", {
-                  mode,
-                  kreditNovu: mode === "bank" ? bank.kreditNovu : "bokt",
-                  gelirNovu: mode === "bank" ? bank.gelirNovu : "-",
-                  scoreBucket: r.score >= 80 ? "80+" : r.score >= 65 ? "65-79" : r.score >= 45 ? "45-64" : "<45",
-                  hasStops: (r as { stops?: string[] }).stops?.length ? "yes" : "no",
-                });
-                // Вход расчёта для страницы детального анализа
-                try { sessionStorage.setItem("navioCreditCheckResult", JSON.stringify(bank)); } catch {}
-                // Короткая «анализ»-анимация; при prefers-reduced-motion — сразу результат
+
                 const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-                if (reduced) { setSubmitted(true); return; }
+                if (reduced) {
+                  setSubmitted(true);
+                  debouncedScoring();
+                  return;
+                }
+                // Анимация идёт параллельно реальному запросу: результат показываем,
+                // когда закончится и то, и другое (а не по фиктивному таймеру).
                 setSubmitted(false);
                 setAnalyzeStep(0);
                 setAnalyzing(true);
                 const per = 320;
                 ANALYZE_STEPS.forEach((_, i) => { if (i > 0) setTimeout(() => setAnalyzeStep(i), per * i); });
                 setTimeout(() => { setAnalyzing(false); setSubmitted(true); }, per * ANALYZE_STEPS.length);
+                debouncedScoring();
               }}
               disabled={analyzing}
               className={`w-full mt-2 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-bold text-white text-sm transition-all duration-200 shadow-md
@@ -478,13 +504,32 @@ function KreditYoxlamaContent() {
                     <circle cx="90" cy="90" r="5" fill="#d1d5db" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500 font-medium">Məlumatları daxil edin<br />və "Hesabla" düyməsinə basın</p>
+                <p className="text-sm text-gray-500 font-medium">Məlumatları daxil edin<br />və &laquo;Hesabla&raquo; düyməsinə basın</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
+                  <AlertTriangle size={24} className="text-red-500" />
+                </div>
+                <p className="text-sm text-gray-600 font-medium mb-4">{error}</p>
+                <button onClick={() => { setError(null); void runScoring(); }}
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-800">
+                  Yenidən cəhd et
+                </button>
+              </div>
+            ) : !result ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <svg className="animate-spin mb-3" width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="#2447F0" strokeWidth="3" strokeOpacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="#2447F0" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <p className="text-sm text-gray-500 font-medium">Nəticə hazırlanır...</p>
               </div>
             ) : (
               <>
                 {hasStops && (
                   <div className="mb-4 space-y-2">
-                    {bStops.map((s, i) => (
+                    {result.stops.map((s, i) => (
                       <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm">
                         <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                         <div>
@@ -502,16 +547,16 @@ function KreditYoxlamaContent() {
 
                 {result.warnings.length > 0 && (
                   <div className="mb-4 space-y-2">
-                    {result.warnings.slice(0, 2).map((w, i) => (
+                    {result.warnings.map((w, i) => (
                       <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs">
                         <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                         <p className="text-amber-700">⚠️ {w}</p>
                       </div>
                     ))}
-                    {mode === "bank" && result.warnings.length > 2 && (
-                      <a href="/az/kredit-yoxlama/analiz"
+                    {mode === "bank" && result.extraWarningCount > 0 && result.calculationId && (
+                      <a href={`/az/kredit-yoxlama/analiz?id=${result.calculationId}`}
                         className="block text-center text-xs font-semibold text-amber-700 underline decoration-amber-300 underline-offset-2 py-1">
-                        +{result.warnings.length - 2} əlavə qeyd — «Ətraflı analiz»də
+                        +{result.extraWarningCount} əlavə qeyd — «Ətraflı analiz»də
                       </a>
                     )}
                   </div>
@@ -521,34 +566,34 @@ function KreditYoxlamaContent() {
                   <Gauge score={hasStops ? 0 : result.score} />
                 </div>
 
-                {!hasStops && (
-                  <div className={`mt-3 p-3 rounded-xl border text-sm font-medium text-center ${scoreLabel(result.score, mode).bg} ${scoreLabel(result.score, mode).color}`}>
-                    {scoreLabel(result.score, mode).icon} {scoreLabel(result.score, mode).text}
+                {!hasStops && result.label && (
+                  <div className={`mt-3 p-3 rounded-xl border text-sm font-medium text-center ${TONE_CLASS[result.label.tone].bg} ${TONE_CLASS[result.label.tone].color}`}>
+                    {result.label.icon} {result.label.text}
                   </div>
                 )}
 
-                {mode === "bank" && bResult.bgn < 999 && (
+                {mode === "bank" && result.bgn != null && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <BgnBar bgn={bResult.bgn} />
-                    {bResult.yeniOdenis > 0 && (
+                    <BgnBar bgn={result.bgn} limit={result.bgnLimit} />
+                    {result.yeniOdenis > 0 && (
                       <p className="text-xs text-gray-500 mt-2">
-                        Yeni aylıq ödəniş: <strong className="text-gray-700">{bResult.yeniOdenis.toFixed(0)} AZN</strong>
-                        {bResult.estimatedRate != null ? (
-                          <span className="text-gray-500"> ({bResult.estimatedRate.toFixed(1)}% illik — təxmini)</span>
+                        Yeni aylıq ödəniş: <strong className="text-gray-700">{result.yeniOdenis.toFixed(0)} AZN</strong>
+                        {result.estimatedRate != null ? (
+                          <span className="text-gray-500"> ({result.estimatedRate.toFixed(1)}% illik — təxmini)</span>
                         ) : (
-                          <span className="text-gray-500"> ({bank.faiz}% illik ilə)</span>
+                          <span className="text-gray-500"> ({result.manualRate}% illik ilə)</span>
                         )}
                       </p>
                     )}
-                    {bResult.commission && bResult.commission.amount > 0 && (
+                    {result.commission && (
                       <p className="text-xs text-gray-500 mt-1">
-                        Birdəfəlik komissiya: <strong className="text-gray-700">{formatNumber(bResult.commission.amount)} AZN</strong>
-                        <span className="text-gray-500"> ({bResult.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
+                        Birdəfəlik komissiya: <strong className="text-gray-700">{formatNumber(result.commission.amount)} AZN</strong>
+                        <span className="text-gray-500"> ({result.commission.pct}% — aylıq ödənişə daxil deyil, ümumi dəyərə əlavə olunur)</span>
                       </p>
                     )}
-                    {bResult.estimatedRate != null && (
+                    {result.estimatedRate != null && (
                       <div className="mt-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 space-y-1">
-                        <p className="font-semibold">Navio tərəfindən hesablanan təxmini faiz: {bResult.estimatedRate.toFixed(1)}%</p>
+                        <p className="font-semibold">Navio tərəfindən hesablanan təxmini faiz: {result.estimatedRate.toFixed(1)}%</p>
                         <p className="text-indigo-500">İlkin hesablama. İctimai təklif deyil. Faiz fərdi hesablanır.</p>
                       </div>
                     )}
@@ -558,26 +603,22 @@ function KreditYoxlamaContent() {
                 {/* Bal bölgüsü — внутренняя механика скоринга, клиенту не показываем */}
 
                 {/* Главный совет (тезисно) — полный разбор на странице «Ətraflı analiz» */}
-                {mode === "bank" && !hasStops && (
+                {mode === "bank" && !hasStops && result.topRecommendation && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Əsas tövsiyə</p>
-                    <div className="space-y-2">
-                      {explainResult(bank, bResult).slice(0, 1).map((it) => (
-                        <div key={it.title} className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
-                          <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-xs font-semibold text-blue-800">{it.title}</p>
-                            <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">{it.text}</p>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <ArrowRight size={13} className="text-blue-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-blue-800">{result.topRecommendation.title}</p>
+                        <p className="text-xs text-blue-600 mt-0.5 leading-relaxed">{result.topRecommendation.text}</p>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Детальный анализ — отдельная страница (в будущем только для зарегистрированных) */}
-                {mode === "bank" && (
-                  <a href="/az/kredit-yoxlama/analiz"
+                {/* Детальный анализ — отдельная страница, полный отчёт после регистрации */}
+                {mode === "bank" && result.calculationId && (
+                  <a href={`/az/kredit-yoxlama/analiz?id=${result.calculationId}`}
                     className="group mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white text-sm transition-all hover:-translate-y-px"
                     style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)", boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
                     Ətraflı analiz və tövsiyələr
