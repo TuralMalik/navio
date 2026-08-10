@@ -5,8 +5,9 @@
    веса блоков, капы и таблицы ставок — внутренняя механика, её не показываем.
    Клиент получает только публичный payload из src/lib/score-contract.ts. */
 import "server-only";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatPercent } from "@/lib/utils";
 import type { GelirNovu, KreditNovu, BankForm, BoktForm } from "@/lib/scoring-types";
+import type { Tone } from "@/lib/score-contract";
 
 export type { Mode, GelirNovu, KreditNovu, IsStaji, BankForm, BoktForm } from "@/lib/scoring-types";
 
@@ -42,6 +43,18 @@ export const CONFIG = {
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
   maxCardLineToIncomeRatio: 5,   // лимит по кредитным линиям: 5× дохода
 };
+
+/* Зона долговой нагрузки. Пороги внутренние, наружу уходит только тон.
+
+   Живёт здесь, а не в analysis.ts, потому что нужна в двух местах: в
+   быстром результате и в подробном разборе. Пока это были две копии,
+   одна и та же нагрузка могла окраситься по-разному на соседних экранах. */
+export function bgnTone(bgn: number): Tone {
+  if (bgn > CONFIG.bgnHardStopPct) return "high";
+  if (bgn > CONFIG.bgnTierHighPct) return "risk";
+  if (bgn > CONFIG.bgnTierMidPct) return "attention";
+  return "good";
+}
 
 /* ─── Annuity: единая реализация в lib/calculators/annuity ─── */
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
@@ -133,7 +146,7 @@ export function calcBankScore(f: BankForm) {
   // Пустой или нулевой доход — расчёт невозможен, просим заполнить (вместо «BGN 999%»)
   if (gelir <= 0) {
     return {
-      score: 0, stops: ["Aylıq gəliri daxil edin — nəticə üçün gəlir məlumatı tələb olunur"], warnings: [],
+      score: 0, stops: ["Aylıq gəliri daxil edin: nəticə üçün gəlir məlumatı tələb olunur"], warnings: [],
       bgn: 0, yeniOdenis: 0, remaining: null, estimatedRate: null,
       commission: calcCommission(f.kreditNovu, f.gelirNovu, mebleg), blocks: null,
     };
@@ -177,32 +190,32 @@ export function calcBankScore(f: BankForm) {
 
   {
     // 1) Возраст < 18 — закон
-    if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır — qanunvericiliyə görə kredit verilə bilməz");
+    if (yas > 0 && yas < 18) stops.push("Yaşınız 18-dən azdır, qanunvericiliyə görə kredit verilə bilməz");
     // 2) Возраст на конец срока > лимит
-    if (ageAtEnd > CONFIG.maxAgeAtEnd) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq — limit ${CONFIG.maxAgeAtEnd}-dür`);
+    if (ageAtEnd > CONFIG.maxAgeAtEnd) stops.push(`Müddətin sonunda yaşınız ${ageAtEnd} olacaq, limit isə ${CONFIG.maxAgeAtEnd}-dür`);
     // 3) BGN > 70% — долговая нагрузка
-    if (bgn > CONFIG.bgnHardStopPct) stops.push(`BGN ${bgn.toFixed(1)}% — borc yükü 70%-dən yüksəkdir`);
+    if (bgn > CONFIG.bgnHardStopPct) stops.push(`Borc yükü ${formatPercent(bgn)}, bank limiti isə ${CONFIG.bgnHardStopPct}%-dir`);
     // 4) Срок > лимит (кроме ипотеки)
     if (f.kreditNovu !== "ipoteka" && muddət > CONFIG.maxTermMonths) stops.push(`${f.kreditNovu === "naqd" ? "Nağd kredit" : f.kreditNovu === "kart" ? "Kredit kartı" : "Avtokredit"} müddəti ${CONFIG.maxTermMonths} aydan çox ola bilməz`);
     // 5) Kredit kartı: новый + существующие лимиты > 5× дохода — закон о кредитных линиях
-    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${formatNumber(mebleg + movcudKartLimit)}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${formatNumber(income * CONFIG.maxCardLineToIncomeRatio)}) keçir — yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
+    if (f.kreditNovu === "kart" && income > 0 && (mebleg + movcudKartLimit) > income * CONFIG.maxCardLineToIncomeRatio) stops.push(`Ümumi kredit xətti limiti (₼ ${formatNumber(mebleg + movcudKartLimit)}) gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislini (₼ ${formatNumber(income * CONFIG.maxCardLineToIncomeRatio)}) keçir. Yeni limit mövcud limitlərlə birlikdə aylıq gəlirin ${CONFIG.maxCardLineToIncomeRatio} mislindən çox ola bilməz`);
   }
 
   {
     if (f.gelirNovu === "qeyri_resmi") {
-      warnings.push(`Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən ${CONFIG.unofficialIncomeAvg} ₼) qiymətləndirilir — bank öz modeli ilə yoxlayır.`);
+      warnings.push(`Qeyri-rəsmi gəlir hesablamada məhdud dəyərlə (təxminən ${CONFIG.unofficialIncomeAvg} ₼) qiymətləndirilir. Bank öz modeli ilə yoxlayır.`);
     }
     if (bgn >= 45 && bgn <= 70) {
-      warnings.push(`BGN ${bgn.toFixed(1)}% — borc yükü yüksəkdir, bəzi banklar rədd edə bilər.`);
+      warnings.push(`Borc yükü ${formatPercent(bgn)}, bu yüksəkdir və bəzi banklar rədd edə bilər.`);
     }
     if (highRisk) {
       warnings.push("Borc yükü və ya gəlirdən sonra qalan məbləğ bank üçün əlavə risk yarada bilər. Buna görə hesablamada daha yüksək faiz ssenarisi istifadə olunub.");
     }
     if (cariGecikmeGun > 0) {
-      warnings.push(`Cari gecikmə ${cariGecikmeGun} gün — aktiv gecikmə kredit şansını azaldır.`);
+      warnings.push(`Cari gecikmə ${cariGecikmeGun} gün. Aktiv gecikmə kredit şansını azaldır.`);
     }
     if (maks12ay >= 120) {
-      warnings.push(`Son 12 ayda maksimum gecikmə ${maks12ay} gün — banklar bu dövrə xüsusi diqqət yetirir.`);
+      warnings.push(`Son 12 ayda maksimum gecikmə ${maks12ay} gün. Banklar bu dövrə xüsusi diqqət yetirir.`);
     }
   }
 

@@ -14,7 +14,7 @@ const resend = apiKey ? new Resend(apiKey) : null;
 
 async function send(to: string, subject: string, html: string, text: string) {
   if (!resend) {
-    console.warn(`[mailer] RESEND_API_KEY yoxdur — məktub göndərilmədi. to=${to} subject=${subject}`);
+    console.warn(`[mailer] RESEND_API_KEY yoxdur, məktub göndərilmədi. to=${to} subject=${subject}`);
     console.warn(`[mailer] ${text}`);
     return;
   }
@@ -56,7 +56,7 @@ function layout(heading: string, body: string, cta: { label: string; url: string
 export async function sendVerificationEmail(to: string, url: string) {
   await send(
     to,
-    "Navio — e-poçt ünvanınızı təsdiqləyin",
+    "Navio: e-poçt ünvanınızı təsdiqləyin",
     layout(
       "E-poçt ünvanınızı təsdiqləyin",
       "Hesabınızı tam aktivləşdirmək və hesablamalarınızı yadda saxlamaq üçün e-poçt ünvanınızı təsdiqləyin.",
@@ -69,7 +69,7 @@ export async function sendVerificationEmail(to: string, url: string) {
 export async function sendResetPasswordEmail(to: string, url: string) {
   await send(
     to,
-    "Navio — şifrənin bərpası",
+    "Navio: şifrənin bərpası",
     layout(
       "Şifrənizi bərpa edin",
       "Şifrənizi dəyişmək üçün aşağıdakı düyməyə klikləyin. Keçid 1 saat ərzində etibarlıdır.",

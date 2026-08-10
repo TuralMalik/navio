@@ -26,7 +26,7 @@ function warnOnce(message: string) {
   // Один раз на инстанс: модуль читается на каждый рендер, лог не должен спамить
   if (warned) return;
   warned = true;
-  console.error(`[auth] Google ilə giriş söndürüldü — ${message}`);
+  console.error(`[auth] Google ilə giriş söndürüldü. ${message}`);
 }
 
 /** Креды, если они заданы и выглядят правдоподобно. Иначе null. */
@@ -46,8 +46,8 @@ export function getGoogleCredentials(): GoogleCredentials | null {
   if (clientId.startsWith(SECRET_PREFIX)) {
     warnOnce(
       "GOOGLE_CLIENT_ID-ə client secret yazılıb (GOCSPX- ilə başlayır). " +
-      "Dəyərləri yerlərinə düzgün yazın və HƏMİN secret-i Google Console-da yeniləyin — " +
-      "o, artıq avtorizasiya URL-ində açıq şəkildə ötürülmüş ola bilər.",
+      "Dəyərləri yerlərinə düzgün yazın və HƏMİN secret-i Google Console-da yeniləyin. " +
+      "O, artıq avtorizasiya URL-ində açıq şəkildə ötürülmüş ola bilər.",
     );
     return null;
   }
@@ -58,7 +58,7 @@ export function getGoogleCredentials(): GoogleCredentials | null {
   }
 
   if (clientSecret.endsWith(CLIENT_ID_SUFFIX)) {
-    warnOnce("GOOGLE_CLIENT_SECRET-ə client ID yazılıb — dəyərlər yerlərini dəyişib.");
+    warnOnce("GOOGLE_CLIENT_SECRET-ə client ID yazılıb, dəyərlər yerlərini dəyişib.");
     return null;
   }
 

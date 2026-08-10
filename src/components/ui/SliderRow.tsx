@@ -1,64 +1,113 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useId, useState } from "react";
+
+/* Ползунок с полем ввода.
+
+   Число справа — редактируемое поле, а не подпись: ползунком неудобно
+   попадать в «12 000», а руками неудобно перебирать варианты. Работают оба
+   способа, и они синхронизированы.
+
+   Пока поле в фокусе, внешнее значение в него не пишется: иначе набранное
+   «1» немедленно превратилось бы в «1» из состояния и цифры терялись бы
+   на каждом нажатии. Значение применяется по blur и по Enter. */
 
 export function SliderRow({
-  label, value, min, max, step, format, onChange, accentColor = "#2563eb", unit = "",
+  label,
+  value,
+  min,
+  max,
+  step,
+  format,
+  onChange,
+  unit = "",
 }: {
-  label: string; value: number; min: number; max: number; step: number;
-  format: (v: number) => string; onChange: (v: number) => void; accentColor?: string; unit?: string;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+  onChange: (v: number) => void;
+  unit?: string;
 }) {
-  const [inputVal, setInputVal] = useState(String(value));
+  const id = useId();
+  const [draft, setDraft] = useState(String(value));
   const [focused, setFocused] = useState(false);
 
-  useEffect(() => {
-    if (!focused) setInputVal(String(value));
-  }, [value, focused]);
+  /* Синхронизация с внешним значением идёт ВО ВРЕМЯ рендера, а не в эффекте.
+     Через useEffect получался лишний проход рендера на каждое движение
+     ползунка: React рисовал кадр со старым текстом в поле, затем эффект
+     ставил новый и заставлял рисовать заново. На перетаскивании это заметно.
+     Приём описан в документации React как «adjusting state on prop change». */
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (!focused && value !== syncedValue) {
+    setSyncedValue(value);
+    setDraft(String(value));
+  }
 
-  const pct = ((value - min) / (max - min)) * 100;
+  const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
-  function commitInput(raw: string) {
+  function commit(raw: string) {
     const n = parseFloat(raw);
-    if (!isNaN(n)) {
+    if (Number.isFinite(n)) {
       const clamped = Math.min(max, Math.max(min, Math.round(n / step) * step));
       onChange(clamped);
-      setInputVal(String(clamped));
+      setDraft(String(clamped));
     } else {
-      setInputVal(String(value));
+      // Мусор в поле откатывается к текущему значению, а не к нулю
+      setDraft(String(value));
     }
     setFocused(false);
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <div className="flex items-center gap-1">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <label htmlFor={`${id}-num`} className="text-sm font-semibold text-gray-800">
+          {label}
+        </label>
+        <div className="flex items-baseline gap-1">
           <input
+            id={`${id}-num`}
             type="number"
-            value={inputVal}
-            onFocus={() => setFocused(true)}
-            onChange={(e) => setInputVal(e.target.value)}
-            onBlur={(e) => commitInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") commitInput((e.target as HTMLInputElement).value); }}
-            className="w-24 text-right text-base font-bold text-gray-900 bg-transparent border-b-2 border-transparent focus:border-blue-400 focus:outline-none transition-colors"
+            inputMode="numeric"
+            value={draft}
             step={step}
+            onFocus={() => setFocused(true)}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={(e) => commit(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit((e.target as HTMLInputElement).value);
+              }
+            }}
+            className="w-24 rounded border-b-2 border-transparent bg-transparent text-right text-base font-bold tabular-nums text-ink transition-colors hover:border-gray-300 focus:border-brand-500"
           />
-          {unit && <span className="text-sm text-gray-500 shrink-0">{unit}</span>}
+          {unit && <span className="shrink-0 text-sm text-gray-500">{unit}</span>}
         </div>
       </div>
+
+      {/* accent-color красит бегунок средствами браузера, поэтому не нужен ни
+          кастомный thumb, ни ::-webkit-slider-thumb в глобальных стилях. */}
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range"
+        aria-label={label}
+        min={min}
+        max={max}
+        step={step}
+        value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer"
+        className="h-2 w-full cursor-pointer appearance-none rounded-full accent-brand-600"
         style={{
-          background: `linear-gradient(to right, ${accentColor} ${pct}%, #e5e7eb ${pct}%)`,
-          accentColor,
+          background: `linear-gradient(to right, var(--color-brand-600) ${pct}%, var(--color-gray-200) ${pct}%)`,
         }}
       />
-      <div className="flex justify-between mt-1">
-        <span className="text-xs text-gray-500">{format(min)}</span>
-        <span className="text-xs text-gray-500">{format(max)}</span>
+
+      <div className="mt-1 flex justify-between text-xs tabular-nums text-gray-500">
+        <span>{format(min)}</span>
+        <span>{format(max)}</span>
       </div>
     </div>
   );

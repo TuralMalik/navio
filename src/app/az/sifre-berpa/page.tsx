@@ -1,11 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, inputCls } from "@/components/auth/AuthShell";
+import { AuthShell, SubmitButton, FormError } from "@/components/auth/AuthShell";
+import { TextInput } from "@/components/ui/Field";
+import { LinkButton } from "@/components/ui/Button";
 
 const MIN_PASSWORD = 8;
 
@@ -44,11 +45,9 @@ function ResetContent() {
   if (linkError || !token) {
     return (
       <AuthShell crumb="Şifrənin bərpası" title="Keçid etibarsızdır" subtitle="Bu keçidin vaxtı bitib və ya artıq istifadə olunub.">
-        <Link href="/az/login"
-          className="block w-full py-3 rounded-xl font-semibold text-white text-sm text-center"
-          style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}>
+        <LinkButton href="/az/login" block size="lg">
           Yenidən bərpa keçidi istəyin
-        </Link>
+        </LinkButton>
       </AuthShell>
     );
   }
@@ -56,15 +55,13 @@ function ResetContent() {
   if (done) {
     return (
       <AuthShell crumb="Şifrənin bərpası" title="Şifrə dəyişdirildi" subtitle="Yeni şifrənizlə daxil ola bilərsiniz.">
-        <div className="flex items-start gap-2.5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800 mb-5">
-          <CheckCircle2 size={17} className="shrink-0 mt-0.5 text-emerald-600" />
+        <div className="mb-5 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+          <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden />
           <p>Şifrəniz uğurla yeniləndi.</p>
         </div>
-        <Link href="/az/login"
-          className="block w-full py-3 rounded-xl font-semibold text-white text-sm text-center"
-          style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}>
+        <LinkButton href="/az/login" block size="lg">
           Daxil ol
-        </Link>
+        </LinkButton>
       </AuthShell>
     );
   }
@@ -73,10 +70,9 @@ function ResetContent() {
     <AuthShell crumb="Şifrənin bərpası" title="Yeni şifrə təyin edin" subtitle="Hesabınız üçün yeni şifrə seçin.">
       <form onSubmit={onSubmit} className="space-y-4">
         <FormError message={error} />
-        <Field label="Yeni şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`}>
-          <input type="password" required autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
-        </Field>
+        <TextInput label="Yeni şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`} type="password" required
+          autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
+          onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         <SubmitButton loading={loading}>Şifrəni dəyiş</SubmitButton>
       </form>
     </AuthShell>
@@ -85,7 +81,7 @@ function ResetContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<main className="bg-gray-50 min-h-screen" />}>
+    <Suspense fallback={<main className="min-h-screen bg-gray-50" />}>
       <ResetContent />
     </Suspense>
   );

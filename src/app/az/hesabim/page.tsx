@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, ArrowRight, FileText, MailCheck, AlertTriangle } from "lucide-react";
+import { ArrowRight, FileText, MailCheck, AlertTriangle } from "lucide-react";
 import { getSession } from "@/lib/server/session";
 import { listUserCalculations } from "@/lib/server/calculations";
+import { formatPercent } from "@/lib/utils";
+import { Card, CardTitle } from "@/components/ui/Card";
+import { LinkButton } from "@/components/ui/Button";
+import { Badge, Tag } from "@/components/ui/Badge";
 
 export const dynamic = "force-dynamic";
-
-const NAVY = "#0A1F44";
-const MUTED = "#5B6577";
-const LINE = "#E3E8F1";
-const BLUE = "#2447F0";
 
 function formatDate(d: Date) {
   // Детерминированный формат без Intl — как в остальном проекте (hydration)
@@ -25,78 +24,75 @@ export default async function AccountPage() {
   const calculations = await listUserCalculations(user.id);
 
   return (
-    <main className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
-          <ChevronRight size={14} />
-          <span className="text-gray-600">Hesabım</span>
-        </div>
+    <main className="min-h-screen bg-gray-50 py-8">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6">
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-4">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: NAVY }}>{user.name || "Hesabım"}</h1>
-          <p className="text-sm" style={{ color: MUTED }}>{user.email}</p>
+        <Card className="mb-4">
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{user.name || "Hesabım"}</h1>
+          <p className="mt-1 text-sm text-gray-600">{user.email}</p>
 
           {/* Нет смысла просить подтвердить почту, если письма не отправляются */}
           {!user.emailVerified && Boolean(process.env.RESEND_API_KEY) && (
-            <div className="mt-5 flex items-start gap-2.5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-sm">
-              <MailCheck size={16} className="shrink-0 mt-0.5 text-amber-500" />
-              <p className="text-amber-800">
-                E-poçtunuz hələ təsdiqlənməyib. Təsdiq məcburi deyil, amma hesabınızın təhlükəsizliyi
-                üçün tövsiyə olunur — göndərdiyimiz məktubdakı keçidə daxil olun.
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
+              <MailCheck size={16} className="mt-0.5 shrink-0 text-amber-600" aria-hidden />
+              <p className="text-sm leading-relaxed text-amber-900">
+                E-poçtunuz hələ təsdiqlənməyib. Təsdiq məcburi deyil, amma hesabınızın təhlükəsizliyi üçün tövsiyə
+                olunur. Göndərdiyimiz məktubdakı keçidə daxil olun.
               </p>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8">
-          <h2 className="text-[17px] font-bold mb-4" style={{ color: NAVY }}>Hesablama tarixçəsi</h2>
+        <Card>
+          <CardTitle className="mb-4">Hesablama tarixçəsi</CardTitle>
 
           {calculations.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4" style={{ background: "#EBEFFE", color: BLUE }}>
-                <FileText size={24} />
-              </div>
-              <p className="text-[15px] font-semibold mb-1.5" style={{ color: NAVY }}>Hələ hesablama yoxdur</p>
-              <p className="text-[13.5px] mb-5" style={{ color: MUTED }}>
-                İlk kredit yoxlamanızı edin — nəticə avtomatik burada saxlanacaq.
+            /* Пустое состояние называет следующее действие, а не констатирует
+               пустоту. «Hələ hesablama yoxdur» само по себе бесполезно. */
+            <div className="py-10 text-center">
+              <FileText size={26} className="mx-auto mb-3 text-gray-300" aria-hidden />
+              <p className="text-[15px] font-semibold text-ink">Hələ hesablama yoxdur</p>
+              <p className="mx-auto mt-1.5 mb-5 max-w-xs text-sm text-gray-600">
+                İlk kredit yoxlamanızı edin, nəticə avtomatik burada saxlanacaq.
               </p>
-              <Link href="/az/kredit-yoxlama"
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-[10px] font-semibold text-white text-sm"
-                style={{ background: BLUE, boxShadow: "0 6px 18px rgba(36,71,240,.28)" }}>
-                İlkin yoxlamaya başla <ArrowRight size={15} />
-              </Link>
+              <LinkButton href="/az/kredit-yoxlama" icon={<ArrowRight size={15} />}>
+                İlkin yoxlamaya başla
+              </LinkButton>
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: LINE }}>
+            <ul className="divide-y divide-gray-200">
               {calculations.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+                <li key={c.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[15px] font-bold" style={{ color: NAVY }}>
-                        {c.blocked ? "Uyğun deyil" : `${c.score} / 100`}
-                      </span>
-                      {c.blocked && <AlertTriangle size={14} className="text-red-500" />}
-                      <span className="text-[12px] px-2 py-0.5 rounded-full bg-gray-100" style={{ color: MUTED }}>
-                        {c.mode === "bank" ? "Bank" : "BOKT"}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {c.blocked ? (
+                        <Badge tone="high" icon={<AlertTriangle size={12} />}>
+                          Uyğun deyil
+                        </Badge>
+                      ) : (
+                        <span className="text-[15px] font-bold tabular-nums text-ink">{c.score} / 100</span>
+                      )}
+                      <Tag>{c.mode === "bank" ? "Bank" : "BOKT"}</Tag>
                     </div>
-                    <p className="text-[12.5px] mt-0.5" style={{ color: MUTED }}>
+                    <p className="mt-1 text-[12.5px] tabular-nums text-gray-500">
                       {formatDate(c.createdAt)}
-                      {c.bgn != null && ` · BGN ${c.bgn.toFixed(1)}%`}
+                      {c.bgn != null && ` · Borc yükü ${formatPercent(c.bgn)}`}
                     </p>
                   </div>
+
                   {c.mode === "bank" && (
-                    <Link href={`/az/kredit-yoxlama/analiz?id=${c.id}`}
-                      className="group inline-flex items-center gap-1.5 text-[13.5px] font-semibold shrink-0" style={{ color: BLUE }}>
-                      Ətraflı <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                    <Link
+                      href={`/az/kredit-yoxlama/analiz?id=${c.id}`}
+                      className="inline-flex shrink-0 items-center gap-1.5 text-[13.5px] font-semibold text-brand-700 hover:text-brand-800"
+                    >
+                      Ətraflı <ArrowRight size={14} aria-hidden />
                     </Link>
                   )}
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </Card>
       </div>
     </main>
   );

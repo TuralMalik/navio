@@ -19,9 +19,16 @@ export interface PublicScoreResult {
   warnings: string[];
   /** Сколько предупреждений осталось за кадром (для ссылки «+N əlavə qeyd»). */
   extraWarningCount: number;
-  label: { text: string; icon: string; tone: Tone } | null;
+  /* Вердикт разделён на короткий заголовок и пояснение.
+     Раньше это была одна строка вида «Yüksək şans — Bankların əksəriyyəti
+     təsdiqləyə bilər» плюс поле icon с эмодзи. Эмодзи как индикатор статуса
+     запрещены (тон уже несёт цвет), а склейка через тире мешала показать
+     главное крупно: ведёт заголовок, пояснение его поддерживает. */
+  label: { text: string; detail: string; tone: Tone } | null;
   bgn: number | null;
   bgnLimit: number;
+  /** Тон долговой нагрузки. Считается на сервере: пороги зон внутренние. */
+  bgnTone: Tone;
   yeniOdenis: number;
   /** Ставка, рассчитанная Navio (наличный кредит). null — ставку ввёл пользователь. */
   estimatedRate: number | null;
