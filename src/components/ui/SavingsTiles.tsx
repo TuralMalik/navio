@@ -11,39 +11,46 @@ export function SavingsTiles({ comparison, extraPaid }: { comparison: ScenarioCo
   const totalIsLoss = totalSaved < 0;
 
   return (
-    <div className="mt-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fərq</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-          <p className="text-xs text-gray-500 mb-1">Faiz qənaəti</p>
-          <p className="text-sm font-bold text-blue-700">−{formatCurrency(Math.abs(interestSaved))}</p>
+    <div className="mt-4 border-t border-gray-200 pt-4">
+      <p className="mb-2 text-xs font-semibold text-gray-500">Fərq</p>
+
+      <dl className="grid grid-cols-3 gap-2.5">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5">
+          <dt className="text-[11px] text-gray-500">Faiz qənaəti</dt>
+          <dd className="mt-0.5 text-[13px] font-bold tabular-nums text-emerald-700">
+            −{formatCurrency(Math.abs(interestSaved))}
+          </dd>
         </div>
 
-        <div className={`rounded-xl p-3 border ${totalIsLoss ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-100"}`}>
-          <p className="text-xs text-gray-500 mb-1">{totalIsLoss ? "Ümumi əlavə xərc" : "Ümumi qənaət"}</p>
-          <p className={`text-sm font-bold ${totalIsLoss ? "text-amber-700" : "text-blue-700"}`}>
-            {totalIsLoss ? "+" : "−"}{formatCurrency(Math.abs(totalSaved))}
-          </p>
+        <div
+          className={`rounded-xl border p-2.5 ${totalIsLoss ? "border-amber-200 bg-amber-50" : "border-gray-200 bg-gray-50"}`}
+        >
+          <dt className="text-[11px] text-gray-500">{totalIsLoss ? "Ümumi əlavə xərc" : "Ümumi qənaət"}</dt>
+          <dd className={`mt-0.5 text-[13px] font-bold tabular-nums ${totalIsLoss ? "text-amber-800" : "text-emerald-700"}`}>
+            {totalIsLoss ? "+" : "−"}
+            {formatCurrency(Math.abs(totalSaved))}
+          </dd>
         </div>
 
-        <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-          <p className="text-xs text-gray-500 mb-1">Müddət azalması</p>
-          <p className="text-sm font-bold text-blue-700">−{monthsSaved} ay</p>
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5">
+          <dt className="text-[11px] text-gray-500">Müddət azalması</dt>
+          <dd className="mt-0.5 text-[13px] font-bold tabular-nums text-emerald-700">−{monthsSaved} ay</dd>
         </div>
-      </div>
+      </dl>
 
       {/* Сколько именно пришлось доложить, чтобы получить эту экономию —
           без этого числа сравнение выглядит как «экономия из воздуха». */}
       {extraPaid != null && extraPaid > 0 && (
-        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-          Bunun üçün əlavə olaraq <strong className="text-gray-700">{formatCurrency(extraPaid)}</strong> ödəyirsiniz.
+        <p className="mt-2 text-xs leading-relaxed text-gray-600">
+          Bunun üçün əlavə olaraq <strong className="font-semibold text-ink">{formatCurrency(extraPaid)}</strong>{" "}
+          ödəyirsiniz.
         </p>
       )}
 
       {totalIsLoss && (
-        <p className="text-xs text-amber-700 mt-2 leading-relaxed">
-          Faizdən qənaət edilsə də, erkən ödəniş kompensasiyası bu qənaəti üstələyir — bu halda
-          krediti tez bağlamaq ümumi xərci artırır.
+        <p className="mt-2 text-xs leading-relaxed text-amber-800">
+          Faizdən qənaət edilsə də, erkən ödəniş kompensasiyası bu qənaəti üstələyir. Bu halda krediti tez bağlamaq
+          ümumi xərci artırır.
         </p>
       )}
     </div>

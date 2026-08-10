@@ -1,86 +1,81 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
-import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
-import { SavingsTiles } from "@/components/ui/SavingsTiles";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
+import { Card } from "@/components/ui/Card";
+import { Field, inputClasses } from "@/components/ui/Field";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
+import { LoanResult } from "@/components/calculators/LoanResult";
+import { ScheduleTable } from "@/components/calculators/ScheduleTable";
 
-const inputClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition";
-const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition appearance-none";
+const azn = (v: number) => `${formatNumber(v)} ₼`;
 
-type ErkenRejim = "muddət" | "odəniş";
-interface OneTimePayment { id: number; month: number; amount: number; }
+/* Переключатель типа кузова («Elektrik / Hibrid / Digər») убран.
+
+   Он ни на что не влиял: значение никуда не передавалось и ни в одну формулу
+   не входило. Вдобавок начальное состояние было "passenger", которого нет
+   среди вариантов, поэтому при открытии страницы не подсвечивался ни один.
+   Сделать его рабочим значило бы придумать разные ставки по типу двигателя,
+   а выдуманные числа на кредитном калькуляторе недопустимы.
+
+   «Yeni / İşlənmiş» оставлен: он показывает реальное предупреждение про
+   ограничения банков по возрасту авто. */
 
 export default function AutoLoanPage() {
   const [carPriceStr, setCarPriceStr] = useState("");
-  const carPrice = parseFloat(carPriceStr) || 0;
-  const [carType, setCarType] = useState("passenger");
-  const [isNew, setIsNew] = useState("new");
+  const [priceTouched, setPriceTouched] = useState(false);
+  const [isNew, setIsNew] = useState<"new" | "used">("new");
   const [downPaymentPct, setDownPaymentPct] = useState(20);
   const [months, setMonths] = useState(60);
   const [rate, setRate] = useState(15);
-
-  const [showExtra, setShowExtra] = useState(false);
-  const [erkenRejim, setErkenRejim] = useState<ErkenRejim>("muddət");
-  const [recurringEnabled, setRecurringEnabled] = useState(false);
-  const [recurringAmount, setRecurringAmount] = useState(100);
-  const [recurringFrom, setRecurringFrom] = useState(1);
-  const [recurringTo, setRecurringTo] = useState<number | "">("");
-  const [oneTimePayments, setOneTimePayments] = useState<OneTimePayment[]>([{ id: 1, month: 1, amount: 0 }]);
-  const [penalty, setPenalty] = useState(0);
   const [commissionPct, setCommissionPct] = useState(0);
-  const [showAllRows, setShowAllRows] = useState(false);
+  const [extra, setExtra] = useState(initialExtraConfig);
 
+  const carPrice = parseFloat(carPriceStr) || 0;
   const downPayment = Math.round((downPaymentPct / 100) * carPrice);
   const loanAmount = Math.max(0, carPrice - downPayment);
   const baseMonthly = calcAnnuityPayment(loanAmount, rate, months);
+  const commission = Math.round((commissionPct / 100) * loanAmount);
 
-  const addOneTime = () => setOneTimePayments((p) => [...p, { id: Date.now(), month: 1, amount: 0 }]);
-  const removeOneTime = (id: number) => setOneTimePayments((p) => p.filter((x) => x.id !== id));
-  const updateOneTime = (id: number, field: "month" | "amount", value: number) =>
-    setOneTimePayments((p) => p.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
+  const result = useMemo(() => {
+    if (!loanAmount || !months || !rate) return null;
 
-  const { schedule, extraResult } = useMemo(() => {
     // Базовый сценарий считаем всегда, чтобы сравнение «до/после» было настоящим
     const base = simulateLoan(loanAmount, rate, months);
-    const extraPlanned = recurringEnabled || oneTimePayments.some((op) => op.amount > 0);
+    const plan = toPlan(extra, months);
 
-    if (!showExtra || !extraPlanned) {
-      return { schedule: base.rows, extraResult: null };
+    if (!plan) {
+      return {
+        firstPayment: base.monthlyPayment,
+        current: { totalPayment: base.totalPaid + commission, interestCost: base.totalInterest, months: base.months },
+        base: null,
+        comparison: null,
+        extraPaid: 0,
+        penaltyCost: 0,
+        schedule: base.rows,
+      };
     }
 
-    const withExtra = simulateLoan(loanAmount, rate, months, {
-      recurring: recurringEnabled
-        ? { amount: recurringAmount, fromMonth: recurringFrom, toMonth: recurringTo === "" ? months : Number(recurringTo) }
-        : undefined,
-      oneTime: oneTimePayments.filter((op) => op.amount > 0),
-      penaltyPct: penalty,
-      mode: erkenRejim === "muddət" ? "term" : "payment",
-    });
-
+    const withExtra = simulateLoan(loanAmount, rate, months, plan);
     return {
-      schedule: withExtra.rows,
-      extraResult: {
-        finalMonths: withExtra.months,
-        totalInterest: withExtra.totalInterest,
-        totalPaid: withExtra.totalPaid,
-        penaltyCost: withExtra.totalPenalty,
-        extraPaid: withExtra.totalExtra,
-        comparison: compareScenarios(base, withExtra),
+      firstPayment: withExtra.monthlyPayment,
+      current: {
+        totalPayment: withExtra.totalPaid + commission,
+        interestCost: withExtra.totalInterest,
+        months: withExtra.months,
       },
+      base: { totalPayment: base.totalPaid + commission, interestCost: base.totalInterest, months: base.months },
+      comparison: compareScenarios(base, withExtra),
+      extraPaid: withExtra.totalExtra,
+      penaltyCost: withExtra.totalPenalty,
+      schedule: withExtra.rows,
     };
-  }, [loanAmount, rate, months, showExtra, recurringEnabled, recurringAmount,
-      recurringFrom, recurringTo, oneTimePayments, penalty, erkenRejim]);
+  }, [loanAmount, rate, months, commission, extra]);
 
-  const displayedRows = showAllRows ? schedule : schedule.slice(0, 10);
-  const hasExtra = showExtra && (recurringEnabled || oneTimePayments.some((op) => op.amount > 0));
-
-  // EAR — Effektiv İllik Gəlirlilik Dərəcəsi
-  const commission = Math.round((commissionPct / 100) * loanAmount);
   const ear = useMemo(() => {
     if (!loanAmount || !months) return null;
     const netPrincipal = loanAmount - commission;
@@ -89,353 +84,166 @@ export default function AutoLoanPage() {
     return (Math.pow(1 + irr, 12) - 1) * 100;
   }, [loanAmount, months, baseMonthly, commission, rate]);
 
-  const carTypes = [
-    { key: "electric", label: "Elektrik" },
-    { key: "hybrid", label: "Hibrid" },
-    { key: "other", label: "Digər" },
-  ];
+  const fifd = useMemo(() => {
+    if (!result || !loanAmount || !months) return null;
+    const netPrincipal = loanAmount - commission;
+    if (netPrincipal <= 0) return null;
+    return solveMonthlyIRR(result.firstPayment, months, netPrincipal) * 12 * 100;
+  }, [result, loanAmount, months, commission]);
+
+  // Ошибка показывается только после того, как поле трогали: краснеть при
+  // первом появлении страницы, когда человек ещё ничего не сделал, незачем.
+  const priceError = priceTouched && carPrice <= 0 ? "Avtomobilin dəyərini daxil edin." : null;
 
   return (
-    <main className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
-            <ChevronRight size={14} />
-            <Link href="/az/calculators" className="hover:text-blue-600">Kalkulyatorlar</Link>
-            <ChevronRight size={14} />
-            <span className="text-gray-600">Avtokredit</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Avtokredit kalkulyatoru</h1>
-        </div>
+    <main className="min-h-screen bg-gray-50 py-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <Breadcrumbs
+          trail={[
+            { href: "/az", label: "Ana səhifə" },
+            { href: "/az/calculators", label: "Kalkulyatorlar" },
+          ]}
+          current="Avtokredit"
+        />
+        <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Avtokredit kalkulyatoru</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left — sliders */}
-          <div className="lg:col-span-3 space-y-5">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
-
-              {/* Car type tabs */}
-              <div className="flex flex-wrap gap-2">
-                {carTypes.map((t) => (
-                  <button key={t.key} onClick={() => setCarType(t.key)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-                      carType === t.key
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
-                    }`}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="space-y-4 lg:col-span-3">
+            <Card className="space-y-5">
+              <div role="group" aria-label="Avtomobilin vəziyyəti" className="flex gap-2">
+                {([
+                  { key: "new", label: "Yeni" },
+                  { key: "used", label: "İşlənmiş" },
+                ] as const).map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    aria-pressed={isNew === t.key}
+                    onClick={() => setIsNew(t.key)}
+                    className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                      isNew === t.key
+                        ? "border-brand-600 bg-brand-50 text-brand-700"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                    }`}
+                  >
                     {t.label}
                   </button>
                 ))}
-                <div className="sm:ml-auto flex gap-2">
-                  {[{ key: "new", label: "Yeni" }, { key: "used", label: "İşlənmiş" }].map((t) => (
-                    <button key={t.key} onClick={() => setIsNew(t.key)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-all ${
-                        isNew === t.key
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
-                      }`}>
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              <div className="h-px bg-gray-100" />
-
-              {/* Sliders */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Avtomobilin qiyməti</label>
+              <Field
+                label="Avtomobilin qiyməti"
+                htmlFor="car-price"
+                error={priceError}
+                hint="Manatla"
+                className="border-t border-gray-200 pt-5"
+              >
                 <input
-                  type="number" min={0} value={carPriceStr}
+                  id="car-price"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  value={carPriceStr}
                   onChange={(e) => setCarPriceStr(e.target.value)}
-                  placeholder="Avtomobilin dəyəri (AZN)"
-                  className="w-full px-4 py-3.5 text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white transition"
+                  onBlur={() => setPriceTouched(true)}
+                  placeholder="30 000"
+                  className={inputClasses(priceError)}
                 />
-                {!carPriceStr && <p className="text-sm text-red-500 mt-1.5">Avtomobilin dəyəri daxil edilməyib.</p>}
-              </div>
+              </Field>
+
               <SliderRow
                 label="İlkin ödəniş"
-                value={downPaymentPct} min={10} max={90} step={5}
-                format={(v) => `${v}%  (₼ ${formatNumber(Math.round((v / 100) * carPrice))})`}
+                value={downPaymentPct}
+                min={10}
+                max={90}
+                step={5}
+                format={(v) => formatPercent(v, 0)}
+                unit="%"
                 onChange={setDownPaymentPct}
               />
               <SliderRow
                 label="Kredit müddəti"
-                value={months} min={6} max={59} step={1}
+                value={months}
+                min={6}
+                max={59}
+                step={1}
                 format={(v) => `${v} ay`}
+                unit="ay"
                 onChange={setMonths}
               />
               <SliderRow
                 label="İllik faiz dərəcəsi"
-                value={rate} min={5} max={35} step={0.1}
-                format={(v) => `${v}%`}
+                value={rate}
+                min={5}
+                max={35}
+                step={0.1}
+                format={(v) => formatPercent(v)}
+                unit="%"
                 onChange={setRate}
               />
               <SliderRow
                 label="Komissiya"
-                value={commissionPct} min={0} max={5} step={0.25}
-                format={(v) => v === 0 ? "0%  (yoxdur)" : `${v}%  (₼ ${formatNumber(Math.round((v / 100) * loanAmount))})`}
+                value={commissionPct}
+                min={0}
+                max={5}
+                step={0.25}
+                format={(v) => (v === 0 ? "yoxdur" : formatPercent(v, 2))}
+                unit="%"
                 onChange={setCommissionPct}
               />
 
-              {/* Kredit məbləği pill */}
-              <div className="flex items-center justify-between bg-blue-50 rounded-xl px-4 py-3 border border-blue-100">
-                <span className="text-sm text-blue-600 font-medium">Kredit məbləği</span>
-                <span className="text-base font-bold text-blue-800">{formatCurrency(loanAmount)}</span>
-              </div>
-            </div>
+              {/* Сумма кредита выводится из цены и первого взноса, поэтому
+                  показывается рядом с ними, а не только в результате. */}
+              <dl className="flex items-baseline justify-between gap-3 border-t border-gray-200 pt-4">
+                <dt className="text-sm font-semibold text-gray-700">İlkin ödəniş</dt>
+                <dd className="text-sm font-bold tabular-nums text-ink">{azn(downPayment)}</dd>
+              </dl>
+              <dl className="flex items-baseline justify-between gap-3">
+                <dt className="text-sm font-semibold text-gray-700">Kredit məbləği</dt>
+                <dd className="text-base font-extrabold tabular-nums text-ink">{formatCurrency(loanAmount)}</dd>
+              </dl>
+            </Card>
 
-            {/* Əlavə ödənişlər */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className={`flex items-center justify-between ${showExtra ? "mb-5" : ""}`}>
-                <div>
-                  <h3 className="font-bold text-gray-900">Əlavə ödənişlər planlaşdırırsınız?</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Krediti daha tez bağlamaq və ya aylıq ödənişi azaltmaq üçün.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setShowExtra(false)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${!showExtra ? "bg-gray-200 text-gray-800" : "text-gray-500 hover:text-gray-600"}`}>
-                    Xeyr
-                  </button>
-                  <button onClick={() => setShowExtra(true)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${showExtra ? "bg-blue-600 text-white" : "text-gray-500 hover:text-gray-600"}`}>
-                    Bəli
-                  </button>
-                </div>
-              </div>
-
-              {showExtra && (
-                <div className="space-y-5">
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <input type="checkbox" id="rec-a" checked={recurringEnabled}
-                        onChange={(e) => setRecurringEnabled(e.target.checked)} className="w-4 h-4 accent-blue-600" />
-                      <label htmlFor="rec-a" className="font-semibold text-gray-800 text-sm cursor-pointer">
-                        Daimi əlavə ödəniş istifadə edilsin?
-                      </label>
-                    </div>
-                    {recurringEnabled && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Aylıq əlavə məbləğ</label>
-                          <input type="number" min={0} className={inputClass} value={recurringAmount || ""}
-                            onChange={(e) => setRecurringAmount(parseInt(e.target.value, 10) || 0)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Hansı aydan başlasın</label>
-                          <input type="number" min={1} max={months} className={inputClass} value={recurringFrom || ""}
-                            onChange={(e) => setRecurringFrom(parseInt(e.target.value, 10) || 0)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Nəyə qədər davam etsin</label>
-                          <input type="number" min={recurringFrom} max={months} className={inputClass}
-                            placeholder="Kredit bitənə qədər" value={recurringTo}
-                            onChange={(e) => setRecurringTo(e.target.value === "" ? "" : Number(e.target.value))} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-4">Birdəfəlik əlavə ödənişlər</h4>
-                    <div className="space-y-3">
-                      {oneTimePayments.map((op) => (
-                        <div key={op.id} className="grid grid-cols-5 gap-3 items-end">
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Ödəniş ayı</label>
-                            <input type="number" min={1} max={months} className={inputClass} value={op.month || ""}
-                              onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 0)} />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Məbləğ (₼)</label>
-                            <input type="number" min={0} className={inputClass} value={op.amount || ""}
-                              onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)} />
-                          </div>
-                          <button onClick={() => removeOneTime(op.id)}
-                            className="h-10 flex items-center justify-center px-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button onClick={addOneTime}
-                      className="mt-3 flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-                      <Plus size={16} /> Ödəniş əlavə et
-                    </button>
-                  </div>
-
-                  <div className="border border-gray-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Erkən ödəniş kompensasiyası</h4>
-                    <div className="max-w-xs">
-                      <select className={selectClass} value={penalty} onChange={(e) => setPenalty(Number(e.target.value))}>
-                        <option value={0}>0%</option>
-                        <option value={1}>1%</option>
-                        <option value={2}>2%</option>
-                        <option value={3}>3%</option>
-                        <option value={5}>5%</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="border border-blue-100 rounded-xl p-4 bg-blue-50">
-                    <h4 className="font-semibold text-gray-800 text-sm mb-3">Əlavə ödənişdən sonra nə azalsın?</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { key: "muddət", icon: "⏱️", label: "Müddət azalsın", note: "Aylıq ödəniş eyni" },
-                        { key: "odəniş", icon: "💸", label: "Aylıq ödəniş azalsın", note: "Müddət eyni qalır" },
-                      ] as { key: ErkenRejim; icon: string; label: string; note: string }[]).map(({ key, icon, label, note }) => (
-                        <button key={key} onClick={() => setErkenRejim(key)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all ${
-                            erkenRejim === key
-                              ? "border-blue-600 bg-white text-blue-700 shadow-sm"
-                              : "border-transparent bg-white/60 text-gray-500 hover:bg-white"
-                          }`}>
-                          <span className="text-lg">{icon}</span>
-                          <span className="text-center leading-tight">{label}</span>
-                          <span className="text-xs font-normal text-gray-500">{note}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ExtraPayments months={months} value={extra} onChange={setExtra} />
           </div>
 
-          {/* Right — blue result card */}
           <div className="lg:col-span-2">
-            <div className="sticky top-20 space-y-4">
-              {/* Result card — dark navy */}
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {/* Top accent bar */}
-                <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #2447F0, #4a66f3)" }} />
-
-                <div className="p-6">
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-widest mb-1">Aylıq ödəniş</p>
-                  <p className="text-5xl font-extrabold text-gray-900 mb-1">{formatCurrency(baseMonthly)}</p>
-                  {commissionPct > 0 && (
-                    <p className="text-xs text-gray-500 mb-4">+ ₼ {formatNumber(Math.round((commissionPct / 100) * loanAmount))} komissiya (birdəfəlik)</p>
-                  )}
-                  {commissionPct === 0 && <div className="mb-4" />}
-
-                  {/* Metrics grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    {[
-                      { label: "Kredit məbləği", value: formatCurrency(loanAmount) },
-                      { label: "Nominal faiz", value: `${rate}%` },
-                      { label: "Müddət", value: `${months} ay` },
-                      { label: "Toplam faiz", value: formatCurrency(baseMonthly * months - loanAmount) },
-                    ].map((m) => (
-                      <div key={m.label} className="bg-gray-50 rounded-xl px-3 py-2.5">
-                        <p className="text-xs text-gray-500 mb-0.5">{m.label}</p>
-                        <p className="text-sm font-bold text-gray-900">{m.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Total with separator */}
-                  <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Ümumi ödəniş</span>
-                    <span className="text-lg font-bold text-gray-900">
-                      {formatCurrency(baseMonthly * months + Math.round((commissionPct / 100) * loanAmount))}
-                    </span>
-                  </div>
-
-                  <Link href={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=avto`}
-                    className="mt-4 flex items-center justify-center w-full py-3 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90"
-                    style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}>
-                    Kredit yoxlamasına keç →
-                  </Link>
-                </div>
-              </div>
-
-              {/* EAR — separate card below result */}
-              {ear !== null && (
-                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-blue-700">EAR — Effektiv İllik Faiz</p>
-                      <p className="text-xs text-blue-500 mt-0.5">Bütün xərcləri nəzərə alan real illik dəyər</p>
-                    </div>
-                    <p className="text-xl font-extrabold text-blue-700">{ear.toFixed(2)}%</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Extra payment result */}
-              {extraResult && (
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
-                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalInterest)}</p>
-                      </div>
-                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-500 mb-1">Ümumi ödəniş</p>
-                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalPaid)}</p>
-                      </div>
-                      <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                        <p className="text-xs text-gray-500 mb-1">Müddət</p>
-                        <p className="text-sm font-bold text-emerald-700">{extraResult.finalMonths} ay</p>
-                      </div>
-                    </div>
-                  </div>
-                  <SavingsTiles comparison={extraResult.comparison} extraPaid={extraResult.extraPaid} />
-                </div>
+            <div className="space-y-4 lg:sticky lg:top-20">
+              {result ? (
+                <LoanResult
+                  monthly={result.firstPayment}
+                  oneOffNote={commission > 0 ? `Əlavə olaraq ${azn(commission)} komissiya` : undefined}
+                  base={result.base}
+                  current={result.current}
+                  comparison={result.comparison}
+                  extraPaid={result.extraPaid}
+                  costs={[
+                    { label: "Komissiya", amount: commission },
+                    { label: "Erkən ödəniş kompensasiyası", amount: result.penaltyCost },
+                  ]}
+                  checkUrl={`/az/kredit-yoxlama?mebleq=${loanAmount}&muddet=${months}&faiz=${rate}&nov=avto`}
+                  ear={ear}
+                  fifd={fifd}
+                />
+              ) : (
+                <Card>
+                  <p className="text-sm font-medium text-gray-600">Avtomobilin qiymətini daxil edin.</p>
+                  <p className="mt-1 text-xs text-gray-500">Aylıq ödəniş dərhal burada hesablanacaq.</p>
+                </Card>
               )}
 
               {isNew === "used" && (
-                <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                  <p className="text-xs text-amber-700 leading-relaxed">
+                <Card>
+                  <p className="text-xs leading-relaxed text-gray-600">
                     İşlənmiş avtomobillər üçün yaş məhdudiyyəti bankdan banka dəyişir. Banklar fərqli şərtlər qoya bilər.
                   </p>
-                </div>
+                </Card>
               )}
             </div>
           </div>
         </div>
 
-        {/* Ödəniş cədvəli */}
-        {schedule.length > 0 && (
-          <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 className="font-bold text-gray-900 mb-4">Ödəniş cədvəli</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm whitespace-nowrap">
-                <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-gray-100">
-                    <th className="pb-3 pr-4 font-medium">Ay</th>
-                    <th className="pb-3 pr-4 font-medium">Aylıq ödəniş</th>
-                    {hasExtra && <th className="pb-3 pr-4 font-medium">Əlavə ödəniş</th>}
-                    <th className="pb-3 pr-4 font-medium">Faiz hissəsi</th>
-                    <th className="pb-3 pr-4 font-medium">Əsas borc</th>
-                    <th className="pb-3 font-medium">Qalıq borc</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedRows.map((row) => (
-                    <tr key={row.month} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="py-2.5 pr-4 font-medium text-gray-700">{row.month}</td>
-                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.payment)}</td>
-                      {hasExtra && <td className="py-2.5 pr-4 text-blue-600 font-medium">{row.extra > 0 ? formatCurrency(row.extra) : "—"}</td>}
-                      <td className="py-2.5 pr-4 text-orange-600">{formatCurrency(row.interest)}</td>
-                      <td className="py-2.5 pr-4 text-gray-600">{formatCurrency(row.principal)}</td>
-                      <td className="py-2.5 text-gray-900 font-medium">{formatCurrency(row.balance)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {schedule.length > 10 && (
-              <button onClick={() => setShowAllRows(!showAllRows)}
-                className="mt-4 flex items-center gap-2 py-2 text-sm text-blue-600 font-semibold hover:text-blue-800 transition-colors">
-                <ChevronDown size={16} className={`transition-transform ${showAllRows ? "rotate-180" : ""}`} />
-                {showAllRows ? "Yığ" : `Bütün cədvəli göstər (${schedule.length} ay)`}
-              </button>
-            )}
-          </div>
-        )}
+        {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} />}
       </div>
     </main>
   );
