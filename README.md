@@ -23,6 +23,10 @@ database, environment variables, Google sign-in and email. It is written to be
 followed in a browser, with each step marked for whether it needs a human or can be
 done by an agent.
 
+**See [`docs/ADMIN_SETUP.md`](docs/ADMIN_SETUP.md)** for the admin panel: creating
+the first administrator on the live site (no terminal needed), signing in, what
+each section shows, and how to recover a lost second factor.
+
 The database schema applies itself on deploy — `vercel-build` runs
 `scripts/migrate.mjs` before `next build`.
 
