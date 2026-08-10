@@ -214,6 +214,115 @@
   }
 }
 
+/* ═══ Мини-сцены на плитках главной ═══
+   Показывают реальный вывод инструмента (см. components/home/illustrations).
+   Это не «декоративный луп ради лупа»: цикл нужен, потому что сцена
+   рассказывает короткий сюжет (посчитали → показали), и посетитель должен
+   успеть застать его с любого момента прокрутки.
+
+   Базовое состояние у всех — КОНЕЧНОЕ, видимое. Анимация только добавляет
+   вход. Поэтому при выключенной анимации (см. блок reduced-motion ниже)
+   сцена остаётся читаемой картинкой, а не пустым прямоугольником. */
+@media (prefers-reduced-motion: no-preference) {
+  /* 1. Кредитный профиль */
+  .nv-cc-arc {
+    stroke-dashoffset: 45.8;
+    animation: nvCcArc 4s ease-in-out infinite;
+  }
+  @keyframes nvCcArc {
+    0% { stroke-dashoffset: 163.4; }
+    30%, 88% { stroke-dashoffset: 45.8; }
+    100% { stroke-dashoffset: 163.4; }
+  }
+  .nv-cc-num {
+    animation: nvPop 4s ease-in-out infinite;
+  }
+  @keyframes nvPop {
+    0% { opacity: 0; scale: 0.8; }
+    26% { opacity: 1; scale: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .nv-cc-chip {
+    animation: nvRise 4s ease-in-out infinite;
+  }
+  @keyframes nvRise {
+    0%, 20% { opacity: 0; transform: translateY(5px); }
+    36%, 90% { opacity: 1; transform: none; }
+    100% { opacity: 0; }
+  }
+  .nv-cc-row {
+    animation: nvSlideIn 4s ease-in-out infinite;
+  }
+  @keyframes nvSlideIn {
+    0% { opacity: 0; transform: translateX(-5px); }
+    22%, 92% { opacity: 1; transform: none; }
+    100% { opacity: 0; }
+  }
+
+  /* 2. Калькулятор */
+  .nv-calc-a { animation: nvHiA 4s ease-in-out infinite; }
+  .nv-calc-b { animation: nvHiB 4s ease-in-out infinite; }
+  @keyframes nvHiA {
+    0%, 42% { border-color: var(--color-brand-600); background: var(--color-brand-50); }
+    52%, 100% { border-color: var(--color-gray-200); background: #fff; }
+  }
+  @keyframes nvHiB {
+    0%, 42% { border-color: var(--color-gray-200); background: #fff; }
+    52%, 100% { border-color: var(--color-brand-600); background: var(--color-brand-50); }
+  }
+  .nv-calc-dot { animation: nvSlide 4s ease-in-out infinite; }
+  @keyframes nvSlide {
+    0%, 100% { left: 14%; }
+    50% { left: 76%; }
+  }
+  .nv-val { opacity: 0; animation: nvVal 4s linear infinite; }
+  @keyframes nvVal {
+    0% { opacity: 0; }
+    4%, 28% { opacity: 1; }
+    33%, 100% { opacity: 0; }
+  }
+  .nv-calc-refresh { animation: nvPulse 2s ease-in-out infinite; }
+  @keyframes nvPulse {
+    0%, 100% { opacity: 0.55; scale: 0.9; }
+    50% { opacity: 1; scale: 1.05; }
+  }
+
+  /* 3. Помощник */
+  .nv-q { animation: nvRise 4.5s ease-in-out infinite; }
+  .nv-typing { animation: nvTyping 4.5s ease-in-out infinite; }
+  @keyframes nvTyping {
+    0%, 16% { opacity: 0; }
+    22%, 42% { opacity: 1; }
+    48%, 100% { opacity: 0; }
+  }
+  .nv-a {
+    opacity: 0;
+    animation: nvAnswer 4.5s ease-in-out infinite;
+  }
+  @keyframes nvAnswer {
+    0%, 46% { opacity: 0; transform: translateY(6px); }
+    58%, 100% { opacity: 1; transform: none; }
+  }
+  .nv-dot1 { animation: nvBounce 1s ease-in-out infinite; }
+  .nv-dot2 { animation: nvBounce 1s ease-in-out 0.15s infinite; }
+  .nv-dot3 { animation: nvBounce 1s ease-in-out 0.3s infinite; }
+  @keyframes nvBounce {
+    0%, 100% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-3px); opacity: 1; }
+  }
+}
+
+/* Без анимации сцены замирают в осмысленном конечном состоянии. */
+@media (prefers-reduced-motion: reduce) {
+  .nv-cc-arc { stroke-dashoffset: 45.8; }
+  .nv-calc-a { border-color: var(--color-brand-600); background: var(--color-brand-50); }
+  .nv-calc-dot { left: 76%; }
+  .nv-val { opacity: 0; }
+  .nv-val:first-child { opacity: 1; }
+  .nv-typing { display: none; }
+}
+
 /* ─── prefers-reduced-motion ───
    Одно правило на всё приложение. Новая анимация автоматически попадает
    под него и не требует собственного медиазапроса. */
