@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
+import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
+import { SavingsTiles } from "@/components/ui/SavingsTiles";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
@@ -12,7 +14,6 @@ const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-x
 
 type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
-interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
 export default function ConsumerLoanPage() {
   const [principal, setPrincipal] = useState(20000);
@@ -44,85 +45,51 @@ export default function ConsumerLoanPage() {
 
   const result = useMemo(() => {
     if (!principal || !months || !rate) return null;
-    const r = rate / 100 / 12;
 
-    if (!showExtra) {
-      const schedule: ScheduleRow[] = [];
-      let balance = principal;
-      for (let i = 1; i <= months; i++) {
-        const interest = balance * r;
-        const principalPart = baseMonthly - interest;
-        balance = Math.max(0, balance - principalPart);
-        schedule.push({ month: i, payment: baseMonthly, extra: 0, interest, principal: principalPart, balance });
-        if (balance <= 0) break;
-      }
+    const additionalCosts = commission + insurance + other;
+    // Базовый сценарий считаем ВСЕГДА — иначе сравнивать «до/после» нечем
+    const base = simulateLoan(principal, rate, months);
+
+    const extraPlanned = recurringEnabled || oneTimePayments.some((op) => op.amount > 0);
+    if (!showExtra || !extraPlanned) {
       return {
-        firstPayment: baseMonthly,
-        totalPayment: baseMonthly * months + commission + insurance + other,
-        interestCost: baseMonthly * months - principal,
-        additionalCosts: commission + insurance + other,
-        penaltyCost: 0,
-        finalMonths: months,
-        savings: 0,
+        firstPayment: base.monthlyPayment,
         withExtra: false,
-        schedule,
+        current: { totalPayment: base.totalPaid + additionalCosts, interestCost: base.totalInterest, months: base.months },
+        base: null,
+        comparison: null,
+        extraPaid: 0,
+        penaltyCost: 0,
+        additionalCosts,
+        schedule: base.rows,
       };
     }
 
-    const toMonth = recurringTo === "" ? months : Number(recurringTo);
-    let balance = principal;
-    let totalPaid = 0;
-    let totalInterest = 0;
-    let totalPenalty = 0;
-    let actualMonths = 0;
-    let currentPayment = baseMonthly;
-    let remainingMonths = months;
-    const schedule: ScheduleRow[] = [];
+    const withExtra = simulateLoan(principal, rate, months, {
+      recurring: recurringEnabled
+        ? {
+            amount: recurringAmount,
+            fromMonth: recurringFrom,
+            toMonth: recurringTo === "" ? months : Number(recurringTo),
+          }
+        : undefined,
+      oneTime: oneTimePayments.filter((op) => op.amount > 0),
+      penaltyPct: penalty,
+      mode: erkenRejim === "muddət" ? "term" : "payment",
+    });
 
-    for (let i = 1; i <= months * 2; i++) {
-      if (balance <= 0) break;
-      actualMonths = i;
-      const interest = balance * r;
-      const schedPayment = Math.min(currentPayment, balance + interest);
-      const principalPart = schedPayment - interest;
-      totalInterest += interest;
-      totalPaid += schedPayment;
-      balance -= principalPart;
-      remainingMonths = Math.max(1, remainingMonths - 1);
-
-      let extra = 0;
-      if (recurringEnabled && i >= recurringFrom && i <= toMonth) extra += recurringAmount;
-      oneTimePayments.forEach((op) => { if (op.month === i) extra += op.amount; });
-
-      let actualExtra = 0;
-      if (extra > 0 && balance > 0) {
-        actualExtra = Math.min(extra, balance);
-        const pen = (actualExtra * penalty) / 100;
-        totalPenalty += pen;
-        totalPaid += actualExtra + pen;
-        balance -= actualExtra;
-        if (balance > 0 && erkenRejim === "odəniş" && remainingMonths > 0) {
-          currentPayment = (balance * r * Math.pow(1 + r, remainingMonths)) / (Math.pow(1 + r, remainingMonths) - 1);
-        }
-      }
-
-      schedule.push({ month: i, payment: schedPayment, extra: actualExtra, interest, principal: principalPart, balance: Math.max(0, balance) });
-      if (balance <= 0) break;
-    }
-
-    const savings = Math.max(0, baseMonthly * months - totalPaid);
     return {
-      firstPayment: baseMonthly,
-      totalPayment: totalPaid + commission + insurance + other,
-      interestCost: totalInterest,
-      additionalCosts: commission + insurance + other,
-      penaltyCost: totalPenalty,
-      finalMonths: actualMonths,
-      savings,
+      firstPayment: withExtra.monthlyPayment,
       withExtra: true,
-      schedule,
+      current: { totalPayment: withExtra.totalPaid + additionalCosts, interestCost: withExtra.totalInterest, months: withExtra.months },
+      base: { totalPayment: base.totalPaid + additionalCosts, interestCost: base.totalInterest, months: base.months },
+      comparison: compareScenarios(base, withExtra),
+      extraPaid: withExtra.totalExtra,
+      penaltyCost: withExtra.totalPenalty,
+      additionalCosts,
+      schedule: withExtra.rows,
     };
-  }, [principal, months, rate, commission, insurance, other, baseMonthly,
+  }, [principal, months, rate, commission, insurance, other,
       showExtra, recurringEnabled, recurringAmount, recurringFrom, recurringTo,
       oneTimePayments, penalty, erkenRejim]);
 
@@ -322,57 +289,47 @@ export default function ConsumerLoanPage() {
                       )}
                       {commissionPct === 0 && insurancePct === 0 && <div className="mb-4" />}
 
+                      {/* Верхний блок = сценарий БЕЗ доплат (когда доплаты включены — это «до») */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {result.withExtra && (
+                          <p className="sm:col-span-3 text-xs font-semibold text-gray-500 uppercase tracking-wide -mb-1">
+                            Əlavə ödəniş olmadan
+                          </p>
+                        )}
                         <div className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(result.interestCost)}</p>
+                          <p className="text-sm font-bold text-gray-900">{formatCurrency((result.base ?? result.current).interestCost)}</p>
                         </div>
                         <div className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-500 mb-1">Ümumi ödəniş</p>
-                          <p className="text-sm font-bold text-gray-900">{formatCurrency(result.totalPayment)}</p>
+                          <p className="text-sm font-bold text-gray-900">{formatCurrency((result.base ?? result.current).totalPayment)}</p>
                         </div>
                         <div className="bg-gray-50 rounded-xl p-3">
                           <p className="text-xs text-gray-500 mb-1">Müddət</p>
-                          <p className="text-sm font-bold text-gray-900">{result.finalMonths} ay</p>
+                          <p className="text-sm font-bold text-gray-900">{(result.base ?? result.current).months} ay</p>
                         </div>
                       </div>
 
-                      {result.withExtra && (
+                      {result.withExtra && result.comparison && (
                         <>
                           <div className="mt-4 border-t border-gray-100 pt-4">
                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Əlavə ödənişlə</p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                                 <p className="text-xs text-gray-500 mb-1">Toplam faiz</p>
-                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.interestCost)}</p>
+                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.current.interestCost)}</p>
                               </div>
                               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                                 <p className="text-xs text-gray-500 mb-1">Ümumi ödəniş</p>
-                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.totalPayment)}</p>
+                                <p className="text-sm font-bold text-emerald-700">{formatCurrency(result.current.totalPayment)}</p>
                               </div>
                               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                                 <p className="text-xs text-gray-500 mb-1">Müddət</p>
-                                <p className="text-sm font-bold text-emerald-700">{result.finalMonths} ay</p>
+                                <p className="text-sm font-bold text-emerald-700">{result.current.months} ay</p>
                               </div>
                             </div>
                           </div>
-                          <div className="mt-3">
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fərq</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-500 mb-1">Faiz qənaəti</p>
-                                <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
-                              </div>
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-500 mb-1">Ümumi qənaət</p>
-                                <p className="text-sm font-bold text-blue-700">−{formatCurrency(result.savings)}</p>
-                              </div>
-                              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                <p className="text-xs text-gray-500 mb-1">Müddət azalması</p>
-                                <p className="text-sm font-bold text-blue-700">−{months - result.finalMonths} ay</p>
-                              </div>
-                            </div>
-                          </div>
+                          <SavingsTiles comparison={result.comparison} extraPaid={result.extraPaid} />
                         </>
                       )}
 
@@ -408,7 +365,7 @@ export default function ConsumerLoanPage() {
 
                       <div className="border-t border-gray-100 pt-4 mt-4 flex items-center justify-between">
                         <span className="text-sm text-gray-500">Ümumi ödəniş</span>
-                        <span className="text-lg font-bold text-gray-900">{formatCurrency(result.totalPayment)}</span>
+                        <span className="text-lg font-bold text-gray-900">{formatCurrency(result.current.totalPayment)}</span>
                       </div>
 
                       <Link href={checkUrl}
