@@ -249,7 +249,7 @@ export function buildAnalysis(
   if (highRiskPayment) risks.push("Yeni aylıq ödəniş gəlirinizə görə yüksəkdir");
   if (muddet > 48) risks.push("Kredit müddəti uzun olduğuna görə ümumi xərc arta bilər");
   if (unofficial) risks.push("Gəlirin rəsmi təsdiqi yoxdur");
-  if (ageAtEnd > CONFIG.maxAgeAtEnd) risks.push(`Müddətin sonunda yaşınız ${ageAtEnd} olur — limitdən yuxarıdır`);
+  if (ageAtEnd > CONFIG.maxAgeAtEnd) risks.push(`Müddətin sonunda yaşınız ${ageAtEnd} olur, bu isə limitdən yuxarıdır`);
 
   /* ─── 5. Tövsiyələr (макс 3, приоритет: ограничение → низкий → средний) ─── */
   type Rec = Recommendation & { priority: number };
@@ -288,7 +288,7 @@ export function buildAnalysis(
     .map(({ key, title, text }) => ({ key, title, text }));
 
   if (recommendations.length === 0)
-    recommendations.push({ key: "profil-yaxsi", title: "Profiliniz yaxşı vəziyyətdədir", text: "Ödənişləri vaxtında etməyə davam edin — bu, kredit profilinizi güclü saxlayır." });
+    recommendations.push({ key: "profil-yaxsi", title: "Profiliniz yaxşı vəziyyətdədir", text: "Ödənişləri vaxtında etməyə davam edin. Bu, kredit profilinizi güclü saxlayır." });
 
   /* ─── 6. Faiz simulyasiyası ─── */
   let simulation: Simulation | null = null;

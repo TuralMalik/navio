@@ -27,8 +27,13 @@ two differ, the difference is deliberate and noted.
   from `lucide-react`, sized to the text line-height, never larger. Score tiers
   use color and text, never 🟢🟡🔴.
 - ALL-CAPS tracked micro-labels. Use sentence-case semibold labels.
-- Em dashes anywhere: prose, UI copy, comments, commit messages. Use commas,
-  periods, parentheses, or a hyphen.
+- Em dashes in anything a user or reviewer reads: UI copy, page metadata, email
+  subjects, error and warning strings, docs, commit messages. Use commas,
+  periods, colons, parentheses, or a hyphen. Rewrite the sentence rather than
+  swapping the character: an em dash usually joins two clauses, so the fix is
+  normally a period or a colon, not a comma dropped in place.
+  (Russian code comments are the one exception, since the em dash is ordinary
+  punctuation there and those lines never reach a user.)
 - Decorative infinite-loop animations. Motion is feedback, not entertainment.
   A looping keyframe that runs forever with nothing to communicate is banned.
 - Card-inside-card nesting deeper than one level; identical icon-top 3/6-card

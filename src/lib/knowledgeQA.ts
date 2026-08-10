@@ -34,7 +34,7 @@ export const categories: QACategory[] = [
         id: "maasim-azdir",
         question: "Maaşım azdır. Kredit ala bilərəm?",
         answer:
-          "Bəli, mümkündür — amma kredit məbləği gəlirinizlə mütənasib olacaq. Aşağı gəlirlə adətən daha kiçik məbləğ və ya daha qısa müddət təklif olunur. Mövcud borclarınız yoxdursa, şansınız artır.",
+          "Bəli, mümkündür, amma kredit məbləği gəlirinizlə mütənasib olacaq. Aşağı gəlirlə adətən daha kiçik məbləğ və ya daha qısa müddət təklif olunur. Mövcud borclarınız yoxdursa, şansınız artır.",
         cta: { label: "Uyğun məbləği hesabla", href: "/az/calculators" },
       },
       {
@@ -66,7 +66,7 @@ export const categories: QACategory[] = [
         id: "ne-vaxt-temizlenecek",
         question: "Gecikməm var. Kredit tarixçəm nə vaxt təmizlənəcək?",
         answer:
-          "Gecikmə bağlandıqdan sonra belə, məlumat müəyyən müddət kredit tarixçənizdə qalır. Dəqiq müddət gecikmənin növündən və müddətindən asılıdır. Vacib olan borcu tam bağlamaq və bundan sonra vaxtında ödəniş etməkdir — bu, tarixçənin təsirini tədricən azaldır.",
+          "Gecikmə bağlandıqdan sonra belə, məlumat müəyyən müddət kredit tarixçənizdə qalır. Dəqiq müddət gecikmənin növündən və müddətindən asılıdır. Vacib olan borcu tam bağlamaq və bundan sonra vaxtında ödəniş etməkdir. Bu, tarixçənin təsirini tədricən azaldır.",
       },
       {
         id: "tarixce-yaxsilasdirmaq",
@@ -92,13 +92,13 @@ export const categories: QACategory[] = [
         id: "gecikmem-var-indi-ne-olacaq",
         question: "Gecikməm var. İndi nə olacaq?",
         answer:
-          "Bank adətən əvvəlcə xatırlatma və bildirişlərlə əlaqə saxlayır. Gecikmə uzandıqca əlavə cərimə tətbiq oluna, kredit tarixçənizə mənfi qeyd düşə bilər. Ən doğru addım — bankla əlaqə saxlayıb ödəniş planı barədə danışmaqdır, gecikməni gizlətmək vəziyyəti pisləşdirir.",
+          "Bank adətən əvvəlcə xatırlatma və bildirişlərlə əlaqə saxlayır. Gecikmə uzandıqca əlavə cərimə tətbiq oluna, kredit tarixçənizə mənfi qeyd düşə bilər. Ən doğru addım bankla əlaqə saxlayıb ödəniş planı barədə danışmaqdır, gecikməni gizlətmək vəziyyəti pisləşdirir.",
       },
       {
         id: "gecikmeye-gore-hebs",
         question: "Gecikməyə görə məni həbs edə bilərlər?",
         answer:
-          "Adi kredit gecikməsi özlüyündə həbslə nəticələnmir — bu, mülki-hüquqi məsələdir. Yalnız məhkəmə qərarından sonra icra prosedurları başlaya bilər. Konkret vəziyyətiniz üçün hüquqi məsləhət almağınız tövsiyə olunur.",
+          "Adi kredit gecikməsi özlüyündə həbslə nəticələnmir, bu, mülki-hüquqi məsələdir. Yalnız məhkəmə qərarından sonra icra prosedurları başlaya bilər. Konkret vəziyyətiniz üçün hüquqi məsləhət almağınız tövsiyə olunur.",
       },
       {
         id: "bank-evi-elimden-ala-biler",
@@ -110,7 +110,7 @@ export const categories: QACategory[] = [
         id: "maasdan-pul-tutula-biler",
         question: "Maaşımdan və ya kartımdan pul tuta bilərlər?",
         answer:
-          "Bu, yalnız məhkəmə qərarı və icra icraatı çərçivəsində, qanunla müəyyən edilmiş həddə mümkündür. Bank özbaşına hesabınızdan pul çıxara bilməz — prosedur həmişə rəsmi icra orqanları vasitəsilə gedir.",
+          "Bu, yalnız məhkəmə qərarı və icra icraatı çərçivəsində, qanunla müəyyən edilmiş həddə mümkündür. Bank özbaşına hesabınızdan pul çıxara bilməz. Prosedur həmişə rəsmi icra orqanları vasitəsilə gedir.",
       },
     ],
   },
@@ -122,14 +122,14 @@ export const categories: QACategory[] = [
         id: "refinans-nedir",
         question: "Refinans nədir və mənə sərf edərmi?",
         answer:
-          "Refinans — mövcud krediti daha əlverişli şərtlərlə (aşağı faiz, uzun müddət) yeni kreditlə əvəz etməkdir. Faiz dərəcələri düşübsə və ya aylıq ödənişiniz ağırdırsa, sərfəli ola bilər. Amma yeni kreditin komissiya və şərtlərini əvvəlkilərlə müqayisə etmək lazımdır.",
+          "Refinans, mövcud krediti daha əlverişli şərtlərlə (aşağı faiz, uzun müddət) yeni kreditlə əvəz etməkdir. Faiz dərəcələri düşübsə və ya aylıq ödənişiniz ağırdırsa, sərfəli ola bilər. Amma yeni kreditin komissiya və şərtlərini əvvəlkilərlə müqayisə etmək lazımdır.",
         cta: { label: "Yeni ödənişi hesabla", href: "/az/calculators" },
       },
       {
         id: "bir-nece-krediti-birlesdirmek",
         question: "Bir neçə krediti bir kreditdə birləşdirmək olar?",
         answer:
-          "Bəli, bu bir növ konsolidasiya krediti adlanır — bir neçə borcunuzu tək aylıq ödənişə çevirir. Bu, borc idarəetməsini asanlaşdıra bilər, amma ümumi faiz xərcini diqqətlə hesablamaq vacibdir.",
+          "Bəli, bu bir növ konsolidasiya krediti adlanır: bir neçə borcunuzu tək aylıq ödənişə çevirir. Bu, borc idarəetməsini asanlaşdıra bilər, amma ümumi faiz xərcini diqqətlə hesablamaq vacibdir.",
       },
     ],
   },
@@ -185,7 +185,7 @@ export const categories: QACategory[] = [
         id: "vaxtindan-evvel-baglamaq",
         question: "Krediti vaxtından əvvəl bağlamaq sərfəlidirmi?",
         answer:
-          "Adətən bəli — çünki qalan faiz xərclərindən qənaət edirsiniz. Amma bəzi kreditlərdə erkən ödəniş üçün kiçik komissiya ola bilər, ona görə əvvəlcədən müqavilə şərtlərini yoxlamaq lazımdır.",
+          "Adətən bəli, çünki qalan faiz xərclərindən qənaət edirsiniz. Amma bəzi kreditlərdə erkən ödəniş üçün kiçik komissiya ola bilər, ona görə əvvəlcədən müqavilə şərtlərini yoxlamaq lazımdır.",
         cta: { label: "Qənaətimi hesabla", href: "/az/calculators/consumer-loan" },
       },
       {

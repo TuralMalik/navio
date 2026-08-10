@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Navio — Sizin maliyyə köməkçiniz";
+export const alt = "Navio · Sizin maliyyə köməkçiniz";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default function OgImage() {
           Kredit almaq şansınızı yoxlayın
         </div>
         <div style={{ fontSize: 30, color: "#B9C4E0", marginTop: 24 }}>
-          Sorğusuz · Pulsuz · 3 dəqiqəyə — kredit tarixçənizə təsir etmir
+          Sorğusuz · Pulsuz · 3 dəqiqəyə · Kredit tarixçənizə təsir etmir
         </div>
       </div>
     ),

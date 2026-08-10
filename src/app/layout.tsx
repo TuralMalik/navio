@@ -31,7 +31,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://navio.az";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Navio — Sizin maliyyə köməkçiniz",
+    default: "Navio · Sizin maliyyə köməkçiniz",
     template: "%s | Navio",
   },
   description:
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Navio",
     locale: "az_AZ",
-    title: "Navio — Sizin maliyyə köməkçiniz",
+    title: "Navio · Sizin maliyyə köməkçiniz",
     description:
-      "Banka müraciət etmədən əvvəl kredit şansınızı yoxlayın — sorğusuz, pulsuz, 3 dəqiqəyə.",
+      "Banka müraciət etmədən əvvəl kredit şansınızı yoxlayın. Sorğusuz, pulsuz, 3 dəqiqəyə.",
   },
   twitter: {
     card: "summary_large_image",
