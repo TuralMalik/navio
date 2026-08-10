@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Trash2, ChevronDown } from "lucide-react";
 import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
+import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
+import { SavingsTiles } from "@/components/ui/SavingsTiles";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { SliderRow } from "@/components/ui/SliderRow";
 
@@ -12,7 +14,6 @@ const selectClass = "w-full px-4 py-2.5 text-sm border border-gray-200 rounded-x
 
 type ErkenRejim = "muddət" | "odəniş";
 interface OneTimePayment { id: number; month: number; amount: number; }
-interface ScheduleRow { month: number; payment: number; extra: number; interest: number; principal: number; balance: number; }
 
 export default function AutoLoanPage() {
   const [carPriceStr, setCarPriceStr] = useState("");
@@ -44,74 +45,35 @@ export default function AutoLoanPage() {
     setOneTimePayments((p) => p.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
 
   const { schedule, extraResult } = useMemo(() => {
-    const r = rate / 100 / 12;
+    // Базовый сценарий считаем всегда, чтобы сравнение «до/после» было настоящим
+    const base = simulateLoan(loanAmount, rate, months);
+    const extraPlanned = recurringEnabled || oneTimePayments.some((op) => op.amount > 0);
 
-    if (!showExtra) {
-      const rows: ScheduleRow[] = [];
-      let balance = loanAmount;
-      const pmt = baseMonthly;
-      for (let i = 1; i <= months; i++) {
-        const interest = balance * r;
-        const principal = Math.min(pmt - interest, balance);
-        balance = Math.max(0, balance - principal);
-        rows.push({ month: i, payment: pmt, extra: 0, interest, principal, balance });
-        if (balance <= 0) break;
-      }
-      return { schedule: rows, extraResult: null };
+    if (!showExtra || !extraPlanned) {
+      return { schedule: base.rows, extraResult: null };
     }
 
-    const toMonth = recurringTo === "" ? months : Number(recurringTo);
-    let balance = loanAmount;
-    let totalPaid = 0;
-    let totalInterest = 0;
-    let totalPenalty = 0;
-    let actualMonths = 0;
-    let currentPayment = baseMonthly;
-    let remainingMonths = months;
-    const rows: ScheduleRow[] = [];
-
-    for (let i = 1; i <= months * 2; i++) {
-      if (balance <= 0) break;
-      actualMonths = i;
-      const interest = balance * r;
-      const schedPayment = Math.min(currentPayment, balance + interest);
-      const principalPart = schedPayment - interest;
-      totalInterest += interest;
-      totalPaid += schedPayment;
-      balance -= principalPart;
-      remainingMonths = Math.max(1, remainingMonths - 1);
-
-      let extra = 0;
-      if (recurringEnabled && i >= recurringFrom && i <= toMonth) extra += recurringAmount;
-      oneTimePayments.forEach((op) => { if (op.month === i) extra += op.amount; });
-
-      let actualExtra = 0;
-      if (extra > 0 && balance > 0) {
-        actualExtra = Math.min(extra, balance);
-        const pen = (actualExtra * penalty) / 100;
-        totalPenalty += pen;
-        totalPaid += actualExtra + pen;
-        balance -= actualExtra;
-        if (balance > 0 && erkenRejim === "odəniş" && remainingMonths > 0) {
-          currentPayment = (balance * r * Math.pow(1 + r, remainingMonths)) / (Math.pow(1 + r, remainingMonths) - 1);
-        }
-      }
-
-      rows.push({ month: i, payment: schedPayment, extra: actualExtra, interest, principal: principalPart, balance: Math.max(0, balance) });
-      if (balance <= 0) break;
-    }
+    const withExtra = simulateLoan(loanAmount, rate, months, {
+      recurring: recurringEnabled
+        ? { amount: recurringAmount, fromMonth: recurringFrom, toMonth: recurringTo === "" ? months : Number(recurringTo) }
+        : undefined,
+      oneTime: oneTimePayments.filter((op) => op.amount > 0),
+      penaltyPct: penalty,
+      mode: erkenRejim === "muddət" ? "term" : "payment",
+    });
 
     return {
-      schedule: rows,
+      schedule: withExtra.rows,
       extraResult: {
-        finalMonths: actualMonths,
-        lastPayment: currentPayment,
-        totalInterest,
-        penaltyCost: totalPenalty,
-        savings: Math.max(0, baseMonthly * months - totalPaid),
+        finalMonths: withExtra.months,
+        totalInterest: withExtra.totalInterest,
+        totalPaid: withExtra.totalPaid,
+        penaltyCost: withExtra.totalPenalty,
+        extraPaid: withExtra.totalExtra,
+        comparison: compareScenarios(base, withExtra),
       },
     };
-  }, [loanAmount, rate, months, baseMonthly, showExtra, recurringEnabled, recurringAmount,
+  }, [loanAmount, rate, months, showExtra, recurringEnabled, recurringAmount,
       recurringFrom, recurringTo, oneTimePayments, penalty, erkenRejim]);
 
   const displayedRows = showAllRows ? schedule : schedule.slice(0, 10);
@@ -412,7 +374,7 @@ export default function AutoLoanPage() {
                       </div>
                       <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                         <p className="text-xs text-gray-500 mb-1">Ümumi ödəniş</p>
-                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(baseMonthly * months - extraResult.savings)}</p>
+                        <p className="text-sm font-bold text-emerald-700">{formatCurrency(extraResult.totalPaid)}</p>
                       </div>
                       <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
                         <p className="text-xs text-gray-500 mb-1">Müddət</p>
@@ -420,23 +382,7 @@ export default function AutoLoanPage() {
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Fərq</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-500 mb-1">Faiz qənaəti</p>
-                        <p className="text-sm font-bold text-blue-700">−{formatCurrency((baseMonthly * months - loanAmount) - extraResult.totalInterest)}</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-500 mb-1">Ümumi qənaət</p>
-                        <p className="text-sm font-bold text-blue-700">−{formatCurrency(extraResult.savings)}</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                        <p className="text-xs text-gray-500 mb-1">Müddət azalması</p>
-                        <p className="text-sm font-bold text-blue-700">−{months - extraResult.finalMonths} ay</p>
-                      </div>
-                    </div>
-                  </div>
+                  <SavingsTiles comparison={extraResult.comparison} extraPaid={extraResult.extraPaid} />
                 </div>
               )}
 
