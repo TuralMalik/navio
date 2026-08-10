@@ -198,6 +198,53 @@ export const trackingEvent = pgTable(
   ],
 );
 
+/* ─── Администраторы ───
+   Отдельная сущность, НЕ пользователь сайта. Причины:
+   • админов заводим заранее скриптом, без регистрации и без писем
+   • они не должны появляться в списке пользователей и не имеют входа на сайт
+   • компрометация публичного входа не даёт доступа в админку
+
+   MFA обязательна: без подтверждённого TOTP сессия админа не создаётся. */
+export const adminUser = pgTable("admin_user", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  /** scrypt: N=16384, r=8, p=1. Формат: scrypt$<salt-b64>$<hash-b64> */
+  passwordHash: text("password_hash").notNull(),
+  /** base32-секрет TOTP. Задаётся при засеве, в интерфейсе не показывается. */
+  totpSecret: text("totp_secret").notNull(),
+  /** Пока false — вход требует подтверждения привязки приложения. */
+  totpConfirmedAt: timestamp("totp_confirmed_at"),
+  /** Одноразовые коды на случай потери телефона; хранятся как хеши. */
+  backupCodes: jsonb("backup_codes").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
+  /** Счётчик неудач и блокировка — защита от подбора пароля и кода. */
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
+});
+
+/* Сессии админов. Отдельно от session (той владеет Better Auth).
+   Храним хеш токена, а не токен: утечка таблицы не даёт войти. */
+export const adminSession = pgTable(
+  "admin_session",
+  {
+    id: text("id").primaryKey(),
+    adminId: text("admin_id").notNull().references(() => adminUser.id, { onDelete: "cascade" }),
+    /** SHA-256 от токена из cookie. */
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    ipHash: text("ip_hash"),
+    userAgent: text("user_agent"),
+  },
+  (t) => [
+    index("admin_session_token_idx").on(t.tokenHash),
+    index("admin_session_admin_idx").on(t.adminId),
+  ],
+);
+
 export const schema = {
   user, session, account, verification, scoringCalculation, pageView, trackingEvent,
+  adminUser, adminSession,
 };

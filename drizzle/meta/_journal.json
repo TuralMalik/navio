@@ -15,6 +15,13 @@
       "when": 1786372712995,
       "tag": "0001_motionless_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786378021184,
+      "tag": "0002_watery_wraith",
+      "breakpoints": true
     }
   ]
 }

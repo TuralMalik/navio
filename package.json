@@ -10,7 +10,10 @@
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/migrate.mjs",
-    "db:studio": "dotenv -e .env.local -- drizzle-kit studio"
+    "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
+    "admin:seed": "dotenv -e .env.local -- node scripts/seed-admin.mjs",
+    "test:totp": "tsx scripts/test-totp.mjs",
+    "test:auth": "dotenv -e .env.local -- tsx --conditions react-server scripts/test-admin-auth.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
