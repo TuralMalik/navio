@@ -226,8 +226,13 @@ anyone can sign in rather than only listed test users. If it asks for links:
 - Email verification is optional by design. To make it mandatory once email is on,
   set `requireEmailVerification: true` in `src/lib/auth.ts`.
 - Google users never need verification — Google already confirms the address.
-- Anonymous calculations are deleted after 7 days; calculations belonging to an
-  account are kept until the user deletes them.
+- Calculations are kept, both anonymous ones and those belonging to an account.
+  Deletion happens on request to info@navio.az. This note previously said
+  anonymous results were purged after 7 days, which stopped being true when the
+  purge was removed; the privacy page is the authoritative statement.
+- The admin panel is documented separately in
+  [`ADMIN_SETUP.md`](ADMIN_SETUP.md), including how to create the first
+  administrator on the live site without a terminal.
 - Visitor IPs are never stored in readable form, only as a salted hash for rate
   limiting.
 - `.env.example` lists every variable with a short explanation.
