@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { getUsers } from "@/lib/server/analytics-queries";
 import { PageHeader, Panel, Kpi, Table, Td, Badge, Empty, fmtTime, fmtNumber } from "@/components/admin/ui";
@@ -20,6 +21,9 @@ function providerBadges(providers: string | null) {
 }
 
 export default async function UsersPage() {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const users = await getUsers(300);
 
   const verified = users.filter((u) => u.email_verified).length;

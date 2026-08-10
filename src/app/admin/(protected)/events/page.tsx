@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { getEventNames, getEvents, getEventBreakdown, parseRange } from "@/lib/server/analytics-queries";
 import {
@@ -32,6 +33,9 @@ export default async function EventsPage({
 }: {
   searchParams: Promise<{ days?: string; name?: string; page?: string }>;
 }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const sp = await searchParams;
   const days = parseRange(sp.days);
   const name = sp.name?.trim() || undefined;

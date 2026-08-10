@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScoringDetail } from "@/lib/server/analytics-queries";
@@ -35,6 +36,9 @@ const VALUE_LABEL: Record<string, string> = {
 const MONEY_FIELDS = new Set(["mebleg", "gelir", "movcudNaqdOdenis", "movcudKartLimit"]);
 
 export default async function ScoringDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const { id } = await params;
   const row = await getScoringDetail(id);
   if (!row) notFound();

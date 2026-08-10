@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText, MousePointerClick } from "lucide-react";
@@ -34,6 +35,9 @@ function Props({ value }: { value: unknown }) {
 }
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const { id } = await params;
   const { meta, items, viewCount, eventCount } = await getSessionTimeline(id);
 

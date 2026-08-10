@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import {
   getScoringStats, getScoreDistribution, getScoringBreakdown, getScorings, parseRange,
@@ -33,6 +34,9 @@ export default async function ScoringsPage({
 }: {
   searchParams: Promise<{ days?: string; mode?: string; page?: string }>;
 }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const sp = await searchParams;
   const days = parseRange(sp.days);
   const mode = sp.mode === "bank" || sp.mode === "bokt" ? sp.mode : undefined;

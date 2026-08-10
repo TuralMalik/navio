@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import { getVisitors, parseRange } from "@/lib/server/analytics-queries";
 import {
   PageHeader, RangeTabs, Panel, Table, Td, Badge, Empty, fmtDuration, fmtTime, fmtNumber,
@@ -10,6 +11,9 @@ export default async function VisitorsPage({
 }: {
   searchParams: Promise<{ days?: string; q?: string }>;
 }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const sp = await searchParams;
   const days = parseRange(sp.days);
   const q = sp.q?.trim().toLowerCase();

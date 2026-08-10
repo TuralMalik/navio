@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { and, eq, gt, lt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { adminSession, adminUser } from "@/db/schema";
@@ -228,6 +229,19 @@ export async function getAdminSession(): Promise<AdminIdentity | null> {
     .limit(1);
 
   return row ?? null;
+}
+
+/** Требует администратора ИЛИ уводит на вход.
+
+   Вызывать ПЕРВОЙ строкой каждой страницы админки, до любых запросов к базе.
+   Одной проверки в layout недостаточно: layout и страница рендерятся
+   параллельно, и при RSC-запросе (заголовок `RSC: 1`) редирект из layout не
+   отменял уже отрисованную страницу — её данные попадали во flight-ответ.
+   Проверка здесь гарантирует, что до redirect() ни один запрос не выполнится. */
+export async function requireAdmin(): Promise<AdminIdentity> {
+  const admin = await getAdminSession();
+  if (!admin) redirect("/admin/login");
+  return admin;
 }
 
 export async function logoutAdmin(): Promise<void> {

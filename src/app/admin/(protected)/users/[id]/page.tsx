@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getUserDetail } from "@/lib/server/analytics-queries";
@@ -8,6 +9,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const { id } = await params;
   const data = await getUserDetail(id);
   if (!data) notFound();

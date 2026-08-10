@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import { getRawPageViews, parseRange } from "@/lib/server/analytics-queries";
 import {
@@ -13,6 +14,9 @@ export default async function RawPage({
 }: {
   searchParams: Promise<{ days?: string; path?: string; page?: string; bots?: string }>;
 }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const sp = await searchParams;
   const days = parseRange(sp.days);
   const path = sp.path?.trim() || undefined;

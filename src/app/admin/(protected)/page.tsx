@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import Link from "next/link";
 import {
   getTotals, getPreviousTotals, getBotCount, getSeries, getPages,
@@ -21,6 +22,9 @@ export default async function OverviewPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
+  // Проверяем доступ ДО любых запросов: см. requireAdmin()
+  await requireAdmin();
+
   const { days: raw } = await searchParams;
   const days = parseRange(raw);
 

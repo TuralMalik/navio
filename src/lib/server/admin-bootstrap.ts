@@ -36,10 +36,14 @@ export async function countAdmins(): Promise<number> {
 
 /** Можно ли сейчас создать первого админа с этим токеном. */
 export async function bootstrapState(token: string | undefined): Promise<BootstrapState> {
+  /* Порядок важен: сначала смотрим, есть ли уже админ. Если есть — маршрут
+     должен просто не существовать, независимо от токена. При обратном порядке
+     на уже настроенном сервере страница отвечала 200 и подсказывала, что
+     нужно задать ADMIN_BOOTSTRAP_TOKEN, — лишняя наводка для постороннего. */
+  if ((await countAdmins()) > 0) return { available: false, reason: "already-initialised" };
+
   const configured = tokenConfigured();
   if (!configured) return { available: false, reason: "no-token-configured" };
-
-  if ((await countAdmins()) > 0) return { available: false, reason: "already-initialised" };
 
   const given = Buffer.from(token ?? "");
   const expected = Buffer.from(configured);
