@@ -7,6 +7,7 @@
 import "server-only";
 import { formatNumber } from "@/lib/utils";
 import type { GelirNovu, KreditNovu, BankForm, BoktForm } from "@/lib/scoring-types";
+import type { Tone } from "@/lib/score-contract";
 
 export type { Mode, GelirNovu, KreditNovu, IsStaji, BankForm, BoktForm } from "@/lib/scoring-types";
 
@@ -42,6 +43,18 @@ export const CONFIG = {
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
   maxCardLineToIncomeRatio: 5,   // лимит по кредитным линиям: 5× дохода
 };
+
+/* Зона долговой нагрузки. Пороги внутренние, наружу уходит только тон.
+
+   Живёт здесь, а не в analysis.ts, потому что нужна в двух местах: в
+   быстром результате и в подробном разборе. Пока это были две копии,
+   одна и та же нагрузка могла окраситься по-разному на соседних экранах. */
+export function bgnTone(bgn: number): Tone {
+  if (bgn > CONFIG.bgnHardStopPct) return "high";
+  if (bgn > CONFIG.bgnTierHighPct) return "risk";
+  if (bgn > CONFIG.bgnTierMidPct) return "attention";
+  return "good";
+}
 
 /* ─── Annuity: единая реализация в lib/calculators/annuity ─── */
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";

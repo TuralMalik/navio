@@ -35,9 +35,16 @@ export function Header() {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
 
-  // Меню закрывается при переходе: иначе после клика по ссылке остаётся
-  // открытая панель поверх новой страницы.
-  useEffect(() => setOpen(false), [pathname]);
+  /* Меню закрывается при переходе. Раньше это делал эффект на pathname, но
+     он же вызывал лишний рендер на КАЖДОЙ навигации, включая десктоп, где
+     меню и так закрыто. Сравнение с предыдущим путём во время рендера
+     обходится в одно присваивание и срабатывает только когда есть что
+     закрывать. */
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    if (open) setOpen(false);
+  }
 
   // Escape закрывает меню. Открытая панель без выхода с клавиатуры — ловушка.
   useEffect(() => {

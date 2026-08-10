@@ -3,19 +3,23 @@
 import "server-only";
 import type { BankForm, BoktForm, Mode } from "@/lib/scoring-types";
 import type { PublicScoreResult, Tone } from "@/lib/score-contract";
-import { calcBankScore, calcBoktScore, explainResult, CONFIG } from "./scoring";
+import { calcBankScore, calcBoktScore, explainResult, bgnTone, CONFIG } from "./scoring";
 
-/* Пороги тиров — внутренние. Клиент получает только готовый текст и тон. */
-function scoreLabel(score: number, mode: Mode): { text: string; icon: string; tone: Tone } {
+/* Пороги тиров — внутренние. Клиент получает только готовый текст и тон.
+
+   Эмодзи-индикатор (🟢/🟡/🔴) убран: тон уже несёт цвет, а эмодзи в роли
+   статуса запрещены правилами и вдобавок озвучиваются скринридером как
+   «зелёный круг», то есть шумом поверх осмысленной подписи. */
+function scoreLabel(score: number, mode: Mode): { text: string; detail: string; tone: Tone } {
   if (mode === "bank") {
-    if (score >= 80) return { text: "Yüksək şans — Bankların əksəriyyəti təsdiqləyə bilər", icon: "🟢", tone: "good" };
-    if (score >= 65) return { text: "Yaxşı şans — Bir çox bank təsdiqləyə bilər", icon: "🟢", tone: "normal" };
-    if (score >= 45) return { text: "Orta şans — Şansınız var, bankdan asılıdır", icon: "🟡", tone: "attention" };
-    return { text: "Aşağı şans — Profili yaxşılaşdırmaq tövsiyə olunur", icon: "🟠", tone: "risk" };
+    if (score >= 80) return { text: "Yüksək şans", detail: "Bankların əksəriyyəti təsdiqləyə bilər", tone: "good" };
+    if (score >= 65) return { text: "Yaxşı şans", detail: "Bir çox bank təsdiqləyə bilər", tone: "normal" };
+    if (score >= 45) return { text: "Orta şans", detail: "Şansınız var, bankdan asılıdır", tone: "attention" };
+    return { text: "Aşağı şans", detail: "Profili yaxşılaşdırmaq tövsiyə olunur", tone: "risk" };
   }
-  if (score >= 80) return { text: "BOKT-dan kredit ala bilərsiniz", icon: "🟢", tone: "good" };
-  if (score >= 40) return { text: "Bəzi BOKT-lar təklif edə bilər", icon: "🟡", tone: "attention" };
-  return { text: "BOKT-dan da çətin olacaq", icon: "🔴", tone: "high" };
+  if (score >= 80) return { text: "Yüksək şans", detail: "BOKT-dan kredit ala bilərsiniz", tone: "good" };
+  if (score >= 40) return { text: "Orta şans", detail: "Bəzi BOKT-lar təklif edə bilər", tone: "attention" };
+  return { text: "Aşağı şans", detail: "BOKT-dan da çətin olacaq", tone: "high" };
 }
 
 /** Сколько предупреждений показываем в инлайн-панели; остальные — в «Ətraflı analiz». */
@@ -38,6 +42,7 @@ export function presentBankResult(form: BankForm, calculationId: string): Public
     // 999 — внутренний признак «доход не введён»; наружу отдаём null
     bgn: r.bgn >= 999 ? null : r.bgn,
     bgnLimit: CONFIG.bgnHardStopPct,
+    bgnTone: r.bgn >= 999 ? "na" : bgnTone(r.bgn),
     yeniOdenis: r.yeniOdenis,
     estimatedRate: r.estimatedRate,
     manualRate,
@@ -64,6 +69,7 @@ export function presentBoktResult(form: BoktForm, calculationId: string): Public
     label: scoreLabel(r.score, "bokt"),
     bgn: null,
     bgnLimit: CONFIG.bgnHardStopPct,
+    bgnTone: "na",
     yeniOdenis: 0,
     estimatedRate: null,
     manualRate: null,

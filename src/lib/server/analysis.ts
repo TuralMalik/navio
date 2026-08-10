@@ -7,9 +7,9 @@ import type { BankForm } from "@/lib/scoring-types";
 import type {
   UnlockedAnalysis, LockedAnalysis, Tone, PublicLevel, Factor, Recommendation, BgnAnalysis, Simulation,
 } from "@/lib/score-contract";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, formatPercent, NOT_AVAILABLE } from "@/lib/utils";
 import {
-  calcBankScore, annuityPayment, incomeForScoring, subsistenceMin, CONFIG,
+  calcBankScore, annuityPayment, incomeForScoring, subsistenceMin, bgnTone, CONFIG,
 } from "./scoring";
 
 /* ─── Общий статус результата (5 статусов) ─── */
@@ -52,12 +52,21 @@ function baseParts(f: BankForm) {
   const income = incomeForScoring(f.gelirNovu, num(f.gelir));
   const hasIncome = income > 0;
 
+  /* Отсутствующее значение — «yoxdur», а не прочерк.
+     Тире посреди азербайджанского текста читается как «здесь что-то
+     сломалось», а не как «данных нет»; вдобавок скринридер его молча
+     пропускает, и строка звучит как «BGN» без ответа. */
   const metrics = [
-    { label: "BGN", value: blocked || !hasIncome ? "—" : `${r.bgn.toFixed(1)}%` },
-    { label: "Aylıq ödəniş", value: blocked || r.yeniOdenis <= 0 ? "—" : `${formatNumber(Math.round(r.yeniOdenis))} ₼` },
+    { label: "Borc yükü", value: blocked || !hasIncome ? NOT_AVAILABLE : formatPercent(r.bgn) },
+    {
+      label: "Aylıq ödəniş",
+      value: blocked || r.yeniOdenis <= 0 ? NOT_AVAILABLE : `${formatNumber(Math.round(r.yeniOdenis))} ₼`,
+    },
     {
       label: "Təxmini faiz",
-      value: blocked ? "—" : r.estimatedRate != null ? `${r.estimatedRate.toFixed(1)}%` : `${parseFloat(f.faiz) || 24}%`,
+      value: blocked
+        ? NOT_AVAILABLE
+        : formatPercent(r.estimatedRate ?? (parseFloat(f.faiz) || 24)),
     },
   ];
 
@@ -123,11 +132,7 @@ export function buildAnalysis(
   ];
 
   /* ─── 2. Borc yükü analizi ─── */
-  const bgnZone: Tone =
-    afterBgn > limit ? "high"
-    : afterBgn > CONFIG.bgnTierHighPct ? "risk"
-    : afterBgn > CONFIG.bgnTierMidPct ? "attention"
-    : "good";
+  const bgnZone: Tone = bgnTone(afterBgn);
 
   const bgn: BgnAnalysis | null = hasIncome
     ? {
