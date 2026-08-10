@@ -439,11 +439,28 @@ function KreditYoxlamaContent() {
                   </Field>
                 </div>
 
+                {/* Потолок возврата — это ФАКТ про заём, а не проблема во
+                    введённых данных, поэтому блок нейтральный, а не янтарный:
+                    янтарный читается как «вы что-то сделали не так».
+
+                    Ведёт одно число, и оно сразу привязано к сумме займа:
+                    цифра «20 000 ₼» сама по себе ни о чём не говорит, а
+                    «взяли 10 000, вернёте не больше 20 000» говорит.
+
+                    Заодно ушёл суффикс после числа. В JSX между <strong> и
+                    текстом вставлялся пробел, и на экране получалось
+                    «10 000 ₼ -dan» с дыркой перед окончанием. */}
                 {parseFloat(bokt.mebleg) > 0 && (
-                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-                    Mərkəzi Bank qaydasına görə geri qaytaracağınız məbləğ{" "}
-                    <strong className="tabular-nums">{azn(parseFloat(bokt.mebleg) * 2)}</strong> -dan çox ola bilməz.
-                  </p>
+                  <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <p className="text-[11px] font-semibold text-gray-500">Ən çox qaytaracağınız məbləğ</p>
+                    <p className="mt-0.5 text-xl font-extrabold tabular-nums text-ink">
+                      {azn(parseFloat(bokt.mebleg) * 2)}
+                    </p>
+                    <p className="mt-1.5 text-[11px] leading-snug text-gray-600">
+                      {azn(parseFloat(bokt.mebleg))} götürsəniz, faiz və komissiyalarla birlikdə ümumi borcunuz bu
+                      məbləği keçə bilməz. Mərkəzi Bankın qaydası: borcun artımı əsas məbləğin 100%-ni aşmır.
+                    </p>
+                  </div>
                 )}
               </Group>
             )}
