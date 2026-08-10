@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, desc, eq, gt, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { pageView, trackingEvent, user } from "@/db/schema";
+import { pageView, trackingEvent, user, scoringCalculation } from "@/db/schema";
 
 /* Агрегаты для админки. Все запросы исключают ботов: строки помечены, но в
    цифрах их быть не должно, иначе краулеры сдвигают всё. */
@@ -146,12 +146,12 @@ export async function getEventNames(days: Range) {
 export async function getEventBreakdown(days: Range, eventName: string, limit = 25) {
   return getDb()
     .select({
-      label: sql<string>`coalesce(${trackingEvent.props} ->> 'label', ${trackingEvent.props} ->> 'form', ${trackingEvent.props} ->> 'field', '(adsız)')`,
+      label: sql<string>`coalesce(${trackingEvent.props} ->> 'label', ${trackingEvent.props} ->> 'form', ${trackingEvent.props} ->> 'field', '(no label)')`,
       count: sql<number>`count(*)::int`,
     })
     .from(trackingEvent)
     .where(and(eq(trackingEvent.eventName, eventName), gt(trackingEvent.createdAt, since(days))))
-    .groupBy(sql`coalesce(${trackingEvent.props} ->> 'label', ${trackingEvent.props} ->> 'form', ${trackingEvent.props} ->> 'field', '(adsız)')`)
+    .groupBy(sql`coalesce(${trackingEvent.props} ->> 'label', ${trackingEvent.props} ->> 'form', ${trackingEvent.props} ->> 'field', '(no label)')`)
     .orderBy(desc(sql`count(*)`))
     .limit(limit);
 }
@@ -376,4 +376,203 @@ export async function getRawPageViews(opts: { days: Range; path?: string; limit?
     .orderBy(desc(pageView.createdAt))
     .limit(limit)
     .offset(offset);
+}
+
+/* ─── Пользователи ───
+   Список аккаунтов со сводкой активности. Провайдер берём из account:
+   строка с password — вход по почте, provider_id google — через Google. */
+export async function getUsers(limit = 200) {
+  const rows = await getDb().execute(sql`
+    select u.id, u.email, u.name, u.email_verified, u.created_at, u.image is not null as has_image,
+           (select string_agg(distinct a.provider_id, ',') from account a where a.user_id = u.id) as providers,
+           (select count(*)::int from scoring_calculation sc where sc.user_id = u.id) as calculations,
+           (select count(distinct pv.session_id)::int from page_view pv where pv.user_id = u.id) as sessions,
+           (select count(*)::int from page_view pv where pv.user_id = u.id) as views,
+           (select max(pv.created_at) from page_view pv where pv.user_id = u.id) as last_seen
+    from "user" u
+    order by u.created_at desc
+    limit ${limit}
+  `);
+  const list = (Array.isArray(rows) ? rows : (rows as { rows?: unknown[] }).rows) ?? [];
+  return list as {
+    id: string; email: string; name: string; email_verified: boolean; created_at: string;
+    has_image: boolean; providers: string | null; calculations: number; sessions: number;
+    views: number; last_seen: string | null;
+  }[];
+}
+
+export async function getUserDetail(id: string) {
+  const [row] = await getDb().select().from(user).where(eq(user.id, id)).limit(1);
+  if (!row) return null;
+
+  const [calculations, views, providers] = await Promise.all([
+    getDb()
+      .select({
+        id: scoringCalculation.id, createdAt: scoringCalculation.createdAt,
+        mode: scoringCalculation.mode, score: scoringCalculation.score,
+        bgn: scoringCalculation.bgn, blocked: scoringCalculation.blocked,
+      })
+      .from(scoringCalculation)
+      .where(eq(scoringCalculation.userId, id))
+      .orderBy(desc(scoringCalculation.createdAt))
+      .limit(50),
+    getDb()
+      .select({
+        createdAt: pageView.createdAt, path: pageView.path,
+        durationMs: pageView.durationMs, sessionId: pageView.sessionId,
+      })
+      .from(pageView)
+      .where(eq(pageView.userId, id))
+      .orderBy(desc(pageView.createdAt))
+      .limit(50),
+    getDb().execute(sql`select provider_id, created_at from account where user_id = ${id}`),
+  ]);
+
+  const provList = (Array.isArray(providers) ? providers : (providers as { rows?: unknown[] }).rows) ?? [];
+  return { user: row, calculations, views, providers: provList as { provider_id: string; created_at: string }[] };
+}
+
+/* ─── Скоринги ───
+   ВАЖНО: input содержит доход, долги, просрочки, возраст. Это самые
+   чувствительные данные в системе. Показываем их только в админке и только
+   потому, что калибровка модели по реальным данным — заявленная цель их
+   хранения (см. шапку src/lib/server/scoring.ts). Не выносить наружу. */
+export async function getScoringStats(days: Range) {
+  const from = since(days);
+  const [row] = await getDb()
+    .select({
+      total: sql<number>`count(*)::int`,
+      blocked: sql<number>`count(*) filter (where ${scoringCalculation.blocked})::int`,
+      withAccount: sql<number>`count(*) filter (where ${scoringCalculation.userId} is not null)::int`,
+      avgScore: sql<number>`coalesce(avg(nullif(${scoringCalculation.score}, 0)), 0)::int`,
+      avgBgn: sql<number>`coalesce(avg(${scoringCalculation.bgn}), 0)::int`,
+      bank: sql<number>`count(*) filter (where ${scoringCalculation.mode} = 'bank')::int`,
+      bokt: sql<number>`count(*) filter (where ${scoringCalculation.mode} = 'bokt')::int`,
+    })
+    .from(scoringCalculation)
+    .where(gt(scoringCalculation.createdAt, from));
+  return row ?? { total: 0, blocked: 0, withAccount: 0, avgScore: 0, avgBgn: 0, bank: 0, bokt: 0 };
+}
+
+/** Распределение по публичным тирам результата. */
+export async function getScoreDistribution(days: Range) {
+  const rows = await getDb().execute(sql`
+    select case
+             when blocked then 'Blocked'
+             when score >= 80 then '80-100 high'
+             when score >= 65 then '65-79 good'
+             when score >= 45 then '45-64 medium'
+             else '0-44 low'
+           end as bucket,
+           count(*)::int as n
+    from scoring_calculation
+    where created_at > ${since(days)}
+    group by 1
+    order by 1
+  `);
+  const list = (Array.isArray(rows) ? rows : (rows as { rows?: unknown[] }).rows) ?? [];
+  return list as { bucket: string; n: number }[];
+}
+
+/** Разбивка по полю ввода: тип кредита, тип дохода и т.п. */
+export async function getScoringBreakdown(days: Range, field: string) {
+  const rows = await getDb().execute(sql`
+    select coalesce(input ->> ${field}, '(none)') as key,
+           count(*)::int as n,
+           coalesce(avg(nullif(score, 0)), 0)::int as avg_score
+    from scoring_calculation
+    where created_at > ${since(days)}
+    group by 1
+    order by count(*) desc
+    limit 12
+  `);
+  const list = (Array.isArray(rows) ? rows : (rows as { rows?: unknown[] }).rows) ?? [];
+  return list as { key: string; n: number; avg_score: number }[];
+}
+
+export async function getScorings(opts: { days: Range; mode?: string; limit?: number; offset?: number }) {
+  const { days, mode, limit = 100, offset = 0 } = opts;
+  const filters = [gt(scoringCalculation.createdAt, since(days))];
+  if (mode) filters.push(eq(scoringCalculation.mode, mode));
+
+  return getDb()
+    .select({
+      id: scoringCalculation.id,
+      createdAt: scoringCalculation.createdAt,
+      mode: scoringCalculation.mode,
+      score: scoringCalculation.score,
+      bgn: scoringCalculation.bgn,
+      blocked: scoringCalculation.blocked,
+      input: scoringCalculation.input,
+      email: user.email,
+    })
+    .from(scoringCalculation)
+    .leftJoin(user, eq(scoringCalculation.userId, user.id))
+    .where(and(...filters))
+    .orderBy(desc(scoringCalculation.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getScoringDetail(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const [row] = await getDb()
+    .select({
+      id: scoringCalculation.id,
+      createdAt: scoringCalculation.createdAt,
+      mode: scoringCalculation.mode,
+      score: scoringCalculation.score,
+      bgn: scoringCalculation.bgn,
+      blocked: scoringCalculation.blocked,
+      input: scoringCalculation.input,
+      userId: scoringCalculation.userId,
+      email: user.email,
+    })
+    .from(scoringCalculation)
+    .leftJoin(user, eq(scoringCalculation.userId, user.id))
+    .where(eq(scoringCalculation.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/* ─── Сводная лента активности ───
+   Всё в одном хронологическом потоке: просмотры, события, расчёты,
+   регистрации. UNION ALL в базе, чтобы не тянуть четыре списка и не сшивать
+   их в памяти. */
+export async function getActivityFeed(days: Range, limit = 200, kinds?: string[]) {
+  const from = since(days);
+  const want = (k: string) => !kinds || kinds.length === 0 || kinds.includes(k);
+
+  const parts = [];
+  if (want("view")) parts.push(sql`
+    select 'view' as kind, pv.created_at, pv.path as title, null::text as detail,
+           pv.session_id, u.email, pv.duration_ms as num, null::text as ref
+    from page_view pv left join "user" u on u.id = pv.user_id
+    where pv.is_bot = false and pv.created_at > ${from}`);
+  if (want("event")) parts.push(sql`
+    select 'event' as kind, te.created_at, te.event_name as title, te.props::text as detail,
+           te.session_id, u.email, null::int as num, te.path as ref
+    from tracking_event te left join "user" u on u.id = te.user_id
+    where te.created_at > ${from}`);
+  if (want("scoring")) parts.push(sql`
+    select 'scoring' as kind, sc.created_at, sc.mode as title, (sc.input ->> 'kreditNovu') as detail,
+           null::text as session_id, u.email, sc.score as num, sc.id::text as ref
+    from scoring_calculation sc left join "user" u on u.id = sc.user_id
+    where sc.created_at > ${from}`);
+  if (want("signup")) parts.push(sql`
+    select 'signup' as kind, u.created_at, u.email as title, u.name as detail,
+           null::text as session_id, u.email, null::int as num, u.id::text as ref
+    from "user" u where u.created_at > ${from}`);
+
+  if (parts.length === 0) return [];
+
+  const unioned = sql.join(parts, sql` union all `);
+  const rows = await getDb().execute(sql`
+    select * from (${unioned}) t order by created_at desc limit ${limit}
+  `);
+  const list = (Array.isArray(rows) ? rows : (rows as { rows?: unknown[] }).rows) ?? [];
+  return list as {
+    kind: string; created_at: string; title: string | null; detail: string | null;
+    session_id: string | null; email: string | null; num: number | null; ref: string | null;
+  }[];
 }

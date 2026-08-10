@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, FileText, MousePointerClick, Users, Route, Radio,
+  LayoutDashboard, Activity, Calculator, FileText, MousePointerClick, Users, Route, Radio,
 } from "lucide-react";
 
 const ITEMS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/activity", label: "Activity", icon: Activity },
+  { href: "/admin/scorings", label: "Scorings", icon: Calculator },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/pages", label: "Pages", icon: FileText },
   { href: "/admin/events", label: "Events", icon: MousePointerClick },
-  { href: "/admin/sessions", label: "Sessions", icon: Route },
-  { href: "/admin/visitors", label: "Visitors", icon: Users },
+  { href: "/admin/sessions", label: "Sessions", icon: MousePointerClick },
+  { href: "/admin/visitors", label: "Visitors", icon: Route },
   { href: "/admin/raw", label: "Raw views", icon: Radio },
 ];
 
