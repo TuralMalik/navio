@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BookmarkCheck, History, Star, MailCheck, CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputCls } from "./AuthShell";
+import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputClasses } from "./AuthShell";
 
 const DEFAULT_NEXT = "/az";
 const MIN_PASSWORD = 8;
@@ -64,12 +64,12 @@ export function RegisterForm({ googleEnabled, emailEnabled }: { googleEnabled: b
   if (done) {
     return (
       <AuthShell crumb="Qeydiyyat" title="Hesabınız hazırdır" subtitle="Sizi nəticəyə yönləndiririk...">
-        <div className="flex items-start gap-2.5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
+        <div className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-800">
           {emailEnabled ? (
             <>
               <MailCheck size={17} className="shrink-0 mt-0.5 text-emerald-600" />
               <p>
-                <strong>{email}</strong> ünvanına təsdiq məktubu göndərdik. Təsdiq etmək məcburi deyil —
+                <strong>{email}</strong> ünvanına təsdiq məktubu göndərdik. Təsdiq etmək məcburi deyil,
                 hesabınızdan indi də istifadə edə bilərsiniz.
               </p>
             </>
@@ -85,7 +85,7 @@ export function RegisterForm({ googleEnabled, emailEnabled }: { googleEnabled: b
   }
 
   return (
-    <AuthShell crumb="Qeydiyyat" title="Qeydiyyatdan keçin" subtitle="Pulsuz hesab — ətraflı analiz və hesablama tarixçəsi üçün.">
+    <AuthShell crumb="Qeydiyyat" title="Qeydiyyatdan keçin" subtitle="Pulsuz hesab: ətraflı analiz və hesablama tarixçəsi üçün.">
       {googleEnabled && (
         <>
           <GoogleButton onClick={onGoogle} loading={googleLoading} label="Google ilə davam et" />
@@ -98,40 +98,40 @@ export function RegisterForm({ googleEnabled, emailEnabled }: { googleEnabled: b
 
         <Field label="Ad">
           <input type="text" required autoComplete="name" value={name}
-            onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Adınız" />
+            onChange={(e) => setName(e.target.value)} className={inputClasses()} placeholder="Adınız" />
         </Field>
 
         <Field label="E-poçt">
           <input type="email" required autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="ad@nümunə.az" />
+            onChange={(e) => setEmail(e.target.value)} className={inputClasses()} placeholder="ad@nümunə.az" />
         </Field>
 
         <Field label="Şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`}>
           <input type="password" required autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
+            onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
         </Field>
 
         <SubmitButton loading={loading}>Qeydiyyatdan keç</SubmitButton>
       </form>
 
-      <div className="mt-7 pt-6 border-t border-gray-100 space-y-2.5">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Hesabla əlçatan olur</p>
+      <div className="mt-7 space-y-2 border-t border-gray-200 pt-6">
+        <p className="mb-3 text-sm font-bold text-ink">Hesabla əlçatan olur</p>
         {[
           { icon: <BookmarkCheck size={16} />, label: "Ətraflı analiz və tövsiyələr" },
           { icon: <History size={16} />, label: "Hesablama tarixçəsi" },
           { icon: <Star size={16} />, label: "Nəticələri yadda saxlamaq" },
         ].map((f) => (
-          <div key={f.label} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-            <span className="text-blue-400">{f.icon}</span>
+          <div key={f.label} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+            <span className="text-gray-400" aria-hidden>{f.icon}</span>
             <span className="text-sm text-gray-600">{f.label}</span>
           </div>
         ))}
       </div>
 
-      <p className="text-sm text-center mt-6 text-gray-500">
+      <p className="mt-6 text-center text-sm text-gray-600">
         Artıq hesabınız var?{" "}
         <Link href={`/az/login${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}
-          className="font-semibold text-blue-600 hover:text-blue-800">
+          className="font-semibold text-brand-700 hover:text-brand-800">
           Daxil olun
         </Link>
       </p>

@@ -1,90 +1,82 @@
-import Link from "next/link";
-import { ChevronRight, CheckCircle2, XCircle } from "lucide-react";
+import { Check, X } from "lucide-react";
+import { Card, CardTitle } from "@/components/ui/Card";
+import { LinkButton } from "@/components/ui/Button";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+
+const does = [
+  "Kredit profilinin ilkin qiymətləndirilməsi",
+  "İstehlak krediti kalkulyatoru",
+  "İpoteka kalkulyatoru",
+  "Avtokredit kalkulyatoru",
+  "Erkən ödəniş hesablamaları",
+  "Sadə maliyyə izahları",
+  "Praktik tövsiyələr",
+];
+
+const doesNot = [
+  "Kredit vermirik",
+  "Bank qərarını əvəz etmirik",
+  "Təsdiqə zəmanət vermirik",
+  "Şəxsi sənəd (FIN, pasport) tələb etmirik",
+  "Bank adından çıxış etmirik",
+  "Kredit bürosu ilə bağlantımız yoxdur",
+  "Əldə etdiyiniz məlumatları satmırıq",
+];
+
+/* Два списка стоят рядом намеренно: «что мы делаем» без «чего мы не делаем»
+   на кредитном сайте читается как реклама. Иконки здесь несут смысл (плюс
+   и минус), поэтому они цветные, но подложек под ними нет. */
+function List({ items, kind }: { items: string[]; kind: "yes" | "no" }) {
+  const Icon = kind === "yes" ? Check : X;
+  const color = kind === "yes" ? "text-emerald-600" : "text-rose-600";
+  return (
+    <ul className="space-y-2.5">
+      {items.map((item) => (
+        <li key={item} className="flex items-start gap-2.5 text-sm leading-relaxed text-gray-700">
+          <Icon size={15} className={`mt-0.5 shrink-0 ${color}`} aria-hidden />
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function AboutPage() {
   return (
-    <main className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
-          <ChevronRight size={14} />
-          <span className="text-gray-600">Haqqımızda</span>
+    <main className="min-h-screen bg-gray-50 py-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Haqqımızda" />
+
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Navio nədir?</h1>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
+          Navio istifadəçilərə kredit ödənişlərini hesablamağa, kredit profilini ilkin qiymətləndirməyə və maliyyə
+          mövzularını sadə dildə anlamağa kömək edən məlumat platformasıdır.
+        </p>
+
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card>
+            <CardTitle className="mb-4">Nə edirik?</CardTitle>
+            <List items={does} kind="yes" />
+          </Card>
+
+          <Card>
+            <CardTitle className="mb-4">Nə etmirik?</CardTitle>
+            <List items={doesNot} kind="no" />
+          </Card>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Navio nədir?</h1>
-          <p className="text-gray-600 leading-relaxed text-base">
-            Navio istifadəçilərə kredit ödənişlərini hesablamağa, kredit profilini ilkin qiymətləndirməyə
-            və maliyyə mövzularını sadə dildə anlamağa kömək edən məlumat platformasıdır.
+        <Card className="mt-4">
+          <CardTitle className="mb-3">Niyə Navio?</CardTitle>
+          <p className="text-sm leading-relaxed text-gray-600">
+            Bir çox adam banka müraciət etməzdən əvvəl kredit şərtlərini, borc yükünü və faiz xərclərini düzgün
+            qiymətləndirmir. Navio məhz bu boşluğu doldurmaq üçün yaradılıb: sadə, şəffaf və sənədsiz platforma kimi.
           </p>
-        </div>
+        </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-emerald-500" />
-              Nə edirik?
-            </h2>
-            <ul className="space-y-3">
-              {[
-                "Kredit profilinin ilkin qiymətləndirilməsi",
-                "İstehlak krediti kalkulyatoru",
-                "İpoteka kalkulyatoru",
-                "Avtokredit kalkulyatoru",
-                "Erkən ödəniş hesablamaları",
-                "Sadə maliyyə izahları",
-                "Praktik tövsiyələr",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-gray-600">
-                  <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <XCircle size={20} className="text-red-400" />
-              Nə etmirik?
-            </h2>
-            <ul className="space-y-3">
-              {[
-                "Kredit vermirik",
-                "Bank qərarını əvəz etmirik",
-                "Təsdiqə zəmanət vermirik",
-                "Şəxsi sənəd (FIN, pasport) tələb etmirik",
-                "Bank adından çıxış etmirik",
-                "Kredit bürosu ilə bağlantımız yoxdur",
-                "Əldə etdiyiniz məlumatları satmırıq",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-gray-600">
-                  <XCircle size={15} className="text-red-300 shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="bg-blue-50 rounded-2xl border border-blue-100 p-6 mb-6">
-          <h2 className="font-bold text-gray-900 mb-3">Niyə Navio?</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Çoxu insanlar banka müraciət etməzdən əvvəl kredit şərtlərini, borc yüklərini və faiz
-            xərclərini düzgün qiymətləndirmir. Navio bu boşluğu doldurmaq üçün yaradılıb — sadə, şəffaf
-            və sənədsiz bir platforma kimi.
-          </p>
-        </div>
-
-        <div className="text-center">
-          <Link
-            href="/az/kredit-yoxlama"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-md"
-            style={{ background: "linear-gradient(135deg, #2447F0 0%, #1B36BE 100%)" }}
-          >
+        <div className="mt-8">
+          <LinkButton href="/az/kredit-yoxlama" size="lg">
             İlkin yoxlamaya başla
-            <ChevronRight size={16} />
-          </Link>
+          </LinkButton>
         </div>
       </div>
     </main>

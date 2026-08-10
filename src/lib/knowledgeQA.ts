@@ -8,9 +8,6 @@ export interface QAItem {
 export interface QACategory {
   slug: string;
   name: string;
-  emoji: string;
-  color: string;
-  soft: string;
   items: QAItem[];
 }
 
@@ -18,9 +15,6 @@ export const categories: QACategory[] = [
   {
     slug: "kredit-alma",
     name: "Kredit alma",
-    emoji: "💳",
-    color: "#2447F0",
-    soft: "#EBEFFE",
     items: [
       {
         id: "ne-qeder-kredit-dusur",
@@ -67,9 +61,6 @@ export const categories: QACategory[] = [
   {
     slug: "kredit-tarixcesi",
     name: "Kredit tarixçəsi",
-    emoji: "📈",
-    color: "#0BB07B",
-    soft: "#E7F7F1",
     items: [
       {
         id: "ne-vaxt-temizlenecek",
@@ -96,9 +87,6 @@ export const categories: QACategory[] = [
   {
     slug: "gecikme-mehkeme",
     name: "Gecikmə və məhkəmə",
-    emoji: "⚠️",
-    color: "#D97706",
-    soft: "#FEF3E2",
     items: [
       {
         id: "gecikmem-var-indi-ne-olacaq",
@@ -129,9 +117,6 @@ export const categories: QACategory[] = [
   {
     slug: "refinans",
     name: "Refinans",
-    emoji: "🔄",
-    color: "#7C3AED",
-    soft: "#F1EBFE",
     items: [
       {
         id: "refinans-nedir",
@@ -151,9 +136,6 @@ export const categories: QACategory[] = [
   {
     slug: "ipoteka",
     name: "İpoteka",
-    emoji: "🏠",
-    color: "#0E9F6E",
-    soft: "#E7F8F1",
     items: [
       {
         id: "ipoteka-ala-bilerem",
@@ -179,9 +161,6 @@ export const categories: QACategory[] = [
   {
     slug: "avtokredit",
     name: "Avtokredit",
-    emoji: "🚗",
-    color: "#DB2777",
-    soft: "#FCE7F3",
     items: [
       {
         id: "avtokredit-nece-isleyir",
@@ -201,9 +180,6 @@ export const categories: QACategory[] = [
   {
     slug: "faydali-meslehetler",
     name: "Faydalı məsləhətlər",
-    emoji: "💡",
-    color: "#EA580C",
-    soft: "#FFEDD5",
     items: [
       {
         id: "vaxtindan-evvel-baglamaq",
@@ -223,5 +199,5 @@ export const categories: QACategory[] = [
 ];
 
 export const allQuestions = categories.flatMap((c) =>
-  c.items.map((i) => ({ ...i, category: c.name, categorySlug: c.slug, emoji: c.emoji, color: c.color, soft: c.soft })),
+  c.items.map((i) => ({ ...i, category: c.name, categorySlug: c.slug })),
 );

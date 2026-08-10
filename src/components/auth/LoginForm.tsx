@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputCls } from "./AuthShell";
+import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputClasses } from "./AuthShell";
 
 const DEFAULT_NEXT = "/az";
 
@@ -68,7 +68,7 @@ export function LoginForm({ googleEnabled, emailEnabled }: { googleEnabled: bool
   return (
     <AuthShell crumb="Giriş" title="Daxil olun" subtitle="Hesabınıza daxil olun və ətraflı analizə çıxış əldə edin.">
       {resetSent ? (
-        <div className="flex items-start gap-2.5 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800">
+        <div className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-800">
           <CheckCircle2 size={17} className="shrink-0 mt-0.5 text-emerald-600" />
           <p>Əgər bu e-poçt üzrə hesab varsa, şifrə bərpası üçün keçid göndərildi. Poçtunuzu yoxlayın.</p>
         </div>
@@ -86,19 +86,19 @@ export function LoginForm({ googleEnabled, emailEnabled }: { googleEnabled: bool
 
             <Field label="E-poçt">
               <input type="email" required autoComplete="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="ad@nümunə.az" />
+                onChange={(e) => setEmail(e.target.value)} className={inputClasses()} placeholder="ad@nümunə.az" />
             </Field>
 
             <Field label="Şifrə">
               <input type="password" required autoComplete="current-password" value={password}
-                onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
+                onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
             </Field>
 
             {/* Пока почта не подключена, восстановление пароля недоступно — не показываем ссылку,
                 которая обещала бы письмо, которое никогда не придёт. */}
             {emailEnabled && (
               <div className="flex justify-end">
-                <button type="button" onClick={onReset} className="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                <button type="button" onClick={onReset} className="text-xs font-semibold text-brand-700 hover:text-brand-800">
                   Şifrəni unutmusunuz?
                 </button>
               </div>
@@ -107,10 +107,10 @@ export function LoginForm({ googleEnabled, emailEnabled }: { googleEnabled: bool
             <SubmitButton loading={loading}>Daxil ol</SubmitButton>
           </form>
 
-          <p className="text-sm text-center mt-6 text-gray-500">
+          <p className="mt-6 text-center text-sm text-gray-600">
             Hesabınız yoxdur?{" "}
             <Link href={`/az/register${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}
-              className="font-semibold text-blue-600 hover:text-blue-800">
+              className="font-semibold text-brand-700 hover:text-brand-800">
               Qeydiyyatdan keçin
             </Link>
           </p>

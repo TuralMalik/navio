@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, inputCls } from "@/components/auth/AuthShell";
+import { AuthShell, Field, SubmitButton, FormError, inputClasses } from "@/components/auth/AuthShell";
 
 const MIN_PASSWORD = 8;
 
@@ -75,7 +75,7 @@ function ResetContent() {
         <FormError message={error} />
         <Field label="Yeni şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`}>
           <input type="password" required autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
+            onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
         </Field>
         <SubmitButton loading={loading}>Şifrəni dəyiş</SubmitButton>
       </form>

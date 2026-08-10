@@ -1,59 +1,99 @@
 import Link from "next/link";
-import { ChevronRight, ArrowRight, Banknote, House, Car } from "lucide-react";
+import { ArrowRight, Banknote, House, Car } from "lucide-react";
+import { calcAnnuityPayment } from "@/lib/calculators/annuity";
+import { formatNumber, formatPercent } from "@/lib/utils";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
+/* Раньше здесь были три одинаковые карточки с иконкой в градиентном квадрате
+   (синий, изумрудный и фиолетовый), которые ещё и подпрыгивали с поворотом
+   при наведении. Это ровно тот набор, по которому страница опознаётся как
+   сгенерированная, и он ничего не сообщал о самих калькуляторах.
+
+   Вместо украшений — реальный пример расчёта для каждого: видно, о каких
+   суммах и сроках вообще идёт речь. Числа считает та же функция, что и сами
+   калькуляторы, поэтому пример не может разойтись с продуктом. */
 const calculators = [
   {
-    icon: <Banknote size={24} className="text-white" />,
-    gradient: "from-blue-500 to-blue-700",
+    icon: <Banknote size={20} />,
     title: "İstehlak krediti",
-    desc: "Nağd pul ehtiyaclarınız üçün kredit imkanlarını hesablayın.",
+    desc: "Nağd pul ehtiyaclarınız üçün aylıq ödənişi və faiz xərcini hesablayın.",
     href: "/az/calculators/consumer-loan",
+    amount: 20000,
+    months: 36,
+    rate: 18,
   },
   {
-    icon: <House size={24} className="text-white" />,
-    gradient: "from-emerald-500 to-teal-600",
+    icon: <House size={20} />,
     title: "İpoteka krediti",
-    desc: "Ev almaq üçün ipoteka şərtlərini hesablayın.",
+    desc: "İlkin ödəniş və müddətə görə ev kreditinin şərtlərini hesablayın.",
     href: "/az/calculators/mortgage",
+    amount: 120000,
+    months: 240,
+    rate: 12,
   },
   {
-    icon: <Car size={24} className="text-white" />,
-    gradient: "from-purple-500 to-indigo-600",
+    icon: <Car size={20} />,
     title: "Avtokredit",
-    desc: "Avtomobil almaq üçün kredit şərtlərini hesablayın.",
+    desc: "Avtomobilin dəyəri və ilkin ödənişə görə kredit şərtlərini hesablayın.",
     href: "/az/calculators/auto-loan",
+    amount: 24000,
+    months: 60,
+    rate: 15,
   },
 ];
 
 export default function CalculatorsPage() {
   return (
-    <main className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Link href="/az" className="hover:text-blue-600">Ana səhifə</Link>
-            <ChevronRight size={14} />
-            <span className="text-gray-600">Kredit kalkulyatoru</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Kredit kalkulyatorları</h1>
-          <p className="text-gray-500 mt-1 max-w-xl text-sm">
-            İstehlak krediti, ipoteka və avtokredit üçün aylıq ödənişinizi, faiz xərclərini hesablayın.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {calculators.map((c) => (
-            <Link key={c.href} href={c.href} className="group bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col items-center text-center">
-              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center mb-5 shadow-md group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300`}>
-                {c.icon}
-              </div>
-              <h2 className="font-bold text-gray-900 mb-2">{c.title}</h2>
-              <p className="text-sm text-gray-500 leading-relaxed mb-5">{c.desc}</p>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all duration-200 mt-auto">
-                Hesabla <ArrowRight size={14} />
-              </span>
-            </Link>
-          ))}
-        </div>
+    <main className="min-h-screen bg-gray-50 py-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
+        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Kredit kalkulyatoru" />
+
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Kredit kalkulyatorları</h1>
+        <p className="mt-2 max-w-xl text-base text-gray-600">
+          İstehlak krediti, ipoteka və avtokredit üçün aylıq ödənişinizi və faiz xərclərinizi hesablayın.
+        </p>
+
+        <ul className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          {calculators.map((c) => {
+            const payment = calcAnnuityPayment(c.amount, c.rate, c.months);
+            const term = c.months >= 24 ? `${c.months / 12} il` : `${c.months} ay`;
+            return (
+              <li key={c.href} className="border-b border-gray-200 last:border-0">
+                <Link
+                  href={c.href}
+                  className="flex flex-wrap items-center gap-x-5 gap-y-3 p-5 transition-colors hover:bg-gray-50"
+                >
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-gray-200 text-gray-500">
+                    {c.icon}
+                  </span>
+
+                  <div className="min-w-[200px] flex-1">
+                    <h2 className="text-base font-bold text-ink">{c.title}</h2>
+                    <p className="mt-0.5 text-[13px] leading-relaxed text-gray-600">{c.desc}</p>
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5">
+                    <p className="text-[11px] text-gray-500 tabular-nums">
+                      {formatNumber(c.amount)} ₼, {term}, {formatPercent(c.rate, 0)}
+                    </p>
+                    <p className="mt-0.5 text-sm font-extrabold tabular-nums text-ink">
+                      {formatNumber(Math.round(payment))} ₼
+                      <span className="text-xs font-semibold text-gray-500"> / ay</span>
+                    </p>
+                  </div>
+
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-brand-700">
+                    Hesabla <ArrowRight size={14} aria-hidden />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-4 text-xs text-gray-500">
+          Nümunələr göstərilən faizlə hesablanıb. Real faiz və şərtlər bankdan asılı olaraq dəyişir.
+        </p>
       </div>
     </main>
   );
