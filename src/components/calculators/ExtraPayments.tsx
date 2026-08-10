@@ -4,7 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import type { ExtraPaymentPlan } from "@/lib/calculators/amortisation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, inputClasses } from "@/components/ui/Field";
+import { Field, SelectField, inputClasses } from "@/components/ui/Field";
 
 /* Блок «дополнительные платежи» был скопирован в три калькулятора слово в
    слово. Копии успели разойтись, а правку приходилось вносить трижды.
@@ -224,23 +224,18 @@ export function ExtraPayments({
           </div>
 
           <div className="rounded-xl border border-gray-200 p-4">
-            <Field
+            <SelectField
               label="Erkən ödəniş kompensasiyası"
-              htmlFor="penalty"
+              id="penalty"
               hint="Bankın erkən bağlamaya görə tutduğu faiz. Müqavilədə göstərilir."
               className="max-w-xs"
+              value={value.penaltyPct}
+              onChange={(e) => set({ penaltyPct: Number(e.target.value) })}
             >
-              <select
-                id="penalty"
-                className={inputClasses()}
-                value={value.penaltyPct}
-                onChange={(e) => set({ penaltyPct: Number(e.target.value) })}
-              >
-                {PENALTIES.map((p) => (
-                  <option key={p} value={p}>{p}%</option>
-                ))}
-              </select>
-            </Field>
+              {PENALTIES.map((p) => (
+                <option key={p} value={p}>{p}%</option>
+              ))}
+            </SelectField>
           </div>
 
           <fieldset className="rounded-xl border border-gray-200 p-4">

@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronDown } from "lucide-react";
 
 /* Поле ввода с полным набором состояний.
 
@@ -128,6 +128,55 @@ export function NumberField({
           {...rest}
         />
         {unit && <span className="shrink-0 pr-3 text-xs text-gray-400">{unit}</span>}
+      </div>
+      {hint && <p className="mt-1 text-[11px] leading-snug text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+/* Выпадающий список в той же оболочке, что и NumberField.
+
+   До этого списки собирались из Field + inputClasses с дописанным «py-2», и
+   рядом с числовым полем получались два разных поля: контрол 43px против 36,
+   подпись 14px против 11, итоговая высота ячейки 69 против 38. Внутри одной
+   сетки это выглядело как случайность.
+
+   Отдельная причина, по которой правка «на месте» не работала: в Tailwind
+   конфликтующие классы разрешаются порядком в CSS, а не порядком в строке,
+   поэтому дописанный py-2 молча проигрывал py-2.5 из inputClasses. Общая
+   оболочка убирает саму возможность такого расхождения. */
+export function SelectField({
+  label,
+  hint,
+  id,
+  className = "",
+  children,
+  ...rest
+}: {
+  label: string;
+  hint?: string;
+  className?: string;
+} & Omit<ComponentProps<"select">, "className" | "id"> & { id?: string }) {
+  const auto = useId();
+  const selectId = id ?? auto;
+
+  return (
+    <div className={className}>
+      <label htmlFor={selectId} className="mb-1 block text-[11px] font-semibold text-gray-500">
+        {label}
+      </label>
+      <div className="relative flex items-center rounded-lg border border-gray-300 bg-white transition-colors focus-within:border-brand-500 hover:border-gray-400">
+        <select
+          id={selectId}
+          /* appearance-none + своя стрелка: системный треугольник у каждого
+             браузера свой по размеру и отступу, и высота поля из-за него
+             разъезжается между Safari и Chrome. */
+          className="w-full appearance-none bg-transparent px-3 py-2 pr-8 text-sm font-semibold text-ink outline-none"
+          {...rest}
+        >
+          {children}
+        </select>
+        <ChevronDown size={15} aria-hidden className="pointer-events-none absolute right-2.5 text-gray-400" />
       </div>
       {hint && <p className="mt-1 text-[11px] leading-snug text-gray-500">{hint}</p>}
     </div>

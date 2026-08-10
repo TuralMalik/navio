@@ -7,7 +7,7 @@ import { track } from "@vercel/analytics";
 import { formatNumber, formatPercent } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { NumberField, Field, inputClasses } from "@/components/ui/Field";
+import { NumberField, SelectField } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { Segmented } from "@/components/ui/Segmented";
 import { ScoreDial } from "@/components/score/ScoreDial";
@@ -235,22 +235,22 @@ function KreditYoxlamaContent() {
               <>
                 <Group title="Kredit">
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Növ" htmlFor="kredit-novu" className="col-span-2">
-                      <select
-                        id="kredit-novu"
-                        value={bank.kreditNovu}
-                        onChange={(e) => {
+                    <SelectField
+                      label="Kredit növü"
+                      id="kredit-novu"
+                      className="col-span-2"
+                      value={bank.kreditNovu}
+                      onChange={(e) => {
                           const nov = e.target.value as KreditNovu;
                           const m = FORM_RANGES.mebleg(nov);
                           const d = FORM_RANGES.muddet(nov);
                           setB({
                             kreditNovu: nov,
                             mebleg: String(clampToRange(parseFloat(bank.mebleg) || m.min, m.min, m.max)),
-                            muddət: String(clampToRange(parseInt(bank.muddət) || d.min, d.min, d.max)),
-                          });
-                        }}
-                        className={inputClasses(null, "py-2 text-sm font-semibold")}
-                      >
+                          muddət: String(clampToRange(parseInt(bank.muddət) || d.min, d.min, d.max)),
+                        });
+                      }}
+                    >
                         <option value="naqd">Nağd kredit</option>
                         <option value="kart">Kredit kartı</option>
                         <option value="ipoteka" disabled={bank.gelirNovu === "qeyri_resmi"}>
@@ -259,8 +259,7 @@ function KreditYoxlamaContent() {
                         <option value="avto" disabled={bank.gelirNovu === "qeyri_resmi"}>
                           Avtomobil krediti{bank.gelirNovu === "qeyri_resmi" ? " (rəsmi gəlir lazımdır)" : ""}
                         </option>
-                      </select>
-                    </Field>
+                    </SelectField>
 
                     <NumberField
                       label="Məbləğ"
@@ -296,11 +295,11 @@ function KreditYoxlamaContent() {
                     расчёта вообще, поэтому он выше обязательств и истории. */}
                 <Group title="Gəlir">
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label="Növ" htmlFor="gelir-novu">
-                      <select
-                        id="gelir-novu"
-                        value={bank.gelirNovu}
-                        onChange={(e) => {
+                    <SelectField
+                      label="Gəlir növü"
+                      id="gelir-novu"
+                      value={bank.gelirNovu}
+                      onChange={(e) => {
                           const nov = e.target.value as GelirNovu;
                           setB({
                             gelirNovu: nov,
@@ -308,17 +307,15 @@ function KreditYoxlamaContent() {
                               nov === "qeyri_resmi" && (bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto")
                                 ? "naqd"
                                 : bank.kreditNovu,
-                          });
-                        }}
-                        className={inputClasses(null, "py-2 text-sm font-semibold")}
-                      >
+                        });
+                      }}
+                    >
                         <option value="resmi">Rəsmi</option>
                         <option value="qeyri_resmi">Qeyri-rəsmi</option>
                         <option value="teqaud">Təqaüd</option>
                         <option value="fs">VÖEN / sahibkar</option>
                         <option value="xarici">Xaricdə qazanc</option>
-                      </select>
-                    </Field>
+                    </SelectField>
 
                     <NumberField
                       label="Aylıq gəlir (net)"
@@ -331,19 +328,18 @@ function KreditYoxlamaContent() {
                     />
 
                     {bank.gelirNovu !== "teqaud" && bank.gelirNovu !== "qeyri_resmi" && (
-                      <Field label="Cari iş yerində staj" htmlFor="staj" className="col-span-2">
-                        <select
-                          id="staj"
-                          value={bank.isStaji}
-                          onChange={(e) => setB({ isStaji: e.target.value as IsStaji })}
-                          className={inputClasses(null, "py-2 text-sm font-semibold")}
-                        >
-                          <option value="0_2">0 - 2 ay</option>
-                          <option value="3_5">3 - 5 ay</option>
-                          <option value="6_11">6 - 11 ay</option>
-                          <option value="12_plus">12 ay və daha çox</option>
-                        </select>
-                      </Field>
+                      <SelectField
+                        label="Cari iş yerində staj"
+                        id="staj"
+                        className="col-span-2"
+                        value={bank.isStaji}
+                        onChange={(e) => setB({ isStaji: e.target.value as IsStaji })}
+                      >
+                        <option value="0_2">0 - 2 ay</option>
+                        <option value="3_5">3 - 5 ay</option>
+                        <option value="6_11">6 - 11 ay</option>
+                        <option value="12_plus">12 ay və daha çox</option>
+                      </SelectField>
                     )}
 
                     <NumberField
@@ -417,17 +413,16 @@ function KreditYoxlamaContent() {
                     placeholder="400"
                     autoFocus
                   />
-                  <Field label="Kredit tarixçəsi" htmlFor="bokt-tarixce" className="col-span-2">
-                    <select
-                      id="bokt-tarixce"
-                      value={bokt.kreditTarixce}
-                      onChange={(e) => setBokt((n) => ({ ...n, kreditTarixce: e.target.value as "yox" | "gecikme" }))}
-                      className={inputClasses(null, "py-2 text-sm font-semibold")}
-                    >
-                      <option value="yox">Gecikmə yoxdur</option>
-                      <option value="gecikme">Gecikmələr var</option>
-                    </select>
-                  </Field>
+                  <SelectField
+                    label="Kredit tarixçəsi"
+                    id="bokt-tarixce"
+                    className="col-span-2"
+                    value={bokt.kreditTarixce}
+                    onChange={(e) => setBokt((n) => ({ ...n, kreditTarixce: e.target.value as "yox" | "gecikme" }))}
+                  >
+                    <option value="yox">Gecikmə yoxdur</option>
+                    <option value="gecikme">Gecikmələr var</option>
+                  </SelectField>
                 </div>
 
                 {/* Потолок возврата — это ФАКТ про заём, а не проблема во
