@@ -16,15 +16,26 @@ import { installAutoCapture, resetAutoCaptureBudget } from "@/lib/tracking/auto-
    и числом запросов: при уходе со страницы остаток добирает pagehide. */
 const HEARTBEAT_MS = 15_000;
 
+/* Разделы, которые не трекаем.
+   Админка — в первую очередь: она читает эту же статистику, и собственные
+   переходы по дашборду попадали в цифры, которые по нему же и смотрят.
+   Просмотр отчёта не должен менять отчёт. */
+const IGNORED_PREFIXES = ["/admin"];
+
+function isIgnored(pathname: string): boolean {
+  return IGNORED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 function TrackingInner() {
   const pathname = usePathname();
   // Подписка на search params нужна, чтобы UTM-метки попали в первый просмотр
   useSearchParams();
   const previousPath = useRef<string | null>(null);
+  const ignored = !pathname || isIgnored(pathname);
 
   // Просмотр на каждую смену пути
   useEffect(() => {
-    if (!pathname) return;
+    if (!pathname || isIgnored(pathname)) return;
     const path = canonicalisePath(pathname);
     resetAutoCaptureBudget();
     trackPageview(path, previousPath.current);
@@ -33,6 +44,7 @@ function TrackingInner() {
 
   // Хартбит + видимость + финальный слив
   useEffect(() => {
+    if (ignored) return;
     const timer = setInterval(() => trackHeartbeat(), HEARTBEAT_MS);
 
     const onVisibility = () => setVisibilityActive(document.visibilityState === "visible");
@@ -52,7 +64,7 @@ function TrackingInner() {
       // Размонтирование провайдера — тоже конец визита
       trackPageEnd();
     };
-  }, []);
+  }, [ignored]);
 
   return null;
 }
