@@ -15,3 +15,14 @@ export function formatCurrency(amount: number): string {
   const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
   return (neg ? "-" : "") + grouped + "," + frac + NBSP + "₼";
 }
+
+// Проценты по-азербайджански пишутся с запятой как десятичным разделителем.
+// Знак процента примыкает вплотную — так его набирают в местных банках.
+export function formatPercent(value: number, digits = 1): string {
+  return value.toFixed(digits).replace(".", ",") + "%";
+}
+
+// Отсутствующее значение НИКОГДА не выводится как «—» или «N/A»:
+// пользователь читает страницу по-азербайджански, и прочерк он читает как
+// «сломалось», а не как «нет данных».
+export const NOT_AVAILABLE = "yoxdur";

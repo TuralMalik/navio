@@ -1,157 +1,173 @@
 @import "tailwindcss";
 
-/* Бренд-палитра Navio: переопределяем tailwind blue на фирменный синий,
-   чтобы все страницы использовали один акцентный цвет */
+/* ═══════════════════════════════════════════════════════════════════════
+   Основа дизайн-системы Navio.
+
+   Правила целиком лежат в AGENTS.md, раздел «Navio design rules». Здесь
+   только то, что должно быть ОДНО на всё приложение: шрифт, палитра,
+   фокус, нажатие кнопки, уважение к prefers-reduced-motion. Всё это
+   намеренно глобальное — чтобы компоненты не переопределяли его каждый
+   по-своему и не расходились.
+   ═══════════════════════════════════════════════════════════════════════ */
+
 @theme {
+  /* Plus Jakarta Sans подключается в app/layout.tsx через next/font с
+     latin+latin-ext. Причины выбора и проверка азербайджанских букв —
+     в комментарии там же. Запасные шрифты нужны на время загрузки. */
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  /* ─── Фирменный синий ───
+     Один акцент, только для главных действий и активных состояний.
+     Не для декора и не как подложка под иконки. */
+  --color-brand-50: #eef1fe;
+  --color-brand-100: #dde4fd;
+  --color-brand-200: #c2cefc;
+  --color-brand-300: #9bb0fa;
+  --color-brand-400: #6e88f7;
+  --color-brand-500: #4a66f3;
+  --color-brand-600: #2447f0;
+  --color-brand-700: #1b36be;
+  --color-brand-800: #172f9b;
+  --color-brand-900: #162b7a;
+  --color-brand-950: #0f1c4d;
+
+  /* Тёмно-синий для заголовков: чернее фирменного, но не нейтрально-серый */
+  --color-ink: #0f1f3d;
+
+  /* Тень ровно одна и почти незаметная: высокий блюр, отрицательный spread.
+     Если тень бросается в глаза — она неправильная. */
+  --shadow-card: 0 1px 2px rgba(15, 31, 61, 0.04);
+  --shadow-float: 0 24px 64px -24px rgba(15, 31, 61, 0.25);
+}
+
+/* Переопределяем tailwind blue на фирменный, пока страницы переезжают на
+   brand-*. Убрать, когда в src/app не останется blue-. */
+@theme {
+  --color-blue-50: #eef1fe;
+  --color-blue-100: #dde4fd;
   --color-blue-500: #4a66f3;
-  --color-blue-600: #2447F0;
-  --color-blue-700: #1B36BE;
-  --color-blue-800: #12306B;
-  --color-blue-900: #0A1F44;
+  --color-blue-600: #2447f0;
+  --color-blue-700: #1b36be;
+  --color-blue-800: #172f9b;
+  --color-blue-900: #162b7a;
 }
 
-:root {
-  --background: #f9fafb;
-  --foreground: #0f1f3d;
+@layer base {
+  :root {
+    --background: #f9fafb;
+    --foreground: #0f1f3d;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  /* Цифры не должны «дёргаться» при изменении: скор считается на глазах у
+     пользователя, и пляшущие разряды читаются как поломка. Ширина цифр
+     фиксируется здесь один раз, а не классом на каждом числе. */
+  :where(input, output, table, time, [data-numeric]) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── Фокус ───
+     Видимый только с клавиатуры. Обводка снаружи элемента, чтобы не
+     сжимать содержимое и не ломать вёрстку в плотных таблицах. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ─── Нажатие ───
+     Standalone-свойство scale, а НЕ transform: у позиционированных кнопок
+     transform съел бы собственный translate и кнопка прыгнула бы.
+     Глобально, чтобы компоненты это не дублировали каждый по-своему. */
+  :where(button, [role="button"], .btn):not(:disabled):not([aria-disabled="true"]) {
+    transition: scale 150ms ease-out, background-color 150ms ease-out,
+      border-color 150ms ease-out, color 150ms ease-out;
+  }
+  :where(button, [role="button"], .btn):not(:disabled):not([aria-disabled="true"]):active {
+    scale: 0.97;
+  }
+
+  /* Отключённое состояние выглядит одинаково у любого элемента */
+  :where(button, [role="button"], .btn):disabled,
+  :where(button, [role="button"], .btn)[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  ::selection {
+    background: var(--color-brand-100);
+    color: var(--color-brand-900);
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer utilities {
+  /* ─── Появление при прокрутке ───
+     Компонент Reveal вешает .nv-in, когда блок попал во вьюпорт.
+     Появляемся из scale(.98) и небольшого сдвига, никогда из нуля: элемент,
+     вырастающий из точки, читается как всплывающая реклама. */
+  .nv-reveal {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    transition: opacity 240ms ease-out, transform 240ms ease-out;
+  }
+  .nv-reveal.nv-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .nv-stagger > * {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 240ms ease-out, transform 240ms ease-out;
+  }
+  .nv-stagger.nv-in > * {
+    opacity: 1;
+    transform: none;
+  }
+  .nv-stagger.nv-in > *:nth-child(2) {
+    transition-delay: 60ms;
+  }
+  .nv-stagger.nv-in > *:nth-child(3) {
+    transition-delay: 120ms;
+  }
+  .nv-stagger.nv-in > *:nth-child(4) {
+    transition-delay: 180ms;
+  }
+
+  /* Спиннер внутри кнопки: подпись остаётся на месте, кнопка не меняет размер */
+  .nv-spin {
+    animation: nvSpin 700ms linear infinite;
+  }
+  @keyframes nvSpin {
+    to {
+      rotate: 360deg;
+    }
+  }
 }
 
-* {
-  box-sizing: border-box;
-}
-
-/* Неоновая «зарядка» линии шагов — свет постепенно наполняет линию слева направо */
-.step-charge-track {
-  overflow: hidden;
-}
-.step-charge {
-  width: 0%;
-  height: 100%;
-  border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    rgba(36, 71, 240, 0.55) 0%,
-    #3a5cff 70%,
-    #8fb0ff 100%
-  );
-  box-shadow: 0 0 8px rgba(36, 71, 240, 0.85), 0 0 16px rgba(36, 71, 240, 0.5);
-  animation: stepCharge 5s ease-in-out infinite;
-}
-@keyframes stepCharge {
-  0%   { width: 0%;   opacity: 0.25; }
-  55%  { width: 100%; opacity: 1; }
-  85%  { width: 100%; opacity: 1; }
-  100% { width: 100%; opacity: 0; }
-}
-
-/* Иконки шагов загораются по очереди, когда свет доходит до них */
-.step-icon {
-  animation: stepLight 5s ease-in-out infinite;
-}
-@keyframes stepLight {
-  0%, 100% { box-shadow: 0 0 0 10px #F4F6FB, 0 0 0 0 transparent; transform: scale(1); }
-  9%       { box-shadow: 0 0 0 10px #F4F6FB, 0 0 24px 5px var(--glow); transform: scale(1.09); }
-  26%      { box-shadow: 0 0 0 10px #F4F6FB, 0 0 0 0 transparent; transform: scale(1); }
-}
+/* ─── prefers-reduced-motion ───
+   Одно правило на всё приложение. Новая анимация автоматически попадает
+   под него и не требует собственного медиазапроса. */
 @media (prefers-reduced-motion: reduce) {
-  .step-charge { width: 100%; opacity: 1; animation: none; }
-  .step-icon { animation: none; }
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Home service-card mini-scenes (decorative, CSS-only, ~3.5–4s loops)
-   Base state = final/visible; keyframes add the intro/outro.
-   Compositor-friendly (opacity/transform) → no layout shift.
-   ───────────────────────────────────────────────────────────── */
-
-/* 1 · Kredit profili */
-.nv-cc-arc { stroke-dashoffset: 45.8; animation: nvCcArc 3.5s ease-in-out infinite; }
-@keyframes nvCcArc { 0% { stroke-dashoffset: 163.4; } 26%, 88% { stroke-dashoffset: 45.8; } 100% { stroke-dashoffset: 163.4; } }
-.nv-cc-num { opacity: 0; animation: nvCcNum 3.5s ease-in-out infinite; }
-@keyframes nvCcNum { 0% { opacity: 0; transform: scale(.7); } 24% { opacity: 1; transform: scale(1); } 90% { opacity: 1; } 100% { opacity: 0; } }
-.nv-fade-up { opacity: 0; animation: nvFadeUp 3.5s ease-in-out infinite; }
-@keyframes nvFadeUp { 0%, 18% { opacity: 0; transform: translateY(5px); } 34%, 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; } }
-.nv-cc-row { opacity: 0; animation: nvCcRow 3.5s ease-in-out infinite; }
-@keyframes nvCcRow { 0% { opacity: 0; transform: translateX(-5px); } 22% { opacity: 1; transform: translateX(0); } 92% { opacity: 1; } 100% { opacity: 0; } }
-
-/* 2 · Kalkulyator */
-.nv-calc-optA { animation: nvHiA 4s ease-in-out infinite; }
-.nv-calc-optB { animation: nvHiB 4s ease-in-out infinite; }
-@keyframes nvHiA { 0%, 42% { border-color: #2447F0; background: #EBEFFE; } 52%, 100% { border-color: #E3E8F1; background: #fff; } }
-@keyframes nvHiB { 0%, 42% { border-color: #E3E8F1; background: #fff; } 52%, 100% { border-color: #2447F0; background: #EBEFFE; } }
-.nv-calc-dot { left: 78%; animation: nvSlide 4s ease-in-out infinite; }
-@keyframes nvSlide { 0%, 100% { left: 12%; } 50% { left: 78%; } }
-.nv-val { opacity: 0; animation: nvVal 4s linear infinite; }
-@keyframes nvVal { 0% { opacity: 0; } 4% { opacity: 1; } 28% { opacity: 1; } 33% { opacity: 0; } 100% { opacity: 0; } }
-.nv-calc-refresh { animation: nvPulse 2s ease-in-out infinite; }
-@keyframes nvPulse { 0%, 100% { opacity: .55; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.05); } }
-
-/* 3 · Maliyyə köməkçisi */
-.nv-q { opacity: 0; animation: nvQ 4s ease-in-out infinite; }
-@keyframes nvQ { 0% { opacity: 0; transform: translateY(6px); } 12%, 100% { opacity: 1; transform: translateY(0); } }
-.nv-typing { opacity: 0; animation: nvTyping 4s ease-in-out infinite; }
-@keyframes nvTyping { 0%, 15% { opacity: 0; } 20%, 40% { opacity: 1; } 46%, 100% { opacity: 0; } }
-.nv-a { opacity: 0; animation: nvA 4s ease-in-out infinite; }
-@keyframes nvA { 0%, 42% { opacity: 0; transform: translateY(6px); } 56%, 100% { opacity: 1; transform: translateY(0); } }
-.nv-spark { opacity: 0; animation: nvSpark 4s ease-in-out infinite; }
-@keyframes nvSpark { 0%, 64% { opacity: 0; transform: scale(.5); } 80%, 100% { opacity: 1; transform: scale(1); } }
-.nv-dot1 { animation: nvBounce 1s ease-in-out infinite; }
-.nv-dot2 { animation: nvBounce 1s ease-in-out .15s infinite; }
-.nv-dot3 { animation: nvBounce 1s ease-in-out .3s infinite; }
-@keyframes nvBounce { 0%, 100% { transform: translateY(0); opacity: .4; } 50% { transform: translateY(-3px); opacity: 1; } }
-
-/* Reduced motion: freeze every mini-scene at a readable static state */
-@media (prefers-reduced-motion: reduce) {
-  .nv-cc-arc { stroke-dashoffset: 45.8; animation: none; }
-  .nv-cc-num, .nv-fade-up, .nv-cc-row { opacity: 1; transform: none; animation: none; }
-  .nv-calc-optA { border-color: #2447F0; background: #EBEFFE; animation: none; }
-  .nv-calc-optB { border-color: #E3E8F1; background: #fff; animation: none; }
-  .nv-calc-dot { left: 78%; animation: none; }
-  .nv-val { animation: none; }
-  .nv-val-first { opacity: 1; }
-  .nv-calc-refresh { opacity: 1; transform: none; animation: none; }
-  .nv-q, .nv-a { opacity: 1; transform: none; animation: none; }
-  .nv-spark { opacity: 1; transform: none; animation: none; }
-  .nv-typing { display: none; animation: none; }
-  .nv-dot1, .nv-dot2, .nv-dot3 { animation: none; }
-}
-
-/* ─── Scroll/entrance reveal (Reveal component toggles .nv-in when in view) ─── */
-.nv-reveal { opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
-.nv-reveal.nv-in { opacity: 1; transform: none; }
-/* Staggered children (metric cards, etc.) */
-.nv-stagger > * { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
-.nv-stagger.nv-in > * { opacity: 1; transform: none; }
-.nv-stagger.nv-in > *:nth-child(1) { transition-delay: .05s; }
-.nv-stagger.nv-in > *:nth-child(2) { transition-delay: .16s; }
-.nv-stagger.nv-in > *:nth-child(3) { transition-delay: .27s; }
-
-/* Hero score card: "Yaxşı nəticə" appears after the score finishes counting */
-.nv-hero-badge { opacity: 0; animation: nvFadeUp .5s ease-out 1s both; }
-
-/* Steps: step-3 "target" soft pulse; step-2 gentle breathing */
-.nv-step-pulse::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit;
-  box-shadow: 0 0 0 0 rgba(124,58,237,.45); animation: nvSoftPulse 2.6s ease-out infinite;
-}
-@keyframes nvSoftPulse { 0% { box-shadow: 0 0 0 0 rgba(124,58,237,.35); } 70%, 100% { box-shadow: 0 0 0 14px rgba(124,58,237,0); } }
-.nv-step-breathe { animation: nvBreathe 3s ease-in-out infinite; }
-@keyframes nvBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-
-/* Credit-check analysis loading dots */
-.nv-load-dot { animation: nvBounce 1s ease-in-out infinite; }
-.nv-load-check { opacity: 0; animation: nvFadeUp .35s ease-out both; }
-
-@media (prefers-reduced-motion: reduce) {
-  .nv-reveal { opacity: 1; transform: none; transition: none; }
-  .nv-stagger > * { opacity: 1; transform: none; transition: none; }
-  .nv-hero-badge { opacity: 1; animation: none; }
-  .nv-step-pulse::after { animation: none; box-shadow: none; }
-  .nv-step-breathe { animation: none; }
-  .nv-load-dot { animation: none; }
-  .nv-load-check { opacity: 1; animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .nv-reveal,
+  .nv-stagger > * {
+    opacity: 1;
+    transform: none;
+  }
 }
