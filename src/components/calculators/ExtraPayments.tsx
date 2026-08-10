@@ -103,7 +103,7 @@ export function ExtraPayments({
               type="button"
               aria-pressed={value.enabled === opt.on}
               onClick={() => set({ enabled: opt.on })}
-              className={`rounded-md px-4 py-1.5 text-sm font-semibold transition-colors ${
+              className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
                 value.enabled === opt.on ? "bg-white text-brand-700 shadow-card" : "text-gray-600 hover:text-ink"
               }`}
             >
@@ -130,7 +130,7 @@ export function ExtraPayments({
                 type="checkbox"
                 checked={value.recurring.enabled}
                 onChange={(e) => setRecurring({ enabled: e.target.checked })}
-                className="h-4 w-4 accent-brand-600"
+                className="h-[18px] w-[18px] accent-brand-600"
               />
               Daimi əlavə ödəniş istifadə edilsin?
             </label>

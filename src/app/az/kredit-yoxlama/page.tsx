@@ -49,9 +49,14 @@ function BoktTooltip() {
         aria-label="BOKT nədir?"
         aria-expanded={open}
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        className="grid h-[18px] w-[18px] place-items-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-700 transition-colors hover:bg-gray-300"
+        /* Кружок остаётся мелким, а область нажатия расширена отступом:
+           18x18 — это меньше минимальной цели касания, в такую на телефоне
+           надо целиться. */
+        className="-m-1.5 grid p-1.5"
       >
-        i
+        <span className="grid h-[18px] w-[18px] place-items-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-700 transition-colors hover:bg-gray-300">
+          i
+        </span>
       </button>
       {open && (
         <span
@@ -524,7 +529,7 @@ function KreditYoxlamaContent() {
                       },
                     ].map((x) => (
                       <div key={x.k}>
-                        <dt className="text-[10px] font-semibold text-gray-400">{x.k}</dt>
+                        <dt className="text-[11px] font-semibold text-gray-400">{x.k}</dt>
                         <dd
                           className={`text-base font-extrabold tabular-nums ${
                             x.tone ? toneStyle(x.tone).text : "text-ink"

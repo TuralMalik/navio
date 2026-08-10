@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputClasses } from "./AuthShell";
+import { AuthShell, SubmitButton, FormError, Divider, GoogleButton } from "./AuthShell";
+import { TextInput } from "@/components/ui/Field";
 
 const DEFAULT_NEXT = "/az";
 
@@ -84,15 +85,11 @@ export function LoginForm({ googleEnabled, emailEnabled }: { googleEnabled: bool
           <form onSubmit={onSubmit} className="space-y-4">
             <FormError message={error} />
 
-            <Field label="E-poçt">
-              <input type="email" required autoComplete="email" value={email}
-                onChange={(e) => setEmail(e.target.value)} className={inputClasses()} placeholder="ad@nümunə.az" />
-            </Field>
+            <TextInput label="E-poçt" type="email" required autoComplete="email" value={email}
+              onChange={(e) => setEmail(e.target.value)} placeholder="ad@nümunə.az" />
 
-            <Field label="Şifrə">
-              <input type="password" required autoComplete="current-password" value={password}
-                onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
-            </Field>
+            <TextInput label="Şifrə" type="password" required autoComplete="current-password" value={password}
+              onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
 
             {/* Пока почта не подключена, восстановление пароля недоступно — не показываем ссылку,
                 которая обещала бы письмо, которое никогда не придёт. */}

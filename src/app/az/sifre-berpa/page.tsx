@@ -4,7 +4,8 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, inputClasses } from "@/components/auth/AuthShell";
+import { AuthShell, SubmitButton, FormError } from "@/components/auth/AuthShell";
+import { TextInput } from "@/components/ui/Field";
 import { LinkButton } from "@/components/ui/Button";
 
 const MIN_PASSWORD = 8;
@@ -69,10 +70,9 @@ function ResetContent() {
     <AuthShell crumb="Şifrənin bərpası" title="Yeni şifrə təyin edin" subtitle="Hesabınız üçün yeni şifrə seçin.">
       <form onSubmit={onSubmit} className="space-y-4">
         <FormError message={error} />
-        <Field label="Yeni şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`}>
-          <input type="password" required autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
-        </Field>
+        <TextInput label="Yeni şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`} type="password" required
+          autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
+          onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         <SubmitButton loading={loading}>Şifrəni dəyiş</SubmitButton>
       </form>
     </AuthShell>

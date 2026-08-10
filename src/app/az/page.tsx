@@ -127,7 +127,7 @@ export default function HomePage() {
                 { k: "Faiz", v: formatPercent(15, 0) },
               ].map((m) => (
                 <div key={m.k}>
-                  <dt className="text-[10px] font-semibold text-gray-400">{m.k}</dt>
+                  <dt className="text-[11px] font-semibold text-gray-400">{m.k}</dt>
                   <dd className={`text-base font-extrabold tabular-nums ${m.good ? "text-emerald-700" : "text-ink"}`}>
                     {m.v}
                   </dd>

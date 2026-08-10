@@ -110,7 +110,7 @@ export default function FinancialAssistantPage() {
                     setTopic(c.slug);
                     setOpenId(null);
                   }}
-                  className={`rounded-full border px-3 py-1.5 text-[13px] font-semibold transition-colors ${
+                  className={`rounded-full border px-3 py-2 text-[13px] font-semibold transition-colors ${
                     on
                       ? "border-brand-600 bg-brand-600 text-white"
                       : "border-gray-200 bg-white text-gray-700 hover:border-gray-400 hover:text-ink"
@@ -174,7 +174,7 @@ export default function FinancialAssistantPage() {
                 {item.cta && (
                   <Link
                     href={item.cta.href}
-                    className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-700 hover:text-brand-800"
+                    className="-mx-2 mt-1.5 inline-flex items-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold text-brand-700 hover:bg-brand-50 hover:text-brand-800"
                   >
                     {item.cta.label} <ArrowRight size={13} aria-hidden />
                   </Link>

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BookmarkCheck, History, Star, MailCheck, CheckCircle2 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import { AuthShell, Field, SubmitButton, FormError, Divider, GoogleButton, inputClasses } from "./AuthShell";
+import { AuthShell, SubmitButton, FormError, Divider, GoogleButton } from "./AuthShell";
+import { TextInput } from "@/components/ui/Field";
 
 const DEFAULT_NEXT = "/az";
 const MIN_PASSWORD = 8;
@@ -96,20 +97,15 @@ export function RegisterForm({ googleEnabled, emailEnabled }: { googleEnabled: b
       <form onSubmit={onSubmit} className="space-y-4">
         <FormError message={error} />
 
-        <Field label="Ad">
-          <input type="text" required autoComplete="name" value={name}
-            onChange={(e) => setName(e.target.value)} className={inputClasses()} placeholder="Adınız" />
-        </Field>
+        <TextInput label="Ad" type="text" required autoComplete="name" value={name}
+          onChange={(e) => setName(e.target.value)} placeholder="Adınız" />
 
-        <Field label="E-poçt">
-          <input type="email" required autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} className={inputClasses()} placeholder="ad@nümunə.az" />
-        </Field>
+        <TextInput label="E-poçt" type="email" required autoComplete="email" value={email}
+          onChange={(e) => setEmail(e.target.value)} placeholder="ad@nümunə.az" />
 
-        <Field label="Şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`}>
-          <input type="password" required autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
-            onChange={(e) => setPassword(e.target.value)} className={inputClasses()} placeholder="••••••••" />
-        </Field>
+        <TextInput label="Şifrə" hint={`Ən azı ${MIN_PASSWORD} simvol`} type="password" required
+          autoComplete="new-password" minLength={MIN_PASSWORD} value={password}
+          onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
 
         <SubmitButton loading={loading}>Qeydiyyatdan keç</SubmitButton>
       </form>

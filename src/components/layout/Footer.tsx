@@ -28,7 +28,7 @@ function Column({ title, links }: { title: string; links: { href: string; label:
           <li key={l.href}>
             <Link
               href={l.href}
-              className="inline-block rounded py-1.5 text-sm text-gray-400 transition-colors hover:text-white"
+              className="inline-block rounded py-2.5 text-sm text-gray-400 transition-colors hover:text-white"
             >
               {l.label}
             </Link>
