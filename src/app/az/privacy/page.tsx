@@ -35,8 +35,9 @@ Bu məlumatlar hesablama məqsədi ilə istifadə edilir.`,
               title: "Məlumatlar necə istifadə edilir?",
               content: `Hesablama Navio serverində aparılır: daxil etdiyiniz məlumatlar nəticəni hesablamaq üçün serverə göndərilir və hesablama nəticəsi ilə birlikdə saxlanılır. Bu, «Ətraflı analiz» səhifəsini açmağa və hesabınızda hesablama tarixçəsini görməyə imkan verir.
 
-• Qeydiyyatsız aparılan hesablamalar 7 gün saxlanılır və sonra avtomatik silinir.
-• Hesabınız varsa, hesablamalar siz onları silənə qədər tarixçənizdə qalır.
+• Hesablamalar serverimizdə saxlanılır — həm qeydiyyatsız, həm də hesabla aparılanlar.
+• Hesabınız varsa, hesablamalar tarixçənizdə görünür.
+• Hesablamalarınızın və ya hesabınızın silinməsini istəyirsinizsə, info@navio.az ünvanına yazın.
 • IP ünvanınız açıq şəkildə saxlanılmır — yalnız sui-istifadədən qorunmaq (sorğu limiti) üçün geri qaytarıla bilməyən şəkildə şifrələnmiş formada istifadə olunur.`,
             },
             {

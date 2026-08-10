@@ -1,11 +1,12 @@
 import "server-only";
-import { and, desc, eq, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db";
 import { scoringCalculation } from "@/db/schema";
 import type { BankForm, BoktForm, Mode } from "@/lib/scoring-types";
 
-/** Сколько живёт анонимный расчёт. Достаточно, чтобы дойти до /analiz и зарегистрироваться. */
-const ANON_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+/* Расчёты не удаляются и не истекают — так это описано в /az/privacy.
+   Колонка expiresAt в схеме остаётся неиспользованной (снятие требует миграции);
+   ничего её не пишет и не читает. Удаление — только по запросу пользователя. */
 
 export async function saveCalculation(params: {
   /** ID генерирует вызывающий: он уже вшит в отдаваемый payload. */
@@ -28,8 +29,6 @@ export async function saveCalculation(params: {
     bgn: params.bgn,
     blocked: params.blocked,
     ipHash: params.ipHash,
-    // У залогиненного расчёт остаётся в истории, анонимный — истекает
-    expiresAt: params.userId ? null : new Date(Date.now() + ANON_TTL_MS),
   });
   return id;
 }
@@ -42,9 +41,7 @@ export async function getCalculation(id: string) {
     .from(scoringCalculation)
     .where(eq(scoringCalculation.id, id))
     .limit(1);
-  if (!row) return null;
-  if (row.expiresAt && row.expiresAt.getTime() < Date.now()) return null;
-  return row;
+  return row ?? null;
 }
 
 /** История расчётов пользователя. */
@@ -69,14 +66,6 @@ export async function claimCalculation(id: string, userId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
   await getDb()
     .update(scoringCalculation)
-    .set({ userId, expiresAt: null })
+    .set({ userId })
     .where(and(eq(scoringCalculation.id, id), isNull(scoringCalculation.userId)));
-}
-
-/** Уборка просроченных анонимных расчётов. Вызывать из cron.
-   Удаляем строго по истёкшему expiresAt: строки без срока (есть владелец) не трогаем. */
-export async function purgeExpiredCalculations() {
-  await getDb()
-    .delete(scoringCalculation)
-    .where(and(isNotNull(scoringCalculation.expiresAt), lt(scoringCalculation.expiresAt, new Date())));
 }
