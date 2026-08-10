@@ -13,7 +13,8 @@
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "admin:seed": "dotenv -e .env.local -- node scripts/seed-admin.mjs",
     "test:totp": "tsx scripts/test-totp.mjs",
-    "test:auth": "dotenv -e .env.local -- tsx --conditions react-server scripts/test-admin-auth.mjs"
+    "test:auth": "dotenv -e .env.local -- tsx --conditions react-server scripts/test-admin-auth.mjs",
+    "test:bootstrap": "dotenv -e .env.local -- tsx --conditions react-server scripts/test-bootstrap.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -22,6 +23,7 @@
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
+    "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.18.1",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv-cli": "^11.0.0",
