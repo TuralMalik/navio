@@ -83,15 +83,39 @@
     outline: none;
   }
 
-  /* ─── Нажатие ───
+  /* ─── Наведение и нажатие ───
      Standalone-свойство scale, а НЕ transform: у позиционированных кнопок
      transform съел бы собственный translate и кнопка прыгнула бы.
-     Глобально, чтобы компоненты это не дублировали каждый по-своему. */
-  :where(button, [role="button"], .btn):not(:disabled):not([aria-disabled="true"]) {
-    transition: scale 150ms ease-out, background-color 150ms ease-out,
-      border-color 150ms ease-out, color 150ms ease-out;
+
+     .no-scale выводит из-под правила крупные поверхности (карточки, плитки
+     бенто): 3% на большой площади читаются не как отклик, а как рывок —
+     у них свой подъём на hover.
+
+     Список transition перечисляет цвет и тень явно: это правило вне слоёв
+     и перебивает tailwind-овские transition-*, поэтому без них любой
+     цветовой ховер начал бы срабатывать мгновенно. */
+  button:not(:disabled):not(.no-scale),
+  a:not(.no-scale),
+  [role="button"]:not(.no-scale) {
+    transition:
+      scale 180ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease,
+      box-shadow 200ms ease,
+      transform 200ms ease;
   }
-  :where(button, [role="button"], .btn):not(:disabled):not([aria-disabled="true"]):active {
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):not(.no-scale):hover,
+    a:not(.no-scale):hover {
+      scale: 1.03;
+    }
+  }
+  /* Отклик на нажатие для ЛЮБОГО ввода: на тач-экране это единственная
+     тактильная обратная связь, которую веб надёжно даёт. */
+  button:not(:disabled):not(.no-scale):active,
+  a:not(.no-scale):active,
+  [role="button"]:not(.no-scale):active {
     scale: 0.97;
   }
 
@@ -150,6 +174,43 @@
     to {
       rotate: 360deg;
     }
+  }
+
+  /* ─── Появление и фоновое движение ───
+     enter-up: одноразовый вход для того, что видно сразу при загрузке
+     (для появления по скроллу есть Reveal). Задержка задаётся инлайном,
+     чтобы блоки выходили по очереди.
+
+     Длительность 0.6s намеренно больше «интерфейсных» 150-250 мс: это не
+     отклик на действие, а вход страницы, и на коротком тайминге он
+     читается как рывок. */
+  @keyframes nvEnterUp {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .nv-enter {
+    animation: nvEnterUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Медленное покачивание карточки результата в герое: признак «живого»
+     продукта, намеренно ниже порога внимания. */
+  @keyframes nvFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  .nv-float {
+    animation: nvFloat 7s ease-in-out infinite;
   }
 }
 
