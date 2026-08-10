@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
+import { useState } from "react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { LinkButton, Button } from "@/components/ui/Button";
+
+/* Навигация в шапке — только для широких экранов.
+
+   Гамбургер и выпадающее меню отсюда убраны: на телефоне навигация переехала
+   вниз, в MobileTabBar. Держать оба входа сразу означало бы два разных
+   способа попасть в одно и то же место и две реализации одного меню. */
 
 const navLinks = [
   { label: "Kredit yoxlaması", href: "/az/kredit-yoxlama" },
@@ -15,9 +21,7 @@ const navLinks = [
 ];
 
 /* Три восходящих столбца — знак Navio. Заливка идёт по фирменной шкале
-   снизу вверх: рост читается самой формой, а не радужным градиентом.
-   Прежний вариант заливался небесно-голубым в фиолетовый, то есть двумя
-   цветами, которых в палитре продукта нет вообще. */
+   снизу вверх: рост читается самой формой, а не радужным градиентом. */
 function Logo() {
   return (
     <svg width="34" height="33" viewBox="0 0 104 100" fill="none" aria-hidden="true">
@@ -29,30 +33,10 @@ function Logo() {
 }
 
 export function Header() {
-  const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const pathname = usePathname();
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
-
-  /* Меню закрывается при переходе. Раньше это делал эффект на pathname, но
-     он же вызывал лишний рендер на КАЖДОЙ навигации, включая десктоп, где
-     меню и так закрыто. Сравнение с предыдущим путём во время рендера
-     обходится в одно присваивание и срабатывает только когда есть что
-     закрывать. */
-  const [lastPath, setLastPath] = useState(pathname);
-  if (pathname !== lastPath) {
-    setLastPath(pathname);
-    if (open) setOpen(false);
-  }
-
-  // Escape закрывает меню. Открытая панель без выхода с клавиатуры — ловушка.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -66,7 +50,7 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link href="/az" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/az" className="no-scale flex shrink-0 items-center gap-2.5">
             <Logo />
             <span className="text-lg font-extrabold tracking-tight text-ink">Navio</span>
           </Link>
@@ -77,10 +61,8 @@ export function Header() {
                 key={l.href}
                 href={l.href}
                 aria-current={isActive(l.href) ? "page" : undefined}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive(l.href)
-                    ? "bg-brand-50 text-brand-700"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-ink"
+                className={`no-scale rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive(l.href) ? "bg-brand-50 text-brand-700" : "text-gray-600 hover:bg-gray-50 hover:text-ink"
                 }`}
               >
                 {l.label}
@@ -88,16 +70,16 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="flex items-center gap-2">
             {isPending ? (
               // Заглушка ровно той же ширины, что и кнопка входа: иначе шапка
               // дёргается, когда сессия догрузилась.
-              <span className="h-9 w-[104px] animate-pulse rounded-lg bg-gray-100" aria-hidden />
+              <span className="hidden h-9 w-[104px] animate-pulse rounded-lg bg-gray-100 md:block" aria-hidden />
             ) : user ? (
-              <div className="flex items-center gap-1">
+              <div className="hidden items-center gap-1 md:flex">
                 <Link
                   href="/az/hesabim"
-                  className="flex max-w-[170px] items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-ink"
+                  className="no-scale flex max-w-[170px] items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-ink"
                 >
                   <UserIcon size={15} className="shrink-0 text-gray-400" />
                   <span className="truncate">{user.name || user.email}</span>
@@ -113,74 +95,19 @@ export function Header() {
                 />
               </div>
             ) : (
-              <LinkButton href="/az/login" variant="ghost" size="sm">
+              <LinkButton href="/az/login" variant="ghost" size="sm" className="hidden md:inline-flex">
                 Giriş
               </LinkButton>
             )}
+
+            {/* Главное действие остаётся в шапке и на телефоне: нижняя панель
+                отвечает за навигацию, а не за призыв к действию. */}
             <LinkButton href="/az/kredit-yoxlama" size="sm">
               İlkin yoxlama
             </LinkButton>
           </div>
-
-          <button
-            className="rounded-lg p-2 text-gray-600 hover:bg-gray-50 md:hidden"
-            onClick={() => setOpen(!open)}
-            aria-label={open ? "Menyunu bağla" : "Menyu"}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-          >
-            {open ? <X size={22} /> : <Menu size={22} />}
-          </button>
         </div>
       </div>
-
-      {open && (
-        <div id="mobile-menu" className="border-t border-gray-200 bg-white px-4 py-3 md:hidden">
-          <nav className="flex flex-col">
-            {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                aria-current={isActive(l.href) ? "page" : undefined}
-                className={`rounded-lg px-3 py-2.5 text-[15px] font-medium ${
-                  isActive(l.href) ? "bg-brand-50 text-brand-700" : "text-gray-700"
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="mt-3 flex flex-col gap-2 border-t border-gray-200 pt-3">
-            {user ? (
-              <>
-                <Link
-                  href="/az/hesabim"
-                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-[15px] font-medium text-gray-700"
-                >
-                  <UserIcon size={16} className="text-gray-400" /> {user.name || user.email}
-                </Link>
-                <Button
-                  variant="ghost"
-                  onClick={handleSignOut}
-                  loading={signingOut}
-                  icon={<LogOut size={16} />}
-                  className="justify-start px-3 text-rose-600 hover:bg-rose-50"
-                >
-                  Çıxış
-                </Button>
-              </>
-            ) : (
-              <LinkButton href="/az/login" variant="secondary" block>
-                Giriş
-              </LinkButton>
-            )}
-            <LinkButton href="/az/kredit-yoxlama" block>
-              İlkin yoxlama
-            </LinkButton>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
