@@ -1,12 +1,14 @@
 import { Suspense } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { isGoogleConfigured } from "@/lib/server/google-credentials";
 
 /* Читаем наличие Google-кредов на каждом запросе: owner может выдать их позже,
    и кнопка должна появиться без пересборки. */
 export const dynamic = "force-dynamic";
 
 export default function LoginPage() {
-  const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  // Та же проверка, что и при регистрации провайдера: кнопка не должна вести в ошибку
+  const googleEnabled = isGoogleConfigured();
   // Без Resend восстановление пароля не работает — прячем ссылку
   const emailEnabled = Boolean(process.env.RESEND_API_KEY);
   return (

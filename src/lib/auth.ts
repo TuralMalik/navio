@@ -4,18 +4,18 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { getDb, schema } from "@/db";
 import { sendVerificationEmail, sendResetPasswordEmail, emailEnabled } from "./server/mailer";
+import { getGoogleCredentials } from "./server/google-credentials";
 
 export { emailEnabled };
 
 export const APP_URL =
   process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-/* Google подключаем только когда креды реально выданы: до этого момента
-   провайдер просто не регистрируется, и кнопка «Google ilə davam et» скрыта,
-   вместо того чтобы падать на рантайме. */
-const googleId = process.env.GOOGLE_CLIENT_ID;
-const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
-export const googleEnabled = Boolean(googleId && googleSecret);
+/* Google подключаем только когда креды выданы И проходят проверку формы.
+   Проверка обязательна: перепутанные ID/secret приводят к утечке secret
+   в URL авторизации (см. server/google-credentials.ts). */
+const googleCredentials = getGoogleCredentials();
+export const googleEnabled = googleCredentials !== null;
 
 export const auth = betterAuth({
   appName: "Navio",
@@ -45,8 +45,8 @@ export const auth = betterAuth({
     },
   },
 
-  ...(googleEnabled
-    ? { socialProviders: { google: { clientId: googleId!, clientSecret: googleSecret! } } }
+  ...(googleCredentials
+    ? { socialProviders: { google: googleCredentials } }
     : {}),
 
   user: { modelName: "user" },
