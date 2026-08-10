@@ -52,7 +52,20 @@ Hesabınızı və bütün əlaqəli hesablamaları silmək üçün info@navio.az
             },
             {
               title: "Cookie və analitika",
-              content: `Platforma əsas performans analitikası üçün anonim istifadəçi məlumatlarından istifadə edə bilər. Heç bir şəxsi məlumat analitika sistemlərinə ötürülmür.`,
+              content: `Platformanı yaxşılaşdırmaq üçün saytdan necə istifadə olunduğunu öz serverimizdə qeyd edirik. Bu məlumatlar üçüncü tərəf analitika şirkətlərinə göndərilmir.
+
+Nə qeyd olunur:
+• Açdığınız səhifələr və hər səhifədə keçirdiyiniz vaxt
+• Kliklədiyiniz düymələr və linklər (düymənin adı — məsələn «Hesabla»)
+• Formanın göndərilməsi (hansı sahələrin dolduğu — dəyərləri deyil)
+• Brauzer növü, təxmini ölkə və saytımıza hansı keçiddən gəldiyiniz
+
+Nə qeyd OLUNMUR:
+• Formalara yazdığınız dəyərlər — gəliriniz, borcunuz, gecikmə günləriniz və yaşınız analitikaya heç vaxt düşmür. Bu məlumatlar yalnız hesablamanın özündə saxlanılır (yuxarıdakı bölməyə baxın).
+• Şifrələr və e-poçt ünvanının məzmunu
+• Açıq IP ünvanı — yalnız şifrələnmiş (hash) formada
+
+Brauzerinizdə saytın işləməsi üçün lazım olan texniki identifikator saxlanılır (cookie və localStorage). O, təkrar ziyarətləri saymağa imkan verir və şəxsiyyətinizi müəyyən etmir. Brauzerin məlumatlarını təmizləməklə onu hər zaman sıfırlaya bilərsiniz.`,
             },
           ].map((section) => (
             <div key={section.title} className="mb-6 last:mb-0">
