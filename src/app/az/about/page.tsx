@@ -1,7 +1,6 @@
 import { Check, X } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 const does = [
   "Kredit profilinin ilkin qiymətləndirilməsi",
@@ -45,7 +44,6 @@ export default function AboutPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Haqqımızda" />
 
         <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Navio nədir?</h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">

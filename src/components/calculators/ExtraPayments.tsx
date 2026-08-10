@@ -261,8 +261,10 @@ export function ExtraPayments({
                     type="button"
                     aria-pressed={on}
                     onClick={() => set({ mode: opt.key })}
-                    className={`rounded-lg border p-3 text-left transition-colors ${
-                      on ? "border-brand-600 bg-brand-50" : "border-gray-200 bg-white hover:border-gray-300"
+                    /* no-scale: это карточки-варианты, а не кнопки. Отклик
+                       даёт рамка и фон, размер не трогаем. */
+                    className={`no-scale rounded-lg border p-3 text-left transition-colors ${
+                      on ? "border-brand-600 bg-brand-50" : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                     }`}
                   >
                     <span className={`block text-sm font-semibold ${on ? "text-brand-700" : "text-ink"}`}>

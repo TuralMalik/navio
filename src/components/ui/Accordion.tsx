@@ -33,12 +33,16 @@ export function Accordion({
 }) {
   return (
     <div>
+      {/* no-scale: глобальный hover scale(1.03) рассчитан на компактную
+          кнопку. На строке во всю ширину те же 3% — это уже десятки пикселей,
+          строка дёргается и лезет за границы карточки. Отклик здесь даёт фон,
+          а не размер: он не двигает соседей и не мешает читать заголовок. */}
       <button
         type="button"
         aria-expanded={open}
         aria-controls={id}
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-gray-50"
+        className="no-scale flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-gray-50 active:bg-gray-100"
       >
         <span className="flex-1">
           <span className="block text-sm font-semibold leading-snug text-ink">{question}</span>

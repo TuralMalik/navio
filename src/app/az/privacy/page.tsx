@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/Card";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 /* Юридический текст. Формулировки НЕ меняются без согласования с владельцем:
    это публичный документ о том, что именно хранит сервис. Здесь поменяна
@@ -64,7 +63,6 @@ export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Məxfilik siyasəti" />
 
         <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Məxfilik siyasəti</h1>
 

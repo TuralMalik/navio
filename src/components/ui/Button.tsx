@@ -45,7 +45,17 @@ interface CommonProps {
 }
 
 function classes({ variant = "primary", size = "md", block, className }: CommonProps): string {
-  return [BASE, VARIANTS[variant], SIZES[size], block ? "w-full" : "", className ?? ""]
+  /* Кнопка во всю ширину выходит из-под глобального hover scale(1.03).
+     На узкой кнопке 3% — это пара пикселей и читается как отклик; на кнопке
+     шириной с колонку это уже больше десятка, она наезжает на соседей и
+     выглядит рывком. Отклик у таких кнопок остаётся цветом фона. */
+  return [
+    BASE,
+    VARIANTS[variant],
+    SIZES[size],
+    block ? "w-full no-scale" : "",
+    className ?? "",
+  ]
     .filter(Boolean)
     .join(" ");
 }

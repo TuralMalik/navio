@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, ArrowRight, X, Mail, MessageCircleQuestion } from "lucide-react";
+import { Search, ArrowRight, X, MessageCircleQuestion } from "lucide-react";
 import { categories, allQuestions } from "@/lib/knowledgeQA";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { Accordion } from "@/components/ui/Accordion";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 /* Раздел «Mövzu seçin» убран.
 
@@ -60,7 +59,6 @@ export default function FinancialAssistantPage() {
     <main className="min-h-screen bg-gray-50">
       <div className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-4xl px-4 pt-6 pb-8 sm:px-6">
-          <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Maliyyə köməkçisi" />
 
           <h1 className="max-w-2xl text-3xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl">
             Sizə necə kömək edə bilərik?
@@ -189,12 +187,12 @@ export default function FinancialAssistantPage() {
         <div className="mt-10 rounded-2xl bg-ink px-6 py-10 sm:px-9">
           <h2 className="text-xl font-extrabold tracking-tight text-white">Cavabınızı tapa bilmədiniz?</h2>
           <p className="mt-1.5 text-sm text-gray-300">Sualınızı yazın, sizə kömək edək.</p>
-          <a
-            href="mailto:info@navio.az"
-            className="btn mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-          >
-            <Mail size={16} aria-hidden /> Bizə yazın
-          </a>
+          {/* Единственная кнопка на сайте, собранная вручную классами вместо
+              общего компонента: отсюда и другой отступ, и отсутствие стрелки,
+              которая есть у каждого второго призыва к действию. */}
+          <LinkButton href="mailto:info@navio.az" className="mt-5" icon={<ArrowRight size={15} />}>
+            Bizə yazın
+          </LinkButton>
         </div>
 
         <p className="mt-6 text-center text-xs text-gray-500">

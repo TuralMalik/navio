@@ -36,13 +36,31 @@ const TILE =
   "transition duration-300 ease-out hover:-translate-y-1 hover:ring-gray-300 " +
   "hover:shadow-[0_24px_64px_-24px_rgba(15,31,61,0.25)] active:translate-y-0";
 
-function TileArrow() {
+/* Заголовок плитки со стрелкой на той же строке.
+
+   Стрелка стояла absolute в правом верхнем углу и ложилась прямо на рамку
+   иллюстрации: в углу плитки уже есть скруглённая рамка сцены, и два
+   контура накладывались друг на друга. У Mənzil та же стрелка ровно по этой
+   причине потребовала отдельной оговорки в коде.
+
+   В потоке строки столкнуться не с чем: стрелка всегда в конце заголовка,
+   независимо от того, что нарисовано выше. */
+function TileTitle({ children, size = "lg" }: { children: React.ReactNode; size?: "lg" | "xl" }) {
   return (
-    <ArrowRight
-      size={16}
-      aria-hidden
-      className="absolute right-5 top-5 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-brand-600"
-    />
+    <div className="flex items-start justify-between gap-3">
+      <h3
+        className={`font-bold tracking-tight text-ink transition-colors group-hover:text-brand-700 ${
+          size === "xl" ? "text-xl" : "text-lg"
+        }`}
+      >
+        {children}
+      </h3>
+      <ArrowRight
+        size={16}
+        aria-hidden
+        className="mt-1 shrink-0 text-gray-300 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-brand-600"
+      />
+    </div>
   );
 }
 
@@ -66,11 +84,11 @@ export default function HomePage() {
               Banka müraciət etməzdən əvvəl nəticənizi öyrənin. Məlumatları yazdıqca hesablanır.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
-              <LinkButton href="/az/kredit-yoxlama" size="lg" icon={<ArrowRight size={17} />}>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <LinkButton href="/az/kredit-yoxlama" size="lg" icon={<ArrowRight size={17} />} className="w-full sm:w-auto">
                 İlkin yoxlamaya başla
               </LinkButton>
-              <LinkButton href="/az/calculators" size="lg" variant="secondary">
+              <LinkButton href="/az/calculators" size="lg" variant="secondary" className="w-full sm:w-auto">
                 Kalkulyatorlar
               </LinkButton>
             </div>
@@ -138,14 +156,11 @@ export default function HomePage() {
           <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
               <Link href="/az/kredit-yoxlama" className={`${TILE} sm:flex-row sm:items-center sm:gap-6`}>
-                <TileArrow />
                 <div className="mb-4 h-[190px] sm:mb-0 sm:w-1/2">
                   <CreditCheckScene />
                 </div>
                 <div className="sm:w-1/2">
-                  <h3 className="text-xl font-bold tracking-tight text-ink transition-colors group-hover:text-brand-700">
-                    Kredit profilinizi yoxlayın
-                  </h3>
+                  <TileTitle size="xl">Kredit profilinizi yoxlayın</TileTitle>
                   <p className="mt-2 text-sm leading-relaxed text-gray-600">
                     Kredit almaq ehtimalınızı, borc yükünüzü və nəticəyə təsir edən risk faktorlarını görün.
                   </p>
@@ -155,13 +170,10 @@ export default function HomePage() {
 
             <Reveal className="lg:col-span-5">
               <Link href="/az/calculators" className={TILE}>
-                <TileArrow />
                 <div className="mb-4 h-[190px]">
                   <CalculatorScene />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight text-ink transition-colors group-hover:text-brand-700">
-                  Ödənişi planlaşdırın
-                </h3>
+                <TileTitle>Ödənişi planlaşdırın</TileTitle>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
                   Ssenariləri müqayisə edin və erkən ödənişin nə qazandırdığını görün.
                 </p>
@@ -170,13 +182,10 @@ export default function HomePage() {
 
             <Reveal className="lg:col-span-5">
               <Link href="/az/financial-assistant" className={TILE}>
-                <TileArrow />
                 <div className="mb-4 h-[190px]">
                   <AssistantScene />
                 </div>
-                <h3 className="text-lg font-bold tracking-tight text-ink transition-colors group-hover:text-brand-700">
-                  Sualınıza cavab tapın
-                </h3>
+                <TileTitle>Sualınıza cavab tapın</TileTitle>
                 <p className="mt-1.5 text-sm leading-relaxed text-gray-600">
                   Borc yükü, gecikmə və bank tələbləri haqqında aydın izahlar.
                 </p>

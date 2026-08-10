@@ -7,7 +7,6 @@ import { formatPercent } from "@/lib/utils";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { Badge, Tag } from "@/components/ui/Badge";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +26,6 @@ export default async function AccountPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="Hesabım" />
 
         <Card className="mb-4">
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{user.name || "Hesabım"}</h1>

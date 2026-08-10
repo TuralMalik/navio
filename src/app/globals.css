@@ -105,10 +105,14 @@
       box-shadow 200ms ease,
       transform 200ms ease;
   }
+  /* Величина намеренно маленькая. При 1.03 кнопка среднего размера прибавляет
+     около семи пикселей, и это читается уже не как отклик, а как прыжок:
+     соседние элементы визуально сдвигаются. Полутора процентов достаточно,
+     чтобы движение заметил глаз, но не заметил рассудок. */
   @media (hover: hover) and (pointer: fine) {
     button:not(:disabled):not(.no-scale):hover,
     a:not(.no-scale):hover {
-      scale: 1.03;
+      scale: 1.015;
     }
   }
   /* Отклик на нажатие для ЛЮБОГО ввода: на тач-экране это единственная
@@ -116,7 +120,7 @@
   button:not(:disabled):not(.no-scale):active,
   a:not(.no-scale):active,
   [role="button"]:not(.no-scale):active {
-    scale: 0.97;
+    scale: 0.98;
   }
 
   /* ─── Курсор ───

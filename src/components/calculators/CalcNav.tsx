@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { Banknote, House, Car } from "lucide-react";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { Segmented } from "@/components/ui/Segmented";
 
 /* Переключатель калькуляторов.
@@ -24,20 +23,23 @@ function activeTab(pathname: string) {
   return TABS.find((t) => pathname.startsWith(t.href)) ?? TABS[0];
 }
 
-/** Шапка раздела: хлебные крошки, заголовок активного калькулятора и вкладки.
-    Живёт в layout, поэтому при переключении не перерисовывается. */
+/* Шапка раздела: заголовок и вкладки в ОДНУ строку.
+
+   Было три этажа, и все три говорили одно и то же: крошки «Ana səhifə ›
+   İstehlak», заголовок «İstehlak krediti kalkulyatoru» и активная вкладка
+   «İstehlak». Слово «İstehlak» повторялось трижды подряд, и на это уходила
+   белая полоса высотой почти в треть экрана — на каждом калькуляторе.
+
+   Крошки убраны: все калькуляторы лежат на один шаг от главной, а «сейчас
+   выбран İstehlak» и так написано на вкладке. Отдельной белой подложки тоже
+   нет, шапка живёт на общем фоне и не режет страницу пополам. */
 export function CalcHeader() {
   const pathname = usePathname() ?? "";
   const active = activeTab(pathname);
   return (
-    <div className="border-b border-gray-200 bg-white">
-      <div className="mx-auto max-w-6xl px-4 pt-6 pb-5 sm:px-6">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current={active.label} />
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">{active.h1}</h1>
-        <div className="mt-4">
-          <CalcNav />
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 pt-6 sm:px-6">
+      <h1 className="text-xl font-extrabold tracking-tight text-ink sm:text-2xl">{active.h1}</h1>
+      <CalcNav />
     </div>
   );
 }

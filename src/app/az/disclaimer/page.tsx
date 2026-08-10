@@ -1,6 +1,5 @@
 import { AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 const sections = [
   {
@@ -39,7 +38,6 @@ export default function DisclaimerPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current="İmtina bəyanatı" />
 
         <h1 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">İmtina bəyanatı</h1>
 
