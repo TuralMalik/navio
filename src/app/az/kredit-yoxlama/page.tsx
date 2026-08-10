@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { NumberField, Field, inputClasses } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
+import { Segmented } from "@/components/ui/Segmented";
 import { ScoreDial } from "@/components/score/ScoreDial";
 import {
   type Mode, type GelirNovu, type KreditNovu, type IsStaji,
@@ -208,29 +209,19 @@ function KreditYoxlamaContent() {
             Məlumatları dəyişdikcə nəticə dərhal yenilənir. Sorğusuz və pulsuz, kredit tarixçənizə təsir etmir.
           </p>
 
+          {/* Тот же контрол, что и вкладки калькуляторов: одинаковый вид и
+              одинаковая едущая заливка. Раньше это были два разных
+              переключателя, и один из них не анимировался вовсе. */}
           <div className="mt-5 flex items-center gap-2">
-            <div
-              role="tablist"
-              aria-label="Kredit təşkilatının növü"
-              className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1"
-            >
-              {([
-                { key: "bank" as const, label: "Bank", Icon: Landmark },
-                { key: "bokt" as const, label: "BOKT", Icon: Building2 },
-              ]).map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  role="tab"
-                  aria-selected={mode === key}
-                  onClick={() => switchMode(key)}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors ${
-                    mode === key ? "bg-white text-brand-700 shadow-card" : "text-gray-600 hover:text-ink"
-                  }`}
-                >
-                  <Icon size={15} /> {label}
-                </button>
-              ))}
-            </div>
+            <Segmented<Mode>
+              ariaLabel="Kredit təşkilatının növü"
+              activeKey={mode}
+              onSelect={switchMode}
+              items={[
+                { key: "bank", label: "Bank", Icon: Landmark },
+                { key: "bokt", label: "BOKT", Icon: Building2 },
+              ]}
+            />
             <BoktTooltip />
           </div>
         </div>
