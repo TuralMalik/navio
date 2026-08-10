@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="px-4 py-4 mt-auto border-t border-slate-800 space-y-1">
           <p className="text-[11px] text-slate-500 truncate" title={admin.email}>{admin.email}</p>
           <Link href="/az" className="text-[11px] text-slate-400 hover:text-white transition-colors">
-            ← Sayta qayıt
+            ← Back to site
           </Link>
         </div>
       </aside>

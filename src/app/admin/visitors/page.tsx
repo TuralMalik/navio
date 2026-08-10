@@ -21,40 +21,40 @@ export default async function VisitorsPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Ziyarətçilər"
-        subtitle="Brauzer quraşdırması üzrə — təsadüfi identifikator, şəxsiyyət deyil"
+        title="Visitors"
+        subtitle="Per browser install — a random identifier, not an identity"
         right={<RangeTabs days={days} base="/admin/visitors" params={{ q: sp.q }} />}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Ziyarətçi</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Visitors</p>
           <p className="text-2xl font-extrabold text-slate-900 mt-1 tabular-nums">{fmtNumber(all.length)}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Qayıdan</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Returning</p>
           <p className="text-2xl font-extrabold text-slate-900 mt-1 tabular-nums">{fmtNumber(returning)}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">birdən çox sessiya</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">more than one session</p>
         </div>
       </div>
 
       {q && (
         <p className="text-[13px] text-slate-600">
-          Filtr: <span className="font-mono">{q}</span> — {visitors.length} nəticə
+          Filter: <span className="font-mono">{q}</span> — {visitors.length} results
         </p>
       )}
 
-      <Panel title={`${visitors.length} ziyarətçi`} subtitle="Baxış sayına görə sıralanıb" pad={false}>
+      <Panel title={`${visitors.length} visitors`} subtitle="Sorted by view count" pad={false}>
         {visitors.length === 0 ? (
-          <div className="p-4"><Empty what="ziyarətçi" /></div>
+          <div className="p-4"><Empty what="visitors" /></div>
         ) : (
-          <Table head={["Ziyarətçi", "Sessiya", "Baxış", "Aktiv vaxt", "İlk görülmə", "Son görülmə", "Ölkə"]}>
+          <Table head={["Visitor", "Sessions", "Views", "Active time", "First seen", "Last seen", "Country"]}>
             {visitors.map((v) => (
               <tr key={v.visitor} className="hover:bg-slate-50">
                 <Td className="font-mono text-[11.5px] text-slate-700">
                   {v.visitor.slice(0, 13)}…{" "}
-                  {v.is_new && <Badge tone="green">yeni</Badge>}
-                  {v.no_client_id && <Badge tone="amber">sessiya üzrə</Badge>}
+                  {v.is_new && <Badge tone="green">new</Badge>}
+                  {v.no_client_id && <Badge tone="amber">by session</Badge>}
                 </Td>
                 <Td className="tabular-nums font-bold">{v.sessions}</Td>
                 <Td className="tabular-nums">{v.views}</Td>
@@ -69,8 +69,8 @@ export default async function VisitorsPage({
       </Panel>
 
       <p className="text-[11px] text-slate-400">
-        «Sessiya üzrə» — brauzer identifikatoru olmayan sətirlər (localStorage bağlıdır);
-        onları sessiya üzrə sayırıq, ona görə qayıdışları göstərmir.
+        &quot;By session&quot; marks rows with no browser identifier (localStorage disabled).
+        Those are counted per session, so they cannot show return visits.
       </p>
     </div>
   );

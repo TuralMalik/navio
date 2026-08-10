@@ -7,12 +7,12 @@ import {
 } from "lucide-react";
 
 const ITEMS = [
-  { href: "/admin", label: "İcmal", icon: LayoutDashboard },
-  { href: "/admin/pages", label: "Səhifələr", icon: FileText },
-  { href: "/admin/events", label: "Hadisələr", icon: MousePointerClick },
-  { href: "/admin/sessions", label: "Sessiyalar", icon: Route },
-  { href: "/admin/visitors", label: "Ziyarətçilər", icon: Users },
-  { href: "/admin/raw", label: "Xam baxışlar", icon: Radio },
+  { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/pages", label: "Pages", icon: FileText },
+  { href: "/admin/events", label: "Events", icon: MousePointerClick },
+  { href: "/admin/sessions", label: "Sessions", icon: Route },
+  { href: "/admin/visitors", label: "Visitors", icon: Users },
+  { href: "/admin/raw", label: "Raw views", icon: Radio },
 ];
 
 export function AdminNav() {

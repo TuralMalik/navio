@@ -36,8 +36,8 @@ export default async function RawPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Xam baxışlar"
-        subtitle="Cədvəldəki sətirlər olduğu kimi — filtrsiz baxış üçün"
+        title="Raw views"
+        subtitle="Rows exactly as stored — for unfiltered inspection"
         right={<RangeTabs days={days} base="/admin/raw" params={{ path, bots: includeBots ? "1" : undefined }} />}
       />
 
@@ -52,29 +52,29 @@ export default async function RawPage({
           className={`px-3 py-1.5 rounded-lg text-[12.5px] font-semibold border transition-colors ${
             includeBots ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
           }`}>
-          {includeBots ? "Botlar göstərilir" : "Botları göstər"}
+          {includeBots ? "Bots shown" : "Show bots"}
         </Link>
       </div>
 
-      <Panel title={`${rows.length} sətir`} subtitle={offset > 0 ? `${offset + 1}-dən başlayaraq` : undefined} pad={false}>
+      <Panel title={`${rows.length} rows`} subtitle={offset > 0 ? `${offset + 1}onwards` : undefined} pad={false}>
         {rows.length === 0 ? (
-          <div className="p-4"><Empty what="baxış" /></div>
+          <div className="p-4"><Empty what="views" /></div>
         ) : (
-          <Table head={["Vaxt", "Səhifə", "Aktiv", "Mənbə", "Ölkə", "Cihaz", "Kim", "Sessiya"]}>
+          <Table head={["Time", "Page", "Active", "Source", "Country", "Device", "Who", "Session"]}>
             {rows.map((r) => (
               <tr key={r.id} className={`hover:bg-slate-50 ${r.isBot ? "opacity-50" : ""}`}>
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(r.createdAt)}</Td>
                 <Td className="font-medium text-slate-800 whitespace-nowrap">
                   {r.path}
-                  {r.isFirstInSession && <> <Badge tone="blue">giriş</Badge></>}
-                  {r.isNewVisitor && <> <Badge tone="green">yeni</Badge></>}
+                  {r.isFirstInSession && <> <Badge tone="blue">entry</Badge></>}
+                  {r.isNewVisitor && <> <Badge tone="green">new</Badge></>}
                   {r.isBot && <> <Badge tone="red">bot</Badge></>}
                 </Td>
                 <Td className="tabular-nums whitespace-nowrap">{fmtDuration(r.durationMs)}</Td>
-                <Td className="text-slate-600 whitespace-nowrap">{r.utmSource ?? r.referrer ?? "birbaşa"}</Td>
+                <Td className="text-slate-600 whitespace-nowrap">{r.utmSource ?? r.referrer ?? "direct"}</Td>
                 <Td className="text-slate-500">{r.country ?? "—"}</Td>
                 <Td className="text-slate-500">{r.clientSource ?? "—"}</Td>
-                <Td className="text-slate-600 max-w-[150px] truncate">{r.email ?? "anonim"}</Td>
+                <Td className="text-slate-600 max-w-[150px] truncate">{r.email ?? "anonymous"}</Td>
                 <Td>
                   <Link href={`/admin/sessions/${r.sessionId}`}
                     className="font-mono text-[11px] text-blue-600 hover:underline whitespace-nowrap">
@@ -92,13 +92,13 @@ export default async function RawPage({
           {pageNum > 1 && (
             <Link href={qs({ page: String(pageNum - 1) })}
               className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:border-slate-400">
-              ← Əvvəlki
+              ← Previous
             </Link>
           )}
           {rows.length === PAGE_SIZE && (
             <Link href={qs({ page: String(pageNum + 1) })}
               className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:border-slate-400">
-              Sonrakı →
+              Next →
             </Link>
           )}
         </div>

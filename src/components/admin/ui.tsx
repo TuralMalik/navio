@@ -7,10 +7,10 @@ export function fmtDuration(ms: number | string | null | undefined): string {
   const n = typeof ms === "string" ? Number(ms) : ms ?? 0;
   if (!n || n <= 0) return "—";
   const s = Math.round(n / 1000);
-  if (s < 60) return `${s} san`;
+  if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}d ${String(s % 60).padStart(2, "0")}san`;
-  return `${Math.floor(m / 60)}s ${String(m % 60).padStart(2, "0")}d`;
+  if (m < 60) return `${m}m ${String(s % 60).padStart(2, "0")}s`;
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
 }
 
 /** Детерминированные даты без Intl — как во всём проекте (hydration). */
@@ -70,7 +70,7 @@ export function Kpi({
 }
 
 export function Empty({ what }: { what: string }) {
-  return <p className="text-[13px] text-slate-500 py-2">Hələ {what} yoxdur.</p>;
+  return <p className="text-[13px] text-slate-500 py-2">No {what} yet.</p>;
 }
 
 export function Badge({ tone = "slate", children }: { tone?: "slate" | "blue" | "green" | "amber" | "red"; children: React.ReactNode }) {
@@ -91,7 +91,7 @@ export function BarList({
   rows: { key: string; value: number; extra?: string }[];
   hrefFor?: (key: string) => string;
 }) {
-  if (rows.length === 0) return <Empty what="məlumat" />;
+  if (rows.length === 0) return <Empty what="data" />;
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (
     <div className="space-y-1.5">
@@ -126,7 +126,7 @@ export function LineChart({
   points: { label: string; value: number; secondary?: number }[];
   height?: number;
 }) {
-  if (points.length === 0) return <Empty what="məlumat" />;
+  if (points.length === 0) return <Empty what="data" />;
 
   const max = Math.max(...points.map((p) => Math.max(p.value, p.secondary ?? 0)), 1);
   const n = points.length;
@@ -178,8 +178,8 @@ export function LineChart({
       </div>
       {hasSecondary && (
         <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-500">
-          <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-blue-600 inline-block" /> Baxış</span>
-          <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-slate-400 inline-block" /> Ziyarətçi</span>
+          <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 bg-blue-600 inline-block" /> Views</span>
+          <span className="flex items-center gap-1.5"><span className="w-4 border-t border-dashed border-slate-400 inline-block" /> Visitors</span>
         </div>
       )}
     </div>
@@ -213,9 +213,9 @@ export function Td({
 /** Переключатель периода — сохраняет остальные параметры адреса. */
 export function RangeTabs({ days, base, params }: { days: number; base: string; params?: Record<string, string | undefined> }) {
   const ranges = [
-    { days: 1, label: "24 saat" },
-    { days: 7, label: "7 gün" },
-    { days: 30, label: "30 gün" },
+    { days: 1, label: "24 hours" },
+    { days: 7, label: "7 days" },
+    { days: 30, label: "30 days" },
   ];
   const qs = (d: number) => {
     const sp = new URLSearchParams();

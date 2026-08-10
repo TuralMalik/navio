@@ -53,8 +53,8 @@ export default async function EventsPage({
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Hadisələr"
-        subtitle="Hər klik, forma göndərilməsi və digər qeydə alınan hadisə"
+        title="Events"
+        subtitle="Every click, form submit and other recorded event"
         right={<RangeTabs days={days} base="/admin/events" params={{ name }} />}
       />
 
@@ -64,7 +64,7 @@ export default async function EventsPage({
           className={`px-3 py-1.5 rounded-lg text-[12.5px] font-semibold border transition-colors ${
             !name ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
           }`}>
-          Hamısı
+          All
         </Link>
         {names.map((n) => (
           <Link key={n.eventName} href={linkFor(n.eventName)}
@@ -77,20 +77,20 @@ export default async function EventsPage({
       </div>
 
       {name && breakdown.length > 0 && (
-        <Panel title={`${name} — bölgü`} subtitle="Hansı element / forma / sahə üzrə">
+        <Panel title={`${name} — breakdown`} subtitle="By element / form / field">
           <BarList rows={breakdown.map((b) => ({ key: b.label, value: b.count }))} />
         </Panel>
       )}
 
       <Panel
-        title={name ? `${name}` : "Bütün hadisələr"}
-        subtitle={`${events.length} sətir${offset > 0 ? ` · ${offset + 1}-dən başlayaraq` : ""}`}
+        title={name ? `${name}` : "All events"}
+        subtitle={`${events.length} rows${offset > 0 ? ` · ${offset + 1}onwards` : ""}`}
         pad={false}
       >
         {events.length === 0 ? (
-          <div className="p-4"><Empty what="hadisə" /></div>
+          <div className="p-4"><Empty what="events" /></div>
         ) : (
-          <Table head={["Vaxt", "Hadisə", "Səhifə", "Detallar", "Kim", "Sessiya"]}>
+          <Table head={["Time", "Event", "Page", "Details", "Who", "Session"]}>
             {events.map((e) => (
               <tr key={e.id} className="hover:bg-slate-50 align-top">
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(e.createdAt)}</Td>
@@ -101,7 +101,7 @@ export default async function EventsPage({
                 </Td>
                 <Td className="text-slate-600 whitespace-nowrap">{e.path ?? "—"}</Td>
                 <Td className="max-w-[420px]"><Props value={e.props} /></Td>
-                <Td className="text-slate-600 max-w-[150px] truncate">{e.email ?? "anonim"}</Td>
+                <Td className="text-slate-600 max-w-[150px] truncate">{e.email ?? "anonymous"}</Td>
                 <Td>
                   <Link href={`/admin/sessions/${e.sessionId}`}
                     className="font-mono text-[11px] text-blue-600 hover:underline whitespace-nowrap">
@@ -119,13 +119,13 @@ export default async function EventsPage({
           {pageNum > 1 && (
             <Link href={`${linkFor(name)}&page=${pageNum - 1}`}
               className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:border-slate-400">
-              ← Əvvəlki
+              ← Previous
             </Link>
           )}
           {events.length === PAGE_SIZE && (
             <Link href={`${linkFor(name)}&page=${pageNum + 1}`}
               className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-[12.5px] font-semibold text-slate-700 hover:border-slate-400">
-              Sonrakı →
+              Next →
             </Link>
           )}
         </div>
