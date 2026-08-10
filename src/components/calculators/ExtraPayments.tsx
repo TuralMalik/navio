@@ -113,8 +113,17 @@ export function ExtraPayments({
         </div>
       </div>
 
-      {value.enabled && (
-        <div className="mt-5 space-y-4">
+      {/* Панель раскрывается плавно, тем же приёмом, что и вопросы:
+          grid-template-rows 0fr → 1fr. Раньше она появлялась мгновенно, и
+          карточка под ней прыгала на несколько сотен пикселей. */}
+      <div
+        inert={!value.enabled}
+        className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+          value.enabled ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="mt-5 space-y-4">
           <div className="rounded-xl border border-gray-200 p-4">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-ink">
               <input
@@ -265,8 +274,9 @@ export function ExtraPayments({
               })}
             </div>
           </fieldset>
+          </div>
         </div>
-      )}
+      </div>
     </Card>
   );
 }

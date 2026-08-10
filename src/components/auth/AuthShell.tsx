@@ -3,17 +3,23 @@
 import { AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export { Field, inputClasses } from "@/components/ui/Field";
 
+/* Хлебных крошек здесь нет намеренно.
+
+   Вход и регистрация — тупиковые экраны в одном шаге от чего угодно: сюда
+   попадают из шапки или по редиректу с закрытой страницы, и «Ana səhifə ›
+   Giriş» не описывает никакой реальной иерархии. Уйти отсюда можно логотипом
+   в шапке, а на самой карточке лишняя строка только отвлекает от формы.
+
+   crumb остаётся в пропсах: он всё ещё нужен как заголовок вкладки. */
 export function AuthShell({
-  crumb,
   title,
   subtitle,
   children,
 }: {
-  crumb: string;
+  crumb?: string;
   title: string;
   subtitle: string;
   children: React.ReactNode;
@@ -21,8 +27,6 @@ export function AuthShell({
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 py-10">
       <div className="mx-auto w-full max-w-md px-4">
-        <Breadcrumbs trail={[{ href: "/az", label: "Ana səhifə" }]} current={crumb} />
-
         <Card className="p-6 sm:p-8">
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">{title}</h1>
           <p className="mt-1.5 mb-6 text-sm leading-relaxed text-gray-600">{subtitle}</p>

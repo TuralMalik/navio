@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, ChevronDown, Banknote, House, Car } from "lucide-react";
+import { ArrowRight, Banknote, House, Car } from "lucide-react";
 import { calcAnnuityPayment } from "@/lib/calculators/annuity";
 import { formatNumber, formatPercent } from "@/lib/utils";
 import { LinkButton } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Accordion } from "@/components/ui/Accordion";
 import { ScoreDial } from "@/components/score/ScoreDial";
 import { Reveal } from "@/components/home/Reveal";
 import { CreditCheckScene, CalculatorScene, AssistantScene } from "@/components/home/illustrations";
@@ -226,31 +227,18 @@ export default function HomePage() {
           <h2 className="text-2xl font-extrabold tracking-tight text-ink sm:text-3xl">Populyar suallar</h2>
 
           <div className="mt-6 grid grid-cols-1 items-start gap-3 md:grid-cols-2 md:gap-x-5">
-            {faqs.map((f, i) => {
-              const open = openFaq === i;
-              return (
-                <div key={f.q} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                  <button
-                    aria-expanded={open}
-                    aria-controls={`faq-${i}`}
-                    className="no-scale flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-semibold text-ink hover:bg-gray-50"
-                    onClick={() => setOpenFaq(open ? null : i)}
-                  >
-                    {f.q}
-                    <ChevronDown
-                      size={16}
-                      aria-hidden
-                      className={`shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {open && (
-                    <p id={`faq-${i}`} className="px-5 pb-4 text-sm leading-relaxed text-gray-600">
-                      {f.a}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            {faqs.map((f, i) => (
+              <div key={f.q} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <Accordion
+                  id={`faq-${i}`}
+                  question={f.q}
+                  open={openFaq === i}
+                  onToggle={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  <p className="text-sm leading-relaxed text-gray-600">{f.a}</p>
+                </Accordion>
+              </div>
+            ))}
           </div>
         </div>
       </section>
