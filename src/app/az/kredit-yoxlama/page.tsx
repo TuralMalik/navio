@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertTriangle, XCircle, Info, ArrowRight, Building2, Landmark, Check, X } from "lucide-react";
 import { track } from "@vercel/analytics";
@@ -21,54 +21,6 @@ import { toneStyle } from "@/lib/tone";
 import { useDebouncedCallback, useLatestRequest } from "@/lib/useDebouncedCallback";
 
 const azn = (v: number) => `${formatNumber(v)} ₼`;
-
-/* Расшифровка БОКТ по клику. Настоящая <button>, а не span с role: так
-   работает клавиатура, фокус и озвучивание без ручной эмуляции. */
-function BoktTooltip() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", esc);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", esc);
-    };
-  }, [open]);
-
-  return (
-    <span ref={ref} className="relative inline-flex">
-      <button
-        type="button"
-        aria-label="BOKT nədir?"
-        aria-expanded={open}
-        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        /* Кружок остаётся мелким, а область нажатия расширена отступом:
-           18x18 — это меньше минимальной цели касания, в такую на телефоне
-           надо целиться. */
-        className="-m-1.5 grid p-1.5"
-      >
-        <span className="grid h-[18px] w-[18px] place-items-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-700 transition-colors hover:bg-gray-300">
-          i
-        </span>
-      </button>
-      {open && (
-        <span
-          role="tooltip"
-          className="absolute left-1/2 top-full z-50 mt-2 w-max max-w-[230px] -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-2 text-center text-xs font-medium leading-snug text-white"
-        >
-          Banka olmayan kredit təşkilatı
-        </span>
-      )}
-    </span>
-  );
-}
 
 /** Группа полей: тонкая подпись сверху, без рамки. */
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -215,9 +167,8 @@ function KreditYoxlamaContent() {
           </p>
 
           {/* Тот же контрол, что и вкладки калькуляторов: одинаковый вид и
-              одинаковая едущая заливка. Раньше это были два разных
-              переключателя, и один из них не анимировался вовсе. */}
-          <div className="mt-5 flex items-center gap-2">
+              одинаковая едущая заливка. */}
+          <div className="mt-5">
             <Segmented<Mode>
               ariaLabel="Kredit təşkilatının növü"
               activeKey={mode}
@@ -227,7 +178,23 @@ function KreditYoxlamaContent() {
                 { key: "bokt", label: "BOKT", Icon: Building2 },
               ]}
             />
-            <BoktTooltip />
+
+            {/* Расшифровка вместо тултипа.
+
+                Рядом с переключателем висела кнопка «i»: мелкая цель, которая
+                прятала одну строку текста и при этом не помещалась внутрь
+                самого переключателя — в role=tablist допустимы только вкладки,
+                и посторонняя кнопка объявлялась третьей вкладкой.
+
+                Тултип здесь вообще не нужен. BOKT — незнакомая аббревиатура,
+                и её расшифровку нужно ВИДЕТЬ, а не открывать. Строка меняется
+                вместе с выбором, поэтому в обоих режимах говорит по делу и на
+                телефоне не требует наведения, которого там нет. */}
+            <p className="mt-2 text-[13px] leading-snug text-gray-600">
+              {mode === "bank"
+                ? "Bank krediti üzrə ilkin qiymətləndirmə."
+                : "BOKT, yəni banka olmayan kredit təşkilatı. Faizlər adətən bankdakından yüksək olur."}
+            </p>
           </div>
         </div>
       </div>
