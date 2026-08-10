@@ -119,6 +119,22 @@
     scale: 0.97;
   }
 
+  /* ─── Курсор ───
+     В Tailwind v4 из preflight убрали cursor: pointer для кнопок, а
+     браузерное значение по умолчанию у <button> — обычная стрелка. Ссылки
+     курсор получают от браузера, кнопки нет, поэтому «кликабельными» на вид
+     были только ссылки: Google-кнопка, вкладки Bank/BOKT, вопросы FAQ и все
+     остальные <button> выглядели как нажимаемые, но курсор этого не
+     подтверждал.
+
+     Правило одно на всё приложение — иначе про cursor-pointer придётся
+     помнить в каждом новом компоненте. */
+  :where(button, [role="button"], .btn, summary, label[for], select):not(:disabled):not(
+      [aria-disabled="true"]
+    ) {
+    cursor: pointer;
+  }
+
   /* Отключённое состояние выглядит одинаково у любого элемента */
   :where(button, [role="button"], .btn):disabled,
   :where(button, [role="button"], .btn)[aria-disabled="true"] {

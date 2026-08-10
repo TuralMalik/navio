@@ -77,12 +77,15 @@ export function Segmented<K extends string>({
 
       {items.map((item, i) => {
         const active = i === activeIdx;
-        // z-10: подпись должна лежать НАД едущей заливкой, иначе на время
-        // перехода она пропадает под ней.
+        /* z-10: подпись должна лежать НАД едущей заливкой, иначе на время
+           перехода она пропадает под ней.
+
+           Подложка на ховере только у НЕактивного пункта: у активного под ним
+           уже лежит фирменная заливка, и второй фон поверх неё её бы закрыл. */
         const cls =
           `no-scale relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg ` +
           `px-4 py-2 text-sm font-semibold transition-colors ${
-            active ? "text-white" : "text-gray-600 hover:text-ink"
+            active ? "text-white" : "text-gray-600 hover:bg-gray-100 hover:text-ink"
           }`;
         const inner = (
           <>
