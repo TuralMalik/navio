@@ -96,7 +96,7 @@ export default function ConsumerLoanPage() {
         <div className="space-y-4 lg:col-span-3">
           <Card>
             <div className="grid grid-cols-2 gap-3">
-              <NumberField label="Kredit məbləği" unit="₼" value={principal} onChange={setPrincipal} min={500} max={100000} />
+              <NumberField label="Kredit məbləği" unit="₼" value={principal} onChange={setPrincipal} min={0} max={100000} />
               <NumberField label="Müddət" unit="ay" value={months} onChange={setMonths} min={3} max={360} />
               <NumberField label="İllik faiz" unit="%" value={rate} onChange={setRate} min={1} max={50} step={0.1} />
               <NumberField label="Komissiya" unit="%" value={commissionPct} onChange={setCommissionPct} min={0} max={10} step={0.25} />
