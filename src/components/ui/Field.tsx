@@ -75,8 +75,10 @@ export function NumberField({
   onChange,
   unit,
   hint,
+  error,
   min,
   max,
+  clampMin = true,
   step,
   id,
   className = "",
@@ -87,8 +89,13 @@ export function NumberField({
   onChange: (v: string) => void;
   unit?: string;
   hint?: string;
+  error?: string | null;
   min?: number;
   max?: number;
+  /* Если false — минимум не подтягивается на вводе: значение ниже min
+     разрешено набрать, а несоответствие показывается через `error`.
+     Нужно там, где слишком маленькое число не невозможно, а нежелательно. */
+  clampMin?: boolean;
   step?: number;
   id?: string;
   className?: string;
@@ -102,7 +109,7 @@ export function NumberField({
     if (Number.isNaN(n)) return;
     // Кламп на вводе, а не на blur: иначе пользователь успевает увидеть
     // расчёт по заведомо невозможной сумме.
-    if (min != null && n < min) return onChange(String(min));
+    if (clampMin && min != null && n < min) return onChange(String(min));
     if (max != null && n > max) return onChange(String(max));
     onChange(raw);
   }
@@ -112,16 +119,22 @@ export function NumberField({
       <label htmlFor={inputId} className="mb-1 block text-[11px] font-semibold text-gray-500">
         {label}
       </label>
-      <div className="flex items-center rounded-lg border border-gray-300 bg-white transition-colors focus-within:border-brand-500 hover:border-gray-400">
+      <div
+        className={[
+          "flex items-center rounded-lg border bg-white transition-colors focus-within:border-brand-500",
+          error ? "border-rose-400 hover:border-rose-500" : "border-gray-300 hover:border-gray-400",
+        ].join(" ")}
+      >
         <input
           id={inputId}
           type="number"
           inputMode="decimal"
           value={value}
           onChange={(e) => handle(e.target.value)}
-          min={min}
+          min={clampMin ? min : undefined}
           max={max}
           step={step}
+          aria-invalid={error ? true : undefined}
           /* Штатные стрелки убраны: в узкой колонке они съедают место и
              провоцируют щёлкать по одному шагу вместо ввода числа. */
           className="w-full bg-transparent px-3 py-2 text-sm font-semibold tabular-nums text-ink outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -129,7 +142,14 @@ export function NumberField({
         />
         {unit && <span className="shrink-0 pr-3 text-xs text-gray-400">{unit}</span>}
       </div>
-      {hint && <p className="mt-1 text-[11px] leading-snug text-gray-500">{hint}</p>}
+      {error ? (
+        <p role="alert" className="mt-1 flex items-start gap-1 text-[11px] font-medium leading-snug text-rose-700">
+          <AlertCircle size={12} className="mt-px shrink-0" aria-hidden />
+          {error}
+        </p>
+      ) : (
+        hint && <p className="mt-1 text-[11px] leading-snug text-gray-500">{hint}</p>
+      )}
     </div>
   );
 }

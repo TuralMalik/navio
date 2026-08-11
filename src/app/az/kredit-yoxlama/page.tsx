@@ -240,6 +240,12 @@ function KreditYoxlamaContent() {
                       onChange={(v) => setB({ mebleg: v })}
                       min={meblegRange.min}
                       max={meblegRange.max}
+                      clampMin={false}
+                      error={
+                        (parseFloat(bank.mebleg) || 0) > 0 && parseFloat(bank.mebleg) < meblegRange.min
+                          ? `Banklar adətən ${meblegRange.min} ₼-dan aşağı kredit vermir.`
+                          : null
+                      }
                     />
                     <NumberField
                       label="Müddət"
