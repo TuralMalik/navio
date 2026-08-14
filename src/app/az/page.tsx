@@ -81,7 +81,7 @@ export default function HomePage() {
               Kredit almaq şansınızı yoxlayın
             </h1>
             <p className="mt-4 max-w-md text-lg leading-relaxed text-gray-600">
-              Banka müraciət etməzdən əvvəl nəticənizi öyrənin. Məlumatları yazdıqca hesablanır.
+              Banka müraciət etməzdən əvvəl ilkin nəticənizi görün və kredit profilinizə təsir edən əsas amilləri öyrənin.
             </p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -98,8 +98,6 @@ export default function HomePage() {
                 кнопкой. Теперь это одна строка доверия: те же факты,
                 одна десятая высоты и ноль декоративных иконок. */}
             <p className="mt-6 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-gray-500">
-              <span>3 dəqiqə</span>
-              <span aria-hidden className="text-gray-300">·</span>
               <span>Sənəd tələb olunmur</span>
               <span aria-hidden className="text-gray-300">·</span>
               <span>Kredit tarixçənizə təsir etmir</span>
@@ -118,7 +116,7 @@ export default function HomePage() {
             <ScoreDial score={72} tone="normal" />
 
             <p className="mt-3 text-center text-base font-bold text-emerald-700">Yaxşı şans</p>
-            <p className="mt-0.5 text-center text-[13px] text-gray-600">Bir çox bank təsdiqləyə bilər</p>
+            <p className="mt-0.5 text-center text-[13px] text-gray-600">Nəticə ilkin qiymətləndirmə xarakteri daşıyır</p>
 
             <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-gray-200 pt-4">
               {[
@@ -126,7 +124,7 @@ export default function HomePage() {
                 { k: "Borc yükü", v: formatPercent(34, 0), good: true },
                 { k: "Faiz", v: formatPercent(15, 0) },
               ].map((m) => (
-                <div key={m.k}>
+                <div key={m.k} className="text-center">
                   <dt className="text-[11px] font-semibold text-gray-400">{m.k}</dt>
                   <dd className={`text-base font-extrabold tabular-nums ${m.good ? "text-emerald-700" : "text-ink"}`}>
                     {m.v}
