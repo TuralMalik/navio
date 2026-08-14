@@ -254,6 +254,11 @@ function KreditYoxlamaContent() {
                       onChange={(v) => setB({ muddət: v })}
                       min={muddetRange.min}
                       max={muddetRange.max}
+                      error={
+                        (parseInt(bank.muddət) || 0) >= muddetRange.max
+                          ? `Banklar adətən ${muddetRange.max} aydan uzun kredit vermir.`
+                          : null
+                      }
                     />
                     {bank.kreditNovu !== "naqd" && (
                       <NumberField
@@ -327,6 +332,12 @@ function KreditYoxlamaContent() {
                       onChange={(v) => setB({ yas: v })}
                       min={FORM_RANGES.yas.min}
                       max={FORM_RANGES.yas.max}
+                      clampMin={false}
+                      error={
+                        (parseInt(bank.yas) || 0) > 0 && parseInt(bank.yas) < FORM_RANGES.yas.min
+                          ? `Kredit üçün minimum yaş adətən ${FORM_RANGES.yas.min}-dir.`
+                          : null
+                      }
                     />
                   </div>
                 </Group>
