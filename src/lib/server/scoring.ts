@@ -175,14 +175,16 @@ export function calcBankScore(f: BankForm) {
     remaining = p2.rem;
     highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
   } else {
-    // Кредитная линия базируется на ставке по типу дохода; ипотека/авто — прежний дефолт.
-    const fallbackRate =
-      f.kreditNovu === "kart"
-        ? f.gelirNovu === "qeyri_resmi"
-          ? CONFIG.cardBaseRate.unofficial
-          : CONFIG.cardBaseRate.official
-        : 24;
-    const faiz = parseFloat(f.faiz) || fallbackRate;
+    // Кредитная линия: ставка не вводится пользователем, а считается по типу
+    // дохода (как наличный). Наружу отдаём её через estimatedRate, чтобы в
+    // результате было видно, какой процент использован.
+    let faiz: number;
+    if (f.kreditNovu === "kart") {
+      faiz = f.gelirNovu === "qeyri_resmi" ? CONFIG.cardBaseRate.unofficial : CONFIG.cardBaseRate.official;
+      estimatedRate = faiz;
+    } else {
+      faiz = parseFloat(f.faiz) || 24; // ипотека/авто — ставка вводится вручную
+    }
     yeniOdenis = annuityPayment(mebleg, muddət, faiz);
     // BGN с учётом нового кредита; знаменатель — доход для скоринга
     bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
