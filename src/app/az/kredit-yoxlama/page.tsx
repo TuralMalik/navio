@@ -52,6 +52,9 @@ function KreditYoxlamaContent() {
   const searchParams = useSearchParams();
   const initNov = (searchParams.get("nov") as KreditNovu) || "naqd";
 
+  // Базовая ставка кредитной линии (карты) по типу дохода: официальный 27%, неофициальный 32%.
+  const cardBaseFaiz = (g: GelirNovu) => (g === "qeyri_resmi" ? "32" : "27");
+
   const [mode, setMode] = useState<Mode>("bank");
   const [result, setResult] = useState<PublicScoreResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,7 +64,7 @@ function KreditYoxlamaContent() {
     kreditNovu: initNov,
     mebleg: searchParams.get("mebleq") || "5000",
     muddət: searchParams.get("muddet") || "24",
-    faiz: searchParams.get("faiz") || "24",
+    faiz: searchParams.get("faiz") || (initNov === "kart" ? cardBaseFaiz("resmi") : "24"),
     gelirNovu: "resmi",
     gelir: "",
     isStaji: "12_plus",
@@ -220,6 +223,7 @@ function KreditYoxlamaContent() {
                             kreditNovu: nov,
                             mebleg: String(clampToRange(parseFloat(bank.mebleg) || m.min, m.min, m.max)),
                           muddət: String(clampToRange(parseInt(bank.muddət) || d.min, d.min, d.max)),
+                          ...(nov === "kart" ? { faiz: cardBaseFaiz(bank.gelirNovu) } : {}),
                         });
                       }}
                     >
@@ -284,12 +288,15 @@ function KreditYoxlamaContent() {
                       value={bank.gelirNovu}
                       onChange={(e) => {
                           const nov = e.target.value as GelirNovu;
+                          const nextKredit =
+                            nov === "qeyri_resmi" && (bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto")
+                              ? "naqd"
+                              : bank.kreditNovu;
                           setB({
                             gelirNovu: nov,
-                            kreditNovu:
-                              nov === "qeyri_resmi" && (bank.kreditNovu === "ipoteka" || bank.kreditNovu === "avto")
-                                ? "naqd"
-                                : bank.kreditNovu,
+                            kreditNovu: nextKredit,
+                            // Кредитная линия: базовая ставка следует за типом дохода.
+                            ...(nextKredit === "kart" ? { faiz: cardBaseFaiz(nov) } : {}),
                         });
                       }}
                     >

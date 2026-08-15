@@ -42,6 +42,8 @@ export const CONFIG = {
   maxTermMonths: 59,             // максимальный срок (кроме ипотеки)
   maxAgeAtEnd: 73,               // макс. возраст на конец срока
   maxCardLineToIncomeRatio: 5,   // лимит по кредитным линиям: 5× дохода
+  // Базовая ставка кредитной линии (карты) по типу дохода
+  cardBaseRate: { official: 27, unofficial: 32 },
 };
 
 /* Зона долговой нагрузки. Пороги внутренние, наружу уходит только тон.
@@ -173,7 +175,14 @@ export function calcBankScore(f: BankForm) {
     remaining = p2.rem;
     highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
   } else {
-    const faiz = parseFloat(f.faiz) || 24;
+    // Кредитная линия базируется на ставке по типу дохода; ипотека/авто — прежний дефолт.
+    const fallbackRate =
+      f.kreditNovu === "kart"
+        ? f.gelirNovu === "qeyri_resmi"
+          ? CONFIG.cardBaseRate.unofficial
+          : CONFIG.cardBaseRate.official
+        : 24;
+    const faiz = parseFloat(f.faiz) || fallbackRate;
     yeniOdenis = annuityPayment(mebleg, muddət, faiz);
     // BGN с учётом нового кредита; знаменатель — доход для скоринга
     bgn = income > 0 ? ((movcudNaqdOdenis + kartAyliOdenis + yeniOdenis) / income) * 100 : 999;
