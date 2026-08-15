@@ -26,22 +26,19 @@ function overall(r: ReturnType<typeof calcBankScore>) {
 }
 
 const LEVEL_TONE: Record<PublicLevel, Tone> = {
-  "Yüksək": "good",
+  "Müsbət": "good",
   "Orta": "attention",
-  "Aşağı": "risk",
+  "Risk var": "risk",
   "Məhdudiyyət var": "high",
 };
 
-const RATE_CHIPS = [12, 16, 20, 24];
+const RATE_CHIPS = [20, 24, 27, 30];
 
 /** Разделы, закрытые для незалогиненных — показываем названия в CTA. */
 export const LOCKED_SECTIONS = [
-  "Əsas məhdudiyyətlər",
-  "Borc yükü analizi",
   "Nəticəyə təsir edən amillər",
-  "Risk faktorları",
-  "Kredit profilinizi yaxşılaşdırmaq üçün addımlar",
-  "Faiz simulyasiyası",
+  "Riski azaltmaq üçün nə edə bilərsiniz?",
+  "Faiz ssenariləri",
 ];
 
 /* Общие для обоих payload'ов величины (балл, итог, метрики) — они бесплатные. */
@@ -57,7 +54,7 @@ function baseParts(f: BankForm) {
      сломалось», а не как «данных нет»; вдобавок скринридер его молча
      пропускает, и строка звучит как «BGN» без ответа. */
   const metrics = [
-    { label: "Borc yükü", value: blocked || !hasIncome ? NOT_AVAILABLE : formatPercent(r.bgn) },
+    { label: "BGN", value: blocked || !hasIncome ? NOT_AVAILABLE : formatPercent(r.bgn) },
     {
       label: "Aylıq ödəniş",
       value: blocked || r.yeniOdenis <= 0 ? NOT_AVAILABLE : `${formatNumber(Math.round(r.yeniOdenis))} ₼`,
@@ -160,71 +157,71 @@ export function buildAnalysis(
     afterBgn > limit
       ? mk("borc-yuku", "Borc yükü", "Məhdudiyyət var", "Yeni kreditdən sonra borc yükünüz tətbiq olunan həddi keçir. Bu halda nəticə uyğun deyil kimi qiymətləndirilir.")
       : afterBgn > CONFIG.bgnTierHighPct
-        ? mk("borc-yuku", "Borc yükü", "Aşağı", `Borc yükünüz yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər (${afterBgn.toFixed(1)}%).`)
+        ? mk("borc-yuku", "Borc yükü", "Risk var", `Borc yükünüz yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər (${afterBgn.toFixed(1)}%).`)
         : afterBgn > CONFIG.bgnTierMidPct
           ? mk("borc-yuku", "Borc yükü", "Orta", "Borc yükünüz orta səviyyədədir və əlavə diqqət tələb edə bilər.")
-          : mk("borc-yuku", "Borc yükü", "Yüksək", "Borc yükünüz kredit profili üçün müsbət göstəricidir."),
+          : mk("borc-yuku", "Borc yükü", "Müsbət", "Borc yükünüz kredit profili üçün müsbət göstəricidir."),
   );
 
   factors.push(
     cari === 0
-      ? mk("cari-gecikme", "Cari gecikmə", "Yüksək", "Aktiv gecikmə yoxdur. Bu, kredit tarixçəniz üçün müsbət göstəricidir.")
+      ? mk("cari-gecikme", "Cari gecikmə", "Müsbət", "Aktiv gecikmə yoxdur. Bu, kredit tarixçəniz üçün müsbət göstəricidir.")
       : cari <= 5
         ? mk("cari-gecikme", "Cari gecikmə", "Orta", "Kiçik gecikmə var. Bu, nəticəyə müəyyən təsir göstərə bilər.")
-        : mk("cari-gecikme", "Cari gecikmə", "Aşağı", `Aktiv gecikmə kredit profilinizə mənfi təsir edir (${cari} gün).`),
+        : mk("cari-gecikme", "Cari gecikmə", "Risk var", `Aktiv gecikmə kredit profilinizə mənfi təsir edir (${cari} gün).`),
   );
 
   factors.push(
     maks >= 120
-      ? mk("maks-gecikme", "Son 12 ayda maksimum gecikmə", "Aşağı", "Son 12 ayda gecikmə epizodu olub. Zamanla bunun təsiri azalır.")
-      : mk("maks-gecikme", "Son 12 ayda maksimum gecikmə", "Yüksək", "Son 12 ayda ciddi gecikmə görünmür."),
+      ? mk("maks-gecikme", "Son 12 ayda maksimum gecikmə", "Risk var", "Son 12 ayda gecikmə epizodu olub. Zamanla bunun təsiri azalır.")
+      : mk("maks-gecikme", "Son 12 ayda maksimum gecikmə", "Müsbət", "Son 12 ayda ciddi gecikmə görünmür."),
   );
 
   if (f.gelirNovu === "teqaud") {
-    factors.push(mk("gelir", "Gəlir növü", "Yüksək", "Təqaüd sabit gəlir mənbəyi kimi qiymətləndirilir."));
+    factors.push(mk("gelir", "Gəlir növü", "Müsbət", "Təqaüd sabit gəlir mənbəyi kimi qiymətləndirilir."));
   } else if (unofficial) {
     factors.push(mk("gelir", "Gəlir növü", "Orta", "Qeyri-rəsmi gəlir mənbəyi kredit qiymətləndirməsində əlavə diqqətlə nəzərdən keçirilir."));
   } else {
     factors.push(
       stajOk
-        ? mk("gelir", "Gəlirin etibarlılığı", "Yüksək", "Gəlir mənbəyiniz və staj göstəriciniz kredit profili üçün müsbət göstəricidir.")
-        : mk("gelir", "Gəlirin etibarlılığı", "Aşağı", "İş stajınız minimum tələbi qarşılamır. Bu, nəticəyə mənfi təsir edə bilər."),
+        ? mk("gelir", "Gəlirin etibarlılığı", "Müsbət", "Gəlir mənbəyiniz və staj göstəriciniz kredit profili üçün müsbət göstəricidir.")
+        : mk("gelir", "Gəlirin etibarlılığı", "Risk var", "İş stajınız minimum tələbi qarşılamır. Bu, nəticəyə mənfi təsir edə bilər."),
     );
   }
 
   if (unofficial) {
     factors.push(
       muddet <= 36
-        ? mk("muddet", "Müddət", "Yüksək", "Kredit müddəti aylıq ödəniş və ümumi risk baxımından münasib görünür.")
-        : mk("muddet", "Müddət", "Aşağı", "Uzun kredit müddəti ümumi faiz xərcini və risk qiymətləndirməsini artıra bilər."),
+        ? mk("muddet", "Müddət", "Müsbət", "Kredit müddəti aylıq ödəniş və ümumi risk baxımından münasib görünür.")
+        : mk("muddet", "Müddət", "Risk var", "Uzun kredit müddəti ümumi faiz xərcini və risk qiymətləndirməsini artıra bilər."),
     );
   } else {
     factors.push(
       muddet > CONFIG.maxTermMonths && f.kreditNovu !== "ipoteka"
         ? mk("muddet", "Müddət", "Məhdudiyyət var", "Seçilmiş müddət bu kredit növü üçün tətbiq olunan maksimum həddi keçir.")
         : muddet > 48
-          ? mk("muddet", "Müddət", "Aşağı", "Uzun kredit müddəti ümumi faiz xərcini və risk qiymətləndirməsini artıra bilər.")
+          ? mk("muddet", "Müddət", "Risk var", "Uzun kredit müddəti ümumi faiz xərcini və risk qiymətləndirməsini artıra bilər.")
           : muddet > 36
             ? mk("muddet", "Müddət", "Orta", "Kredit müddəti orta səviyyədədir və ümumi faiz xərcinə təsir edə bilər.")
-            : mk("muddet", "Müddət", "Yüksək", "Kredit müddəti aylıq ödəniş və ümumi risk baxımından münasib görünür."),
+            : mk("muddet", "Müddət", "Müsbət", "Kredit müddəti aylıq ödəniş və ümumi risk baxımından münasib görünür."),
     );
   }
 
   if (unofficial) {
     factors.push(
       mebleg <= 1000
-        ? mk("mebleg", "Məbləğ", "Yüksək", "Seçilmiş məbləğ kredit profili baxımından münasib görünür.")
+        ? mk("mebleg", "Məbləğ", "Müsbət", "Seçilmiş məbləğ kredit profili baxımından münasib görünür.")
         : mebleg <= 1500
           ? mk("mebleg", "Məbləğ", "Orta", "Seçilmiş məbləğ orta səviyyədədir və əlavə qiymətləndirmə tələb edə bilər.")
-          : mk("mebleg", "Məbləğ", "Aşağı", "Seçilmiş məbləğ yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər."),
+          : mk("mebleg", "Məbləğ", "Risk var", "Seçilmiş məbləğ yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər."),
     );
   } else {
     factors.push(
       mebleg <= 20000
-        ? mk("mebleg", "Məbləğ", "Yüksək", "Seçilmiş məbləğ kredit profili baxımından münasib görünür.")
+        ? mk("mebleg", "Məbləğ", "Müsbət", "Seçilmiş məbləğ kredit profili baxımından münasib görünür.")
         : mebleg <= CONFIG.amountCap79Above
           ? mk("mebleg", "Məbləğ", "Orta", "Seçilmiş məbləğ orta səviyyədədir və əlavə qiymətləndirmə tələb edə bilər.")
-          : mk("mebleg", "Məbləğ", "Aşağı", "Seçilmiş məbləğ yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər."),
+          : mk("mebleg", "Məbləğ", "Risk var", "Seçilmiş məbləğ yüksəkdir və kredit alma ehtimalına mənfi təsir edə bilər."),
     );
   }
 
@@ -306,24 +303,35 @@ export function buildAnalysis(
       : "good";
     const simStatus =
       simBgn > limit ? "Uyğun deyil"
-      : simBgn > CONFIG.bgnTierHighPct ? "Aşağı"
-      : simBgn > CONFIG.bgnTierMidPct ? "Orta"
-      : "Yüksək";
+      : simBgn > CONFIG.bgnTierHighPct ? "Aşağı nəticə"
+      : simBgn > CONFIG.bgnTierMidPct ? "Orta nəticə"
+      : "Yaxşı nəticə";
     simulation = { chips: RATE_CHIPS, rate, payment: simPayment, bgn: simBgn, status: simStatus, tone: simTone };
   }
+
+  const hasRestriction = factors.some((x) => x.level === "Məhdudiyyət var");
+  // Ограничение по фактору => итог «uyğun deyil», даже если хард-стоп не сработал.
+  const finalOverall =
+    hasRestriction && r.stops.length === 0
+      ? {
+          label: "Uyğun deyil",
+          tone: "high" as Tone,
+          note: "Bir və ya bir neçə göstərici üzrə tətbiq olunan limit və ya minimum tələb qarşılanmır.",
+        }
+      : o;
 
   return {
     locked: false,
     calculationId,
     createdAt,
     score: r.score,
-    overall: o,
+    overall: finalOverall,
     stops: r.stops,
     metrics,
     checks,
     bgn,
     factors,
-    hasRestriction: factors.some((x) => x.level === "Məhdudiyyət var"),
+    hasRestriction,
     risks,
     recommendations,
     simulation: blocked ? null : simulation,

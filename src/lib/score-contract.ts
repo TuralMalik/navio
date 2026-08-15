@@ -41,7 +41,7 @@ export interface PublicScoreResult {
 }
 
 /* ─── Детальный отчёт (/analiz) ─── */
-export type PublicLevel = "Yüksək" | "Orta" | "Aşağı" | "Məhdudiyyət var";
+export type PublicLevel = "Müsbət" | "Orta" | "Risk var" | "Məhdudiyyət var";
 
 export type FactorKey =
   | "borc-yuku" | "cari-gecikme" | "maks-gecikme"
