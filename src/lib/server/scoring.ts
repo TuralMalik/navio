@@ -109,8 +109,10 @@ export function estimateCashRate(incomeType: GelirNovu, bgn: number, termMonths:
   return t.m59;
 }
 
-/* ─── Bank scoring ─── */
-export function calcBankScore(f: BankForm) {
+/* ─── Bank scoring ───
+   rateOverride: клиент на /analiz сам выбрал ставку. Тогда весь расчёт
+   (платёж, BGN, балл) идёт по ней, а не по нашей усреднённой оценке. */
+export function calcBankScore(f: BankForm, rateOverride?: number) {
   const nn = (v: string) => Math.max(0, parseFloat(v) || 0); // отрицательные → 0
   const mebleg = nn(f.mebleg);
   const muddət = Math.max(0, parseInt(f.muddət) || 0);
@@ -158,7 +160,15 @@ export function calcBankScore(f: BankForm) {
   // Карта/ипотека/авто — ставка вводится пользователем вручную.
   const useCashRate = f.kreditNovu === "naqd";
 
-  if (useCashRate) {
+  if (rateOverride != null && rateOverride > 0) {
+    // Клиент сам задал ставку в отчёте — считаем платёж/BGN/остаток по ней.
+    yeniOdenis = annuityPayment(mebleg, muddət, rateOverride);
+    const total = movcudNaqdOdenis + kartAyliOdenis + yeniOdenis;
+    bgn = income > 0 ? (total / income) * 100 : 999;
+    remaining = income - total;
+    estimatedRate = rateOverride;
+    highRisk = bgn > 45 || remaining < subsistenceMin(f.gelirNovu);
+  } else if (useCashRate) {
     // Платёж/BGN/остаток зависят от ставки, а ставка — от BGN/остатка → два прохода.
     const calc = (rate: number) => {
       const pmt = annuityPayment(mebleg, muddət, rate);

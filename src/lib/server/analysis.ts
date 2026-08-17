@@ -41,9 +41,10 @@ export const LOCKED_SECTIONS = [
   "Faiz ssenariləri",
 ];
 
-/* Общие для обоих payload'ов величины (балл, итог, метрики) — они бесплатные. */
-function baseParts(f: BankForm) {
-  const r = calcBankScore(f);
+/* Общие для обоих payload'ов величины (балл, итог, метрики) — они бесплатные.
+   rateOverride: выбранная клиентом в отчёте ставка — весь расчёт идёт по ней. */
+function baseParts(f: BankForm, rateOverride?: number) {
+  const r = calcBankScore(f, rateOverride);
   const blocked = r.stops.length > 0;
   const num = (s: string) => Math.max(0, parseFloat(s) || 0);
   const income = incomeForScoring(f.gelirNovu, num(f.gelir));
@@ -92,7 +93,9 @@ export function buildAnalysis(
   createdAt: string,
   simRate?: number,
 ): UnlockedAnalysis {
-  const { r, blocked, num, income, hasIncome, metrics, overall: o } = baseParts(f);
+  // Ставку принимаем только из списка чипов: иначе её можно перебирать и картировать пороги.
+  const useRate = simRate != null && RATE_CHIPS.includes(simRate) ? simRate : undefined;
+  const { r, num, income, hasIncome, metrics, overall: o } = baseParts(f, useRate);
 
   const mebleg = num(f.mebleg);
   const muddet = Math.max(0, parseInt(f.muddət) || 0);
@@ -287,26 +290,23 @@ export function buildAnalysis(
   if (recommendations.length === 0)
     recommendations.push({ key: "profil-yaxsi", title: "Profiliniz yaxşı vəziyyətdədir", text: "Ödənişləri vaxtında etməyə davam edin. Bu, kredit profilinizi güclü saxlayır." });
 
-  /* ─── 6. Faiz simulyasiyası ─── */
+  /* ─── 6. Faiz ssenariləri ───
+     Чипы теперь пересчитывают ВЕСЬ отчёт (r уже посчитан по useRate), поэтому
+     здесь только: список чипов и какой из них активен. Активен либо выбранный
+     клиентом чип, либо тот, что совпал с применённой ставкой (иначе никакой). */
   let simulation: Simulation | null = null;
   if (hasIncome && mebleg > 0 && muddet > 0) {
-    const baseRate = r.estimatedRate != null ? r.estimatedRate : parseFloat(f.faiz) || 24;
-    const defaultChip = RATE_CHIPS.reduce((a, b) => (Math.abs(b - baseRate) < Math.abs(a - baseRate) ? b : a), RATE_CHIPS[0]);
-    // Принимаем только значения из списка чипов — иначе ставку можно перебирать и картировать пороги
-    const rate = simRate != null && RATE_CHIPS.includes(simRate) ? simRate : defaultChip;
-    const simPayment = annuityPayment(mebleg, muddet, rate);
-    const simBgn = ((num(f.movcudNaqdOdenis) + kartStress + simPayment) / income) * 100;
-    const simTone: Tone =
-      simBgn > limit ? "high"
-      : simBgn > CONFIG.bgnTierHighPct ? "risk"
-      : simBgn > CONFIG.bgnTierMidPct ? "attention"
-      : "good";
-    const simStatus =
-      simBgn > limit ? "Uyğun deyil"
-      : simBgn > CONFIG.bgnTierHighPct ? "Aşağı nəticə"
-      : simBgn > CONFIG.bgnTierMidPct ? "Orta nəticə"
-      : "Yaxşı nəticə";
-    simulation = { chips: RATE_CHIPS, rate, payment: simPayment, bgn: simBgn, status: simStatus, tone: simTone };
+    const appliedRate = r.estimatedRate != null ? r.estimatedRate : parseFloat(f.faiz) || 24;
+    const appliedRounded = Math.round(appliedRate);
+    const activeChip = useRate ?? (RATE_CHIPS.includes(appliedRounded) ? appliedRounded : 0);
+    simulation = {
+      chips: RATE_CHIPS,
+      rate: activeChip,
+      payment: r.yeniOdenis,
+      bgn: r.bgn,
+      status: o.label,
+      tone: bgnTone(r.bgn),
+    };
   }
 
   const hasRestriction = factors.some((x) => x.level === "Məhdudiyyət var");
@@ -334,6 +334,8 @@ export function buildAnalysis(
     hasRestriction,
     risks,
     recommendations,
-    simulation: blocked ? null : simulation,
+    // Чипы ставки показываем и при блокировке: иначе выбрав высокую ставку и
+    // получив хард-стоп, клиент не сможет вернуть ставку ниже.
+    simulation,
   };
 }

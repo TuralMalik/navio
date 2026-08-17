@@ -12,15 +12,13 @@ import {
   Scale, History, BadgeCheck, FileText, CalendarClock, Lightbulb, TrendingDown,
   CreditCard, Clock, CalendarRange, Sparkles, Calculator, BookOpen, Lock, UserPlus,
 } from "lucide-react";
-import { formatNumber, formatPercent } from "@/lib/utils";
+import { formatPercent } from "@/lib/utils";
 import type { AnalysisPayload, UnlockedAnalysis, FactorKey, RecKey } from "@/lib/score-contract";
 import { toneStyle } from "@/lib/tone";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { useDebouncedCallback, useLatestRequest } from "@/lib/useDebouncedCallback";
-
-const azn = (v: number) => `${formatNumber(Math.round(v))} ₼`;
 
 /* Иконки маппим по ключу: сервер присылает key, не разметку. */
 const FACTOR_ICON: Record<FactorKey, React.ReactNode> = {
@@ -321,7 +319,12 @@ function AnalizContent() {
 
       {sim && (
         <Section title="Faiz ssenariləri" icon={<Calculator size={17} />}>
-          <div role="group" aria-label="Faiz dərəcəsi" className="mb-3 flex flex-wrap gap-2">
+          <p className="mb-3 text-[13px] leading-relaxed text-gray-600">
+            Faizi biz təxmini götürürük. Öz faizinizi seçin: yuxarıdakı bütün nəticə, o cümlədən balınız,
+            həmin faizə görə dərhal yenilənir. Məlumatları yenidən daxil etməyə ehtiyac yoxdur.
+          </p>
+
+          <div role="group" aria-label="Faiz dərəcəsi" className="flex flex-wrap gap-2">
             {sim.chips.map((c) => {
               const on = c === sim.rate;
               return (
@@ -338,25 +341,6 @@ function AnalizContent() {
               );
             })}
           </div>
-
-          <dl className="grid grid-cols-3 gap-2.5">
-            {[
-              { label: "Aylıq ödəniş", value: azn(sim.payment), tone: null },
-              { label: "BGN", value: formatPercent(sim.bgn), tone: sim.tone },
-              { label: "Nəticə", value: sim.status, tone: sim.tone },
-            ].map((cell) => (
-              <div key={cell.label} className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center">
-                <dt className="text-[11px] font-medium text-gray-500">{cell.label}</dt>
-                <dd
-                  className={`mt-0.5 text-sm font-extrabold tabular-nums ${
-                    cell.tone ? toneStyle(cell.tone).text : "text-ink"
-                  }`}
-                >
-                  {cell.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
 
           <p className="mt-3 text-xs leading-relaxed text-gray-500">
             Bu yalnız simulyasiyadır. Bankın real təklifi fərqli ola bilər.
