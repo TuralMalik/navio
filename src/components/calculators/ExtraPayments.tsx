@@ -2,9 +2,10 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import type { ExtraPaymentPlan } from "@/lib/calculators/amortisation";
+import { addMonths, monthIndex } from "@/lib/calculators/dates";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, SelectField, inputClasses } from "@/components/ui/Field";
+import { Field, MonthField, SelectField, inputClasses } from "@/components/ui/Field";
 
 /* Блок «дополнительные платежи» был скопирован в три калькулятора слово в
    слово. Копии успели разойтись, а правку приходилось вносить трижды.
@@ -13,7 +14,8 @@ import { Field, SelectField, inputClasses } from "@/components/ui/Field";
 
 export interface OneTimeRow {
   id: number;
-  month: number;
+  /** Дата платежа как "YYYY-MM"; в план переводится в порядковый месяц по дате старта. */
+  date: string;
   amount: number;
 }
 
@@ -30,7 +32,7 @@ export const initialExtraConfig: ExtraConfig = {
   enabled: false,
   mode: "term",
   recurring: { enabled: false, amount: 100, from: 1, to: "" },
-  oneTime: [{ id: 1, month: 1, amount: 0 }],
+  oneTime: [{ id: 1, date: "", amount: 0 }],
   penaltyPct: 0,
 };
 
@@ -39,8 +41,9 @@ export function hasExtra(cfg: ExtraConfig): boolean {
   return cfg.enabled && (cfg.recurring.enabled || cfg.oneTime.some((o) => o.amount > 0));
 }
 
-/** Конфиг формы → параметры симуляции. */
-export function toPlan(cfg: ExtraConfig, months: number): ExtraPaymentPlan | undefined {
+/** Конфиг формы → параметры симуляции. startDate ("YYYY-MM") переводит даты
+    разовых доплат в порядковый месяц. */
+export function toPlan(cfg: ExtraConfig, months: number, startDate: string): ExtraPaymentPlan | undefined {
   if (!hasExtra(cfg)) return undefined;
   return {
     recurring: cfg.recurring.enabled
@@ -50,7 +53,11 @@ export function toPlan(cfg: ExtraConfig, months: number): ExtraPaymentPlan | und
           toMonth: cfg.recurring.to === "" ? months : Number(cfg.recurring.to),
         }
       : undefined,
-    oneTime: cfg.oneTime.filter((o) => o.amount > 0),
+    oneTime: cfg.oneTime
+      .map((o) => ({ month: monthIndex(startDate, o.date), amount: o.amount }))
+      .filter((o): o is { month: number; amount: number } =>
+        o.amount > 0 && o.month != null && o.month >= 1 && o.month <= months,
+      ),
     penaltyPct: cfg.penaltyPct,
     mode: cfg.mode,
   };
@@ -60,10 +67,13 @@ const PENALTIES = [0, 1, 2, 3, 5];
 
 export function ExtraPayments({
   months,
+  startDate,
   value,
   onChange,
 }: {
   months: number;
+  /** Дата начала кредита ("YYYY-MM") — привязка дат разовых доплат. */
+  startDate: string;
   value: ExtraConfig;
   onChange: (next: ExtraConfig) => void;
 }) {
@@ -71,11 +81,14 @@ export function ExtraPayments({
   const setRecurring = (patch: Partial<ExtraConfig["recurring"]>) =>
     onChange({ ...value, recurring: { ...value.recurring, ...patch } });
 
-  const updateOneTime = (id: number, field: "month" | "amount", v: number) =>
-    onChange({ ...value, oneTime: value.oneTime.map((o) => (o.id === id ? { ...o, [field]: v } : o)) });
+  const updateOneTime = (id: number, patch: Partial<OneTimeRow>) =>
+    onChange({ ...value, oneTime: value.oneTime.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
 
   const addOneTime = () =>
-    onChange({ ...value, oneTime: [...value.oneTime, { id: Date.now(), month: 1, amount: 0 }] });
+    onChange({ ...value, oneTime: [...value.oneTime, { id: Date.now(), date: "", amount: 0 }] });
+
+  // Границы календаря доплат: от старта до последнего месяца кредита.
+  const lastMonth = startDate && months > 0 ? addMonths(startDate, months - 1) : undefined;
 
   const removeOneTime = (id: number) =>
     onChange({ ...value, oneTime: value.oneTime.filter((o) => o.id !== id) });
@@ -182,18 +195,14 @@ export function ExtraPayments({
             <div className="space-y-3">
               {value.oneTime.map((op) => (
                 <div key={op.id} className="grid grid-cols-[1fr_1fr_auto] items-end gap-3">
-                  <Field label="Ödəniş ayı" htmlFor={`ot-m-${op.id}`}>
-                    <input
-                      id={`ot-m-${op.id}`}
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={months}
-                      className={inputClasses()}
-                      value={op.month || ""}
-                      onChange={(e) => updateOneTime(op.id, "month", parseInt(e.target.value, 10) || 0)}
-                    />
-                  </Field>
+                  <MonthField
+                    label="Ödəniş tarixi"
+                    id={`ot-d-${op.id}`}
+                    value={op.date}
+                    onChange={(v) => updateOneTime(op.id, { date: v })}
+                    min={startDate || undefined}
+                    max={lastMonth}
+                  />
                   <Field label="Məbləğ (₼)" htmlFor={`ot-a-${op.id}`}>
                     <input
                       id={`ot-a-${op.id}`}
@@ -202,13 +211,13 @@ export function ExtraPayments({
                       min={0}
                       className={inputClasses()}
                       value={op.amount || ""}
-                      onChange={(e) => updateOneTime(op.id, "amount", parseInt(e.target.value, 10) || 0)}
+                      onChange={(e) => updateOneTime(op.id, { amount: parseInt(e.target.value, 10) || 0 })}
                     />
                   </Field>
                   <Button
                     variant="ghost"
                     onClick={() => removeOneTime(op.id)}
-                    aria-label={`${op.month}-ci ay üzrə ödənişi sil`}
+                    aria-label="Ödənişi sil"
                     // Единственная кнопка удаления не должна исчезать: строка
                     // всё равно нужна форме, а пустой список рвал бы вёрстку
                     disabled={value.oneTime.length === 1}

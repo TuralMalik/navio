@@ -154,6 +154,51 @@ export function NumberField({
   );
 }
 
+/* Поле выбора месяца и года в той же оболочке, что и NumberField.
+   Нативный input[type=month] даёт выпадающий календарь и возвращает "YYYY-MM";
+   день не запрашиваем — график кредита помесячный, день на него не влияет. */
+export function MonthField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  hint,
+  id,
+  className = "",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  min?: string;
+  max?: string;
+  hint?: string;
+  id?: string;
+  className?: string;
+}) {
+  const auto = useId();
+  const inputId = id ?? auto;
+  return (
+    <div className={className}>
+      <label htmlFor={inputId} className="mb-1 block text-[11px] font-semibold text-gray-500">
+        {label}
+      </label>
+      <div className="flex items-center rounded-lg border border-gray-300 bg-white transition-colors focus-within:border-brand-500 hover:border-gray-400">
+        <input
+          id={inputId}
+          type="month"
+          value={value}
+          min={min}
+          max={max}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent px-3 py-2 text-sm font-semibold text-ink outline-none"
+        />
+      </div>
+      {hint && <p className="mt-1 text-[11px] leading-snug text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
 /* Выпадающий список в той же оболочке, что и NumberField.
 
    До этого списки собирались из Field + inputClasses с дописанным «py-2», и

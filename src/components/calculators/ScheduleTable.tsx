@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { AmortisationRow } from "@/lib/calculators/amortisation";
+import { scheduleDateLabel } from "@/lib/calculators/dates";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -15,7 +16,16 @@ const PREVIEW_ROWS = 10;
    Числа идут табличными цифрами и выравниваются вправо: в столбце сумм
    разряды должны стоять друг под другом, иначе колонку невозможно
    просматривать взглядом сверху вниз. */
-export function ScheduleTable({ rows, showExtra }: { rows: AmortisationRow[]; showExtra: boolean }) {
+export function ScheduleTable({
+  rows,
+  showExtra,
+  startDate = "",
+}: {
+  rows: AmortisationRow[];
+  showExtra: boolean;
+  /** Дата начала кредита ("YYYY-MM"): если задана, к номеру месяца добавляем дату. */
+  startDate?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   if (!rows.length) return null;
 
@@ -43,6 +53,11 @@ export function ScheduleTable({ rows, showExtra }: { rows: AmortisationRow[]; sh
               <tr key={row.month} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                 <th scope="row" className="py-2.5 pr-4 text-left font-medium tabular-nums text-gray-700">
                   {row.month}
+                  {startDate && (
+                    <span className="block text-[11px] font-normal text-gray-400">
+                      {scheduleDateLabel(startDate, row.month)}
+                    </span>
+                  )}
                 </th>
                 <td className="py-2.5 pr-4 text-right tabular-nums text-gray-700">{formatCurrency(row.payment)}</td>
                 {showExtra && (

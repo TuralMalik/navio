@@ -5,7 +5,8 @@ import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
-import { NumberField } from "@/components/ui/Field";
+import { NumberField, MonthField } from "@/components/ui/Field";
+import { useDefaultStartMonth } from "@/lib/calculators/dates";
 import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
 import { LoanResult } from "@/components/calculators/LoanResult";
 import { ScheduleTable } from "@/components/calculators/ScheduleTable";
@@ -30,6 +31,7 @@ export default function AutoLoanPage() {
   const [months, setMonths] = useState("60");
   const [rate, setRate] = useState("15");
   const [commissionPct, setCommissionPct] = useState("0");
+  const [startDate, setStartDate] = useDefaultStartMonth();
   const [extra, setExtra] = useState(initialExtraConfig);
 
   const n = (s: string) => Math.max(0, parseFloat(s) || 0);
@@ -46,7 +48,7 @@ export default function AutoLoanPage() {
     if (!loanAmount || !m || !r) return null;
 
     const base = simulateLoan(loanAmount, r, m);
-    const plan = toPlan(extra, m);
+    const plan = toPlan(extra, m, startDate);
 
     if (!plan) {
       return {
@@ -128,6 +130,7 @@ export default function AutoLoanPage() {
               />
               <NumberField label="İlkin ödəniş" unit="%" value={downPct} onChange={setDownPct} min={10} max={90} />
               <NumberField label="Müddət" unit="ay" value={months} onChange={setMonths} min={6} max={59} />
+              <MonthField label="Kredit başlama tarixi" value={startDate} onChange={setStartDate} />
               <NumberField label="İllik faiz" unit="%" value={rate} onChange={setRate} min={5} max={35} step={0.1} />
               <NumberField label="Komissiya" unit="%" value={commissionPct} onChange={setCommissionPct} min={0} max={5} step={0.25} />
             </div>
@@ -152,7 +155,7 @@ export default function AutoLoanPage() {
             )}
           </Card>
 
-          <ExtraPayments months={m} value={extra} onChange={setExtra} />
+          <ExtraPayments months={m} startDate={startDate} value={extra} onChange={setExtra} />
         </div>
 
         <div className="lg:col-span-2">
@@ -183,7 +186,7 @@ export default function AutoLoanPage() {
         </div>
       </div>
 
-      {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} />}
+      {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} startDate={startDate} />}
     </div>
   );
 }
