@@ -23,7 +23,8 @@ export interface ExtraConfig {
   enabled: boolean;
   /** term — сокращаем срок, payment — сокращаем платёж. */
   mode: "term" | "payment";
-  recurring: { enabled: boolean; amount: number; from: number; to: number | "" };
+  /** from/to — даты "YYYY-MM"; to "" означает «до конца кредита». */
+  recurring: { enabled: boolean; amount: number; from: string; to: string };
   oneTime: OneTimeRow[];
   penaltyPct: number;
 }
@@ -31,7 +32,7 @@ export interface ExtraConfig {
 export const initialExtraConfig: ExtraConfig = {
   enabled: false,
   mode: "term",
-  recurring: { enabled: false, amount: 100, from: 1, to: "" },
+  recurring: { enabled: false, amount: 100, from: "", to: "" },
   oneTime: [{ id: 1, date: "", amount: 0 }],
   penaltyPct: 0,
 };
@@ -45,12 +46,18 @@ export function hasExtra(cfg: ExtraConfig): boolean {
     разовых доплат в порядковый месяц. */
 export function toPlan(cfg: ExtraConfig, months: number, startDate: string): ExtraPaymentPlan | undefined {
   if (!hasExtra(cfg)) return undefined;
+  // Дата "YYYY-MM" → номер месяца кредита в пределах [1, months].
+  const toMonthNo = (date: string, fallback: number) => {
+    const i = monthIndex(startDate, date);
+    return i != null ? Math.min(Math.max(i, 1), months) : fallback;
+  };
+
   return {
     recurring: cfg.recurring.enabled
       ? {
           amount: cfg.recurring.amount,
-          fromMonth: cfg.recurring.from,
-          toMonth: cfg.recurring.to === "" ? months : Number(cfg.recurring.to),
+          fromMonth: toMonthNo(cfg.recurring.from, 1),
+          toMonth: cfg.recurring.to === "" ? months : toMonthNo(cfg.recurring.to, months),
         }
       : undefined,
     oneTime: cfg.oneTime
@@ -161,31 +168,23 @@ export function ExtraPayments({
                     onChange={(e) => setRecurring({ amount: parseInt(e.target.value, 10) || 0 })}
                   />
                 </Field>
-                <Field label="Hansı aydan başlasın" htmlFor="rec-from">
-                  <input
-                    id="rec-from"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={months}
-                    className={inputClasses()}
-                    value={value.recurring.from || ""}
-                    onChange={(e) => setRecurring({ from: parseInt(e.target.value, 10) || 0 })}
-                  />
-                </Field>
-                <Field label="Nəyə qədər davam etsin" htmlFor="rec-to">
-                  <input
-                    id="rec-to"
-                    type="number"
-                    inputMode="numeric"
-                    min={value.recurring.from}
-                    max={months}
-                    placeholder="Kredit bitənə qədər"
-                    className={inputClasses()}
-                    value={value.recurring.to}
-                    onChange={(e) => setRecurring({ to: e.target.value === "" ? "" : Number(e.target.value) })}
-                  />
-                </Field>
+                <MonthField
+                  label="Hansı tarixdən başlasın"
+                  id="rec-from"
+                  value={value.recurring.from}
+                  onChange={(v) => setRecurring({ from: v })}
+                  min={startDate || undefined}
+                  max={lastMonth}
+                />
+                <MonthField
+                  label="Hansı tarixə qədər"
+                  id="rec-to"
+                  hint="Boş: kredit bitənə qədər"
+                  value={value.recurring.to}
+                  onChange={(v) => setRecurring({ to: v })}
+                  min={value.recurring.from || startDate || undefined}
+                  max={lastMonth}
+                />
               </div>
             )}
           </div>
