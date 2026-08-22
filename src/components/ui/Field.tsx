@@ -154,10 +154,11 @@ export function NumberField({
   );
 }
 
-/* Поле выбора месяца и года в той же оболочке, что и NumberField.
-   Нативный input[type=month] даёт выпадающий календарь и возвращает "YYYY-MM";
-   день не запрашиваем — график кредита помесячный, день на него не влияет. */
-export function MonthField({
+/* Поле ввода даты (день, месяц, год) в той же оболочке, что и NumberField.
+   Нативный input[type=date] можно набирать вручную по сегментам д/м/г, а при
+   желании открыть календарь. День для графика кредита не влияет на суммы —
+   он используется только в подписи даты. */
+export function DateField({
   label,
   value,
   onChange,
@@ -186,7 +187,7 @@ export function MonthField({
       <div className="flex items-center rounded-lg border border-gray-300 bg-white transition-colors focus-within:border-brand-500 hover:border-gray-400">
         <input
           id={inputId}
-          type="month"
+          type="date"
           value={value}
           min={min}
           max={max}

@@ -5,8 +5,8 @@ import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
 import { formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
-import { NumberField, MonthField } from "@/components/ui/Field";
-import { useDefaultStartMonth } from "@/lib/calculators/dates";
+import { NumberField, DateField } from "@/components/ui/Field";
+import { useDefaultStartDate } from "@/lib/calculators/dates";
 import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
 import { LoanResult } from "@/components/calculators/LoanResult";
 import { ScheduleTable } from "@/components/calculators/ScheduleTable";
@@ -27,7 +27,7 @@ export default function ConsumerLoanPage() {
   const [commissionPct, setCommissionPct] = useState("0");
   const [insurancePct, setInsurancePct] = useState("0");
   const [other, setOther] = useState("0");
-  const [startDate, setStartDate] = useDefaultStartMonth();
+  const [startDate, setStartDate] = useDefaultStartDate();
   const [extra, setExtra] = useState(initialExtraConfig);
 
   const n = (s: string) => Math.max(0, parseFloat(s) || 0);
@@ -100,7 +100,7 @@ export default function ConsumerLoanPage() {
             <div className="grid grid-cols-2 gap-3">
               <NumberField label="Kredit məbləği" unit="₼" value={principal} onChange={setPrincipal} min={0} max={100000} />
               <NumberField label="Müddət" unit="ay" value={months} onChange={setMonths} min={3} max={360} />
-              <MonthField label="Kredit başlama tarixi" value={startDate} onChange={setStartDate} />
+              <DateField label="Kredit başlama tarixi" value={startDate} onChange={setStartDate} />
               <NumberField label="İllik faiz" unit="%" value={rate} onChange={setRate} min={1} max={50} step={0.1} />
               <NumberField label="Komissiya" unit="%" value={commissionPct} onChange={setCommissionPct} min={0} max={10} step={0.25} />
               <NumberField label="Sığorta" unit="%" value={insurancePct} onChange={setInsurancePct} min={0} max={5} step={0.25} />

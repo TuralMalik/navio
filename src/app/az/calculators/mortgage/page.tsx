@@ -5,8 +5,8 @@ import { calcAnnuityPayment, solveMonthlyIRR } from "@/lib/calculators/annuity";
 import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
-import { NumberField, MonthField } from "@/components/ui/Field";
-import { useDefaultStartMonth } from "@/lib/calculators/dates";
+import { NumberField, DateField } from "@/components/ui/Field";
+import { useDefaultStartDate } from "@/lib/calculators/dates";
 import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
 import { LoanResult } from "@/components/calculators/LoanResult";
 import { ScheduleTable } from "@/components/calculators/ScheduleTable";
@@ -19,7 +19,7 @@ export default function MortgagePage() {
   const [downPct, setDownPct] = useState("20");
   const [years, setYears] = useState("20");
   const [rate, setRate] = useState("12");
-  const [startDate, setStartDate] = useDefaultStartMonth();
+  const [startDate, setStartDate] = useDefaultStartDate();
   const [extra, setExtra] = useState(initialExtraConfig);
 
   const n = (s: string) => Math.max(0, parseFloat(s) || 0);
@@ -86,7 +86,7 @@ export default function MortgagePage() {
               />
               <NumberField label="İlkin ödəniş" unit="%" value={downPct} onChange={setDownPct} min={5} max={90} />
               <NumberField label="Müddət" unit="il" value={years} onChange={setYears} min={1} max={30} />
-              <MonthField label="Kredit başlama tarixi" value={startDate} onChange={setStartDate} />
+              <DateField label="Kredit başlama tarixi" value={startDate} onChange={setStartDate} />
               <NumberField label="İllik faiz" unit="%" value={rate} onChange={setRate} min={1} max={30} step={0.1} />
             </div>
 

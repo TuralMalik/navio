@@ -5,7 +5,7 @@ import type { ExtraPaymentPlan } from "@/lib/calculators/amortisation";
 import { addMonths, monthIndex } from "@/lib/calculators/dates";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Field, MonthField, SelectField, inputClasses } from "@/components/ui/Field";
+import { Field, DateField, SelectField, inputClasses } from "@/components/ui/Field";
 
 /* Блок «дополнительные платежи» был скопирован в три калькулятора слово в
    слово. Копии успели разойтись, а правку приходилось вносить трижды.
@@ -168,7 +168,7 @@ export function ExtraPayments({
                     onChange={(e) => setRecurring({ amount: parseInt(e.target.value, 10) || 0 })}
                   />
                 </Field>
-                <MonthField
+                <DateField
                   label="Hansı tarixdən başlasın"
                   id="rec-from"
                   value={value.recurring.from}
@@ -176,7 +176,7 @@ export function ExtraPayments({
                   min={startDate || undefined}
                   max={lastMonth}
                 />
-                <MonthField
+                <DateField
                   label="Hansı tarixə qədər"
                   id="rec-to"
                   hint="Boş: kredit bitənə qədər"
@@ -194,7 +194,7 @@ export function ExtraPayments({
             <div className="space-y-3">
               {value.oneTime.map((op) => (
                 <div key={op.id} className="grid grid-cols-[1fr_1fr_auto] items-end gap-3">
-                  <MonthField
+                  <DateField
                     label="Ödəniş tarixi"
                     id={`ot-d-${op.id}`}
                     value={op.date}
