@@ -63,15 +63,15 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
       <Card className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Meta label="Started" value={started ? fmtTime(started) : "—"} />
+          <Meta label="Started" value={started ? fmtTime(started) : "-"} />
           <Meta label="Active time" value={fmtDuration(activeMs)} />
           <Meta label="Total elapsed" value={fmtDuration(wallMs)} />
           <Meta label="Pages / events" value={`${viewCount} / ${eventCount}`} />
           <Meta label="Who" value={meta.email ?? "anonymous"} />
           <Meta label="Source" value={meta.utmSource ?? meta.referrer ?? meta.visitType ?? "direct"} />
-          <Meta label="Campaign" value={meta.utmCampaign ?? "—"} />
-          <Meta label="Country / device" value={`${meta.country ?? "—"} · ${meta.clientSource ?? "—"}`} />
-          <Meta label="Browser" value={<span className="text-[11px] text-slate-500 break-all">{meta.userAgent ?? "—"}</span>} />
+          <Meta label="Campaign" value={meta.utmCampaign ?? "-"} />
+          <Meta label="Country / device" value={`${meta.country ?? "-"} · ${meta.clientSource ?? "-"}`} />
+          <Meta label="Browser" value={<span className="text-[11px] text-slate-500 break-all">{meta.userAgent ?? "-"}</span>} />
           <Meta
             label="Visitors"
             value={
@@ -79,7 +79,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 <Link href={`/admin/visitors?q=${encodeURIComponent(meta.clientId)}`} className="font-mono text-[11.5px] text-blue-600 hover:underline">
                   {meta.clientId.slice(0, 13)}…
                 </Link>
-              ) : "—"
+              ) : "-"
             }
           />
         </div>

@@ -11,9 +11,9 @@ const PAGE_SIZE = 150;
 
 /** props показываем как читаемые пары, а не как сырой JSON-ком. */
 function Props({ value }: { value: unknown }) {
-  if (!value || typeof value !== "object") return <span className="text-slate-400">—</span>;
+  if (!value || typeof value !== "object") return <span className="text-slate-400">-</span>;
   const entries = Object.entries(value as Record<string, unknown>);
-  if (entries.length === 0) return <span className="text-slate-400">—</span>;
+  if (entries.length === 0) return <span className="text-slate-400">-</span>;
   return (
     <span className="flex flex-wrap gap-1.5">
       {entries.map(([k, v]) => (
@@ -81,7 +81,7 @@ export default async function EventsPage({
       </div>
 
       {name && breakdown.length > 0 && (
-        <Panel title={`${name} — breakdown`} subtitle="By element / form / field">
+        <Panel title={`${name}: breakdown`} subtitle="By element / form / field">
           <BarList rows={breakdown.map((b) => ({ key: b.label, value: b.count }))} />
         </Panel>
       )}
@@ -103,7 +103,7 @@ export default async function EventsPage({
                     {e.eventName}
                   </Link>
                 </Td>
-                <Td className="text-slate-600 whitespace-nowrap">{e.path ?? "—"}</Td>
+                <Td className="text-slate-600 whitespace-nowrap">{e.path ?? "-"}</Td>
                 <Td className="max-w-[420px]"><Props value={e.props} /></Td>
                 <Td className="text-slate-600 max-w-[150px] truncate">{e.email ?? "anonymous"}</Td>
                 <Td>

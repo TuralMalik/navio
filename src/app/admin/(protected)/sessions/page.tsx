@@ -42,7 +42,7 @@ export default async function SessionsPage({
                 <Td className="tabular-nums">{s.events}</Td>
                 <Td className="tabular-nums whitespace-nowrap">{fmtDuration(s.total_ms)}</Td>
                 <Td className="text-slate-600 whitespace-nowrap">{s.utm_source ?? s.referrer ?? "direct"}</Td>
-                <Td className="text-slate-500">{s.country ?? "—"}</Td>
+                <Td className="text-slate-500">{s.country ?? "-"}</Td>
                 <Td className="text-slate-600 max-w-[160px] truncate">{s.email ?? "anonymous"}</Td>
                 <Td>
                   <Link href={`/admin/sessions/${s.session_id}`}

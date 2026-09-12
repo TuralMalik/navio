@@ -43,7 +43,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <div>
             <p className="text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">Sign-in methods</p>
             <p className="mt-1 flex gap-1 flex-wrap">
-              {providers.length === 0 ? <span className="text-slate-400 text-[13px]">—</span> : providers.map((p) => (
+              {providers.length === 0 ? <span className="text-slate-400 text-[13px]">-</span> : providers.map((p) => (
                 <Badge key={p.provider_id} tone={p.provider_id === "google" ? "blue" : "slate"}>
                   {p.provider_id === "credential" ? "password" : p.provider_id}
                 </Badge>
@@ -70,8 +70,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <tr key={c.id} className="hover:bg-slate-50">
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(c.createdAt)}</Td>
                 <Td className="uppercase text-[11px] font-bold text-slate-500">{c.mode}</Td>
-                <Td className="tabular-nums font-bold">{c.blocked ? "—" : c.score}</Td>
-                <Td className="tabular-nums">{c.bgn != null ? `${c.bgn.toFixed(1)}%` : "—"}</Td>
+                <Td className="tabular-nums font-bold">{c.blocked ? "-" : c.score}</Td>
+                <Td className="tabular-nums">{c.bgn != null ? `${c.bgn.toFixed(1)}%` : "-"}</Td>
                 <Td>{c.blocked && <Badge tone="red">blocked</Badge>}</Td>
                 <Td>
                   <Link href={`/admin/scorings/${c.id}`}

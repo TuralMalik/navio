@@ -47,7 +47,7 @@ export default async function ScoringDetailPage({ params }: { params: Promise<{ 
   const entries = Object.entries(input);
 
   const tier = row.blocked
-    ? { tone: "red" as const, label: "blocked — hard stop" }
+    ? { tone: "red" as const, label: "blocked (hard stop)" }
     : row.score >= 80 ? { tone: "green" as const, label: "high chance" }
     : row.score >= 65 ? { tone: "green" as const, label: "good chance" }
     : row.score >= 45 ? { tone: "amber" as const, label: "medium chance" }
@@ -70,7 +70,7 @@ export default async function ScoringDetailPage({ params }: { params: Promise<{ 
           <div>
             <p className="text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">Result</p>
             <p className="text-2xl font-extrabold text-slate-900 tabular-nums mt-0.5">
-              {row.blocked ? "—" : row.score}
+              {row.blocked ? "-" : row.score}
               {!row.blocked && <span className="text-[13px] font-semibold text-slate-400"> / 100</span>}
             </p>
             <Badge tone={tier.tone}>{tier.label}</Badge>
@@ -78,7 +78,7 @@ export default async function ScoringDetailPage({ params }: { params: Promise<{ 
           <div>
             <p className="text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">BGN</p>
             <p className="text-[15px] font-bold text-slate-800 mt-1 tabular-nums">
-              {row.bgn != null ? `${row.bgn.toFixed(1)}%` : "—"}
+              {row.bgn != null ? `${row.bgn.toFixed(1)}%` : "-"}
             </p>
           </div>
           <div>
@@ -108,7 +108,7 @@ export default async function ScoringDetailPage({ params }: { params: Promise<{ 
             <div key={k} className="flex items-baseline justify-between gap-4 py-1.5 border-b border-slate-50">
               <dt className="text-[12.5px] text-slate-500">{FIELD_LABEL[k] ?? k}</dt>
               <dd className="text-[13px] font-semibold text-slate-900 text-right tabular-nums">
-                {VALUE_LABEL[v] ?? (MONEY_FIELDS.has(k) && v ? fmtNumber(Number(v)) : v || "—")}
+                {VALUE_LABEL[v] ?? (MONEY_FIELDS.has(k) && v ? fmtNumber(Number(v)) : v || "-")}
               </dd>
             </div>
           ))}
@@ -117,7 +117,7 @@ export default async function ScoringDetailPage({ params }: { params: Promise<{ 
 
       <p className="text-[11px] text-slate-400 leading-relaxed max-w-[720px]">
         This is real financial information a visitor entered. It is stored to calibrate the scoring
-        model against actual data, as disclosed in the privacy policy — not for any other use.
+        model against actual data, as disclosed in the privacy policy. Not for any other use.
       </p>
     </div>
   );

@@ -74,7 +74,7 @@ export default async function ScoringsPage({
         <Kpi label="Bank" value={fmtNumber(stats.bank)} />
         <Kpi label="BOKT" value={fmtNumber(stats.bokt)} />
         <Kpi label="Blocked" value={fmtNumber(stats.blocked)} hint="hard stop hit" />
-        <Kpi label="Avg. score" value={stats.avgScore ? String(stats.avgScore) : "—"} hint="excl. blocked" />
+        <Kpi label="Avg. score" value={stats.avgScore ? String(stats.avgScore) : "-"} hint="excl. blocked" />
         <Kpi label="With account" value={fmtNumber(stats.withAccount)} hint="rest anonymous" />
       </div>
 
@@ -122,14 +122,14 @@ export default async function ScoringsPage({
                   <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(r.createdAt)}</Td>
                   <Td className="uppercase text-[11px] font-bold text-slate-500">{r.mode}</Td>
                   <Td className="whitespace-nowrap">
-                    <span className="font-bold tabular-nums mr-1.5">{r.blocked ? "—" : r.score}</span>
+                    <span className="font-bold tabular-nums mr-1.5">{r.blocked ? "-" : r.score}</span>
                     <Badge tone={t.tone}>{t.label}</Badge>
                   </Td>
-                  <Td className="tabular-nums">{r.bgn != null ? `${r.bgn.toFixed(1)}%` : "—"}</Td>
-                  <Td className="tabular-nums">{input.mebleg ? fmtNumber(Number(input.mebleg)) : "—"}</Td>
-                  <Td className="tabular-nums">{input["muddət"] ?? "—"}</Td>
-                  <Td className="text-slate-600">{LOAN_LABEL[input.kreditNovu] ?? input.kreditNovu ?? "—"}</Td>
-                  <Td className="text-slate-600">{INCOME_LABEL[input.gelirNovu] ?? input.gelirNovu ?? "—"}</Td>
+                  <Td className="tabular-nums">{r.bgn != null ? `${r.bgn.toFixed(1)}%` : "-"}</Td>
+                  <Td className="tabular-nums">{input.mebleg ? fmtNumber(Number(input.mebleg)) : "-"}</Td>
+                  <Td className="tabular-nums">{input["muddət"] ?? "-"}</Td>
+                  <Td className="text-slate-600">{LOAN_LABEL[input.kreditNovu] ?? input.kreditNovu ?? "-"}</Td>
+                  <Td className="text-slate-600">{INCOME_LABEL[input.gelirNovu] ?? input.gelirNovu ?? "-"}</Td>
                   <Td className="text-slate-600 max-w-[150px] truncate">{r.email ?? "anonymous"}</Td>
                   <Td>
                     <Link href={`/admin/scorings/${r.id}`}
@@ -162,7 +162,7 @@ export default async function ScoringsPage({
       )}
 
       <p className="text-[11px] text-slate-400 leading-relaxed max-w-[720px]">
-        These rows contain the figures people entered — income, existing debt, delinquency days, age.
+        These rows contain the figures people entered: income, existing debt, delinquency days, age.
         They are stored so the scoring model can be calibrated against real data, which is the stated
         purpose in the privacy policy. Treat this page accordingly: it is the most sensitive view in
         the admin.

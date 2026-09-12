@@ -26,7 +26,7 @@ export default async function VisitorsPage({
     <div className="space-y-5">
       <PageHeader
         title="Visitors"
-        subtitle="Per browser install — a random identifier, not an identity"
+        subtitle="Per browser install: a random identifier, not an identity"
         right={<RangeTabs days={days} base="/admin/visitors" params={{ q: sp.q }} />}
       />
 
@@ -44,7 +44,7 @@ export default async function VisitorsPage({
 
       {q && (
         <p className="text-[13px] text-slate-600">
-          Filter: <span className="font-mono">{q}</span> — {visitors.length} results
+          Filter: <span className="font-mono">{q}</span>, {visitors.length} results
         </p>
       )}
 
@@ -65,7 +65,7 @@ export default async function VisitorsPage({
                 <Td className="tabular-nums whitespace-nowrap">{fmtDuration(v.total_ms)}</Td>
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(v.first_seen)}</Td>
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(v.last_seen)}</Td>
-                <Td className="text-slate-500">{v.country ?? "—"}</Td>
+                <Td className="text-slate-500">{v.country ?? "-"}</Td>
               </tr>
             ))}
           </Table>

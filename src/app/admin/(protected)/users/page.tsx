@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /** Провайдеры входа: credential = почта+пароль, остальное — соцвход. */
 function providerBadges(providers: string | null) {
   const list = (providers ?? "").split(",").filter(Boolean);
-  if (list.length === 0) return <span className="text-slate-400">—</span>;
+  if (list.length === 0) return <span className="text-slate-400">-</span>;
   return (
     <span className="flex gap-1">
       {list.map((p) => (
@@ -50,7 +50,7 @@ export default async function UsersPage() {
               <tr key={u.id} className="hover:bg-slate-50">
                 <Td className="text-slate-500 tabular-nums whitespace-nowrap">{fmtTime(u.created_at)}</Td>
                 <Td className="font-medium text-slate-800 max-w-[220px] truncate" title={u.email}>{u.email}</Td>
-                <Td className="text-slate-600 max-w-[150px] truncate">{u.name || "—"}</Td>
+                <Td className="text-slate-600 max-w-[150px] truncate">{u.name || "-"}</Td>
                 <Td>{providerBadges(u.providers)}</Td>
                 <Td>{u.email_verified ? <Badge tone="green">yes</Badge> : <Badge tone="amber">no</Badge>}</Td>
                 <Td className="tabular-nums font-bold">{u.calculations}</Td>

@@ -41,7 +41,7 @@ export default async function RawPage({
     <div className="space-y-5">
       <PageHeader
         title="Raw views"
-        subtitle="Rows exactly as stored — for unfiltered inspection"
+        subtitle="Rows exactly as stored, for unfiltered inspection"
         right={<RangeTabs days={days} base="/admin/raw" params={{ path, bots: includeBots ? "1" : undefined }} />}
       />
 
@@ -76,8 +76,8 @@ export default async function RawPage({
                 </Td>
                 <Td className="tabular-nums whitespace-nowrap">{fmtDuration(r.durationMs)}</Td>
                 <Td className="text-slate-600 whitespace-nowrap">{r.utmSource ?? r.referrer ?? "direct"}</Td>
-                <Td className="text-slate-500">{r.country ?? "—"}</Td>
-                <Td className="text-slate-500">{r.clientSource ?? "—"}</Td>
+                <Td className="text-slate-500">{r.country ?? "-"}</Td>
+                <Td className="text-slate-500">{r.clientSource ?? "-"}</Td>
                 <Td className="text-slate-600 max-w-[150px] truncate">{r.email ?? "anonymous"}</Td>
                 <Td>
                   <Link href={`/admin/sessions/${r.sessionId}`}

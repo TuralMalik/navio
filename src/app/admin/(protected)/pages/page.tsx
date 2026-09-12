@@ -64,7 +64,7 @@ export default async function PagesPage({
 
       <p className="text-[11px] text-slate-400">
         &quot;Entries&quot; counts sessions that started on that page. &quot;Avg. time&quot; ignores
-        zero-duration views — those are instant bounces whose heartbeat never arrived.
+        zero-duration views. Those are instant bounces whose heartbeat never arrived.
       </p>
     </div>
   );

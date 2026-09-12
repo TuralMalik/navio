@@ -56,7 +56,7 @@ export default async function OverviewPage({
 
       {noData && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-[13px] text-amber-800">
-          No data for this period. Open the site and browse a few pages — results appear here immediately.
+          No data for this period. Open the site and browse a few pages. Results appear here immediately.
         </div>
       )}
 
@@ -66,7 +66,7 @@ export default async function OverviewPage({
         <Kpi label="Visitors" value={fmtNumber(totals.visitors)} delta={delta(totals.visitors, prev.visitors)} hint="per browser" />
         <Kpi label="New" value={fmtNumber(totals.newVisitors)} hint="first-time" />
         <Kpi label="Avg. time" value={fmtDuration(totals.avgMs)} delta={delta(totals.avgMs, prev.avgMs)} hint="active on page" />
-        <Kpi label="Pages / session" value={pagesPerSession ? pagesPerSession.toFixed(1) : "—"} />
+        <Kpi label="Pages / session" value={pagesPerSession ? pagesPerSession.toFixed(1) : "-"} />
       </div>
 
       <Panel title="Trend" subtitle={days === 1 ? "By hour" : "By day"}>
@@ -105,7 +105,7 @@ export default async function OverviewPage({
             {referrers.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">External referrers</p>
-                <BarList rows={referrers.map((r) => ({ key: r.host ?? "—", value: r.sessions }))} />
+                <BarList rows={referrers.map((r) => ({ key: r.host ?? "-", value: r.sessions }))} />
               </div>
             )}
             {campaigns.length > 0 && (
@@ -126,10 +126,10 @@ export default async function OverviewPage({
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">Countries</p>
               {geo ? (
-                <BarList rows={countries.map((c) => ({ key: c.country ?? "—", value: c.views }))} />
+                <BarList rows={countries.map((c) => ({ key: c.country ?? "-", value: c.views }))} />
               ) : (
                 <p className="text-[12.5px] text-slate-500 leading-relaxed">
-                  Country data is only available on the live server — we read it from Vercel&rsquo;s
+                  Country data is only available on the live server. We read it from Vercel&rsquo;s
                   <code className="mx-1 px-1 py-0.5 bg-slate-100 rounded text-[11px]">x-vercel-ip-country</code>
                   header. Running locally there is no such header, which is why this is empty.
                 </p>
@@ -141,7 +141,7 @@ export default async function OverviewPage({
 
       <Panel
         title="Recent sessions"
-        subtitle="Each row is one visit — click to open its full path"
+        subtitle="Each row is one visit. Click to open its full path"
         action={<Link href={`/admin/sessions?days=${days}`} className="text-[12px] font-semibold text-blue-600 hover:underline shrink-0">All →</Link>}
         pad={false}
       >
@@ -172,7 +172,7 @@ export default async function OverviewPage({
       </Panel>
 
       <p className="text-[11px] text-slate-400">
-        Form values (income, debt, delinquency) never reach analytics — only field names.
+        Form values (income, debt, delinquency) never reach analytics, only field names.
         Browsing the admin panel is not tracked.
       </p>
     </div>

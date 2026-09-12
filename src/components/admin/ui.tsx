@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export function fmtDuration(ms: number | string | null | undefined): string {
   const n = typeof ms === "string" ? Number(ms) : ms ?? 0;
-  if (!n || n <= 0) return "—";
+  if (!n || n <= 0) return "-";
   const s = Math.round(n / 1000);
   if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);
