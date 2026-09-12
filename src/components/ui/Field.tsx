@@ -107,11 +107,19 @@ export function NumberField({
     if (raw === "") return onChange("");
     const n = Number(raw);
     if (Number.isNaN(n)) return;
-    // Кламп на вводе, а не на blur: иначе пользователь успевает увидеть
-    // расчёт по заведомо невозможной сумме.
-    if (clampMin && min != null && n < min) return onChange(String(min));
+    // Максимум применяем сразу: любой префикс валидного числа не превышает max,
+    // поэтому набору это не мешает. Минимум на вводе НЕ трогаем — иначе первая
+    // набранная цифра, меньшая min, снапалась бы к min, и число вроде 24 при
+    // min=3 (или 25% при min=5) ввести было бы невозможно. Минимум применяем
+    // на blur (handleBlur), когда ввод уже завершён.
     if (max != null && n > max) return onChange(String(max));
     onChange(raw);
+  }
+
+  function handleBlur() {
+    if (!clampMin || min == null || value === "") return;
+    const n = Number(value);
+    if (!Number.isNaN(n) && n < min) onChange(String(min));
   }
 
   return (
@@ -139,6 +147,7 @@ export function NumberField({
              провоцируют щёлкать по одному шагу вместо ввода числа. */
           className="w-full bg-transparent px-3 py-2 text-sm font-semibold tabular-nums text-ink outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           {...rest}
+          onBlur={handleBlur}
         />
         {unit && <span className="shrink-0 pr-3 text-xs text-gray-400">{unit}</span>}
       </div>
