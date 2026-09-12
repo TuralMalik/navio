@@ -6,7 +6,7 @@ import { simulateLoan, compareScenarios } from "@/lib/calculators/amortisation";
 import { formatNumber } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { NumberField, DateField } from "@/components/ui/Field";
-import { useDefaultStartDate } from "@/lib/calculators/dates";
+import { useDefaultStartDate, monthIndex } from "@/lib/calculators/dates";
 import { ExtraPayments, initialExtraConfig, hasExtra, toPlan } from "@/components/calculators/ExtraPayments";
 import { LoanResult } from "@/components/calculators/LoanResult";
 import { ScheduleTable } from "@/components/calculators/ScheduleTable";
@@ -29,6 +29,21 @@ export default function ConsumerLoanPage() {
   const [other, setOther] = useState("0");
   const [startDate, setStartDate] = useDefaultStartDate();
   const [extra, setExtra] = useState(initialExtraConfig);
+
+  // Разовая доплата, добавляемая кликом по строке графика (upsert по месяцу).
+  const setOneTime = (date: string, amount: number) => {
+    if (!date) return;
+    setExtra((cfg) => {
+      const idx = monthIndex(startDate, date);
+      const others = cfg.oneTime.filter((o) => monthIndex(startDate, o.date) !== idx);
+      const next = amount > 0 ? [...others, { id: Date.now(), date, amount }] : others;
+      return {
+        ...cfg,
+        enabled: amount > 0 ? true : cfg.enabled,
+        oneTime: next.length ? next : [{ id: Date.now(), date: "", amount: 0 }],
+      };
+    });
+  };
 
   const n = (s: string) => Math.max(0, parseFloat(s) || 0);
   const p = n(principal);
@@ -145,7 +160,15 @@ export default function ConsumerLoanPage() {
         </div>
       </div>
 
-      {result && <ScheduleTable rows={result.schedule} showExtra={hasExtra(extra)} startDate={startDate} />}
+      {result && (
+        <ScheduleTable
+          rows={result.schedule}
+          showExtra={hasExtra(extra)}
+          startDate={startDate}
+          oneTime={extra.oneTime}
+          onSetOneTime={setOneTime}
+        />
+      )}
     </div>
   );
 }
