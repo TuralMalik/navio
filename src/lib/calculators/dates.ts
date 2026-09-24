@@ -30,12 +30,16 @@ export function addMonths(value: string, offset: number): string {
 }
 
 /** Порядковый номер платежа (1..) для выбранной даты относительно старта.
-    Считается по году и месяцу; день на номер месяца не влияет. */
+    Считается по году и месяцу; день на номер месяца не влияет. Платёж №1
+    приходится на месяц ПОСЛЕ даты старта (дата старта — это дата выдачи
+    кредита, а не дата первого платежа, как и в стандартных банковских
+    графиках/Excel-шаблонах: там Start date и первая Payment Date всегда
+    отличаются на месяц). */
 export function monthIndex(start: string, value: string): number | null {
   const [sy, sm] = start.split("-").map(Number);
   const [vy, vm] = value.split("-").map(Number);
   if (!sy || !sm || !vy || !vm) return null;
-  return (vy - sy) * 12 + (vm - sm) + 1;
+  return (vy - sy) * 12 + (vm - sm);
 }
 
 /** "YYYY-MM-DD" → "15 Avq 2026". */
@@ -45,10 +49,11 @@ export function formatDateLabel(value: string): string {
   return `${d || 1} ${MONTHS_AZ_SHORT[m - 1]} ${y}`;
 }
 
-/** Дата для порядкового месяца графика (month = 1 → сам старт). */
+/** Дата для порядкового месяца графика (month = 1 → через месяц после старта,
+    первый платёж по кредиту). */
 export function scheduleDateLabel(start: string, month: number): string {
   if (!start) return "";
-  return formatDateLabel(addMonths(start, month - 1));
+  return formatDateLabel(addMonths(start, month));
 }
 
 /* Дефолт стартовой даты проставляем ПОСЛЕ маунта, а не в initial state:

@@ -94,8 +94,10 @@ export function ExtraPayments({
   const addOneTime = () =>
     onChange({ ...value, oneTime: [...value.oneTime, { id: Date.now(), date: "", amount: 0 }] });
 
-  // Границы календаря доплат: от старта до последнего месяца кредита.
-  const lastMonth = startDate && months > 0 ? addMonths(startDate, months - 1) : undefined;
+  // Границы календаря доплат: от даты первого платежа (через месяц после
+  // старта) до даты последнего.
+  const firstPaymentDate = startDate ? addMonths(startDate, 1) : undefined;
+  const lastMonth = startDate && months > 0 ? addMonths(startDate, months) : undefined;
 
   const removeOneTime = (id: number) =>
     onChange({ ...value, oneTime: value.oneTime.filter((o) => o.id !== id) });
@@ -173,7 +175,7 @@ export function ExtraPayments({
                   id="rec-from"
                   value={value.recurring.from}
                   onChange={(v) => setRecurring({ from: v })}
-                  min={startDate || undefined}
+                  min={firstPaymentDate}
                   max={lastMonth}
                 />
                 <DateField
@@ -182,7 +184,7 @@ export function ExtraPayments({
                   hint="Boş: kredit bitənə qədər"
                   value={value.recurring.to}
                   onChange={(v) => setRecurring({ to: v })}
-                  min={value.recurring.from || startDate || undefined}
+                  min={value.recurring.from || firstPaymentDate}
                   max={lastMonth}
                 />
               </div>
@@ -199,7 +201,7 @@ export function ExtraPayments({
                     id={`ot-d-${op.id}`}
                     value={op.date}
                     onChange={(v) => updateOneTime(op.id, { date: v })}
-                    min={startDate || undefined}
+                    min={firstPaymentDate}
                     max={lastMonth}
                   />
                   <Field label="Məbləğ (₼)" htmlFor={`ot-a-${op.id}`}>

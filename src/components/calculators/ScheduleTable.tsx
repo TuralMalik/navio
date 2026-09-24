@@ -64,12 +64,12 @@ export function ScheduleTable({
   };
 
   const commit = (month: number) => {
-    onSetOneTime?.(addMonths(startDate, month - 1), parseInt(draft, 10) || 0);
+    onSetOneTime?.(addMonths(startDate, month), parseInt(draft, 10) || 0);
     setOpenMonth(null);
   };
 
   const clear = (month: number) => {
-    onSetOneTime?.(addMonths(startDate, month - 1), 0);
+    onSetOneTime?.(addMonths(startDate, month), 0);
     setOpenMonth(null);
   };
 
